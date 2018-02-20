@@ -8,7 +8,7 @@
 *****************************************************************************/
 
 #include "calc_velocity.h"
-#include "self_consistent_eq_square.h"
+#include "self_consistent_eq.h"
 #include "calc_gap.h"
 
 void calc_velocity() {  

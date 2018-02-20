@@ -10,7 +10,7 @@
 #include "rpa.h"
 #include "rpa_util.h"
 #include "plot_chi0.h"
-#include "self_consistent_eq_square.h"
+#include "self_consistent_eq.h"
 #include "plot_self_consistent_eq_square.h"
 #include "calc_gap.h"
 #include "calc_dispersion.h"
@@ -26,7 +26,7 @@ int main(){
   // plot_self_consistent_eq_square( U );
 
   // plot_chi0_AF( U );
-  calc_dispersion( U );
+  calc_dispersion_square( U );
 
   // calc_velocity();
   

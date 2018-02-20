@@ -9,4 +9,4 @@
 
 #include "rpa.h"
 
-void calc_dispersion(double U);
+void calc_dispersion_square(double U);

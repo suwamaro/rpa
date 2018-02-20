@@ -9,5 +9,10 @@
 
 #include "rpa.h"
 
+/* For a square lattice */
 double self_consistent_eq_square(int L, double t, double mu, double delta);
 double solve_self_consistent_eq_square(int L, double t, double mu, double U);
+
+/* For a simple cubic lattice */
+double self_consistent_eq_cubic(int L, double t, double mu, double delta);
+double solve_self_consistent_eq_cubic(int L, double t, double mu, double U);

@@ -9,7 +9,7 @@
 *****************************************************************************/
 
 #include "calc_gap.h"
-#include "self_consistent_eq_square.h"
+#include "self_consistent_eq.h"
 
 void plot_chi0_AF(double U){
   /* Calculating chi0 with respect to the AF ground state as a function of omega */

@@ -8,7 +8,7 @@
 *****************************************************************************/
 
 #include "plot_self_consistent_eq_square.h"
-#include "self_consistent_eq_square.h"
+#include "self_consistent_eq.h"
 
 void plot_self_consistent_eq_square(double U){
   /* Calculating the value of the self-consistent equation as a function of delta */

@@ -8,11 +8,11 @@
 *****************************************************************************/
 
 #include "calc_dispersion.h"
-#include "self_consistent_eq_square.h"
+#include "self_consistent_eq.h"
 #include "calc_gap.h"
 #include "BinarySearch.h"
 
-void calc_dispersion(double U){
+void calc_dispersion_square(double U){
   double t = 1.;
   double mu = 0;
   int L = 32;
