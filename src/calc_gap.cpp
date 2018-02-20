@@ -11,14 +11,12 @@
 #include "rpa_util.h"
 #include "BinarySearch.h"
 
-double calc_bk_up_in(double t, double mu, double delta, double kx, double ky){
-  double e_free = energy_free_electron( t, mu, kx, ky );
+double calc_bk_up_in(double e_free, double delta){
   double Ek = eigenenergy_HF_in( e_free, delta );
   return  e_free / sqrt( ( Ek - delta ) * ( Ek - delta ) + e_free * e_free );
 }
 
-double calc_bk_up_out(double t, double mu, double delta, double kx, double ky){
-  double e_free = energy_free_electron( t, mu, kx, ky );
+double calc_bk_up_out(double e_free, double delta){
   double Ek = eigenenergy_HF_out( e_free, delta );
   
     /* Special treatment on the Fermi surface */
@@ -29,30 +27,30 @@ double calc_bk_up_out(double t, double mu, double delta, double kx, double ky){
   }
 }
 
-double calc_ak_up_in(double t, double mu, double delta, double kx, double ky){
-  double bk = calc_bk_up_in( t, mu, delta, kx, ky );
+double calc_ak_up_in(double e_free, double delta){
+  double bk = calc_bk_up_in( e_free, delta );
   return sqrt( 1. - bk * bk );
 }
 
-double calc_ak_up_out(double t, double mu, double delta, double kx, double ky){
-  double bk = calc_bk_up_out( t, mu, delta, kx, ky );
+double calc_ak_up_out(double e_free, double delta){
+  double bk = calc_bk_up_out( e_free, delta );
   return sqrt( 1. - bk * bk );
 }
 
-double calc_bk_down_in(double t, double mu, double delta, double kx, double ky){
-  return calc_ak_up_in( t, mu, delta, kx, ky );
+double calc_bk_down_in(double e_free, double delta){
+  return calc_ak_up_in( e_free, delta );
 }
 
-double calc_bk_down_out(double t, double mu, double delta, double kx, double ky){
-  return calc_ak_up_out( t, mu, delta, kx, ky );
+double calc_bk_down_out(double e_free, double delta){
+  return calc_ak_up_out( e_free, delta );
 }
 
-double calc_ak_down_in(double t, double mu, double delta, double kx, double ky){
-  return calc_bk_up_in( t, mu, delta, kx, ky );
+double calc_ak_down_in(double e_free, double delta){
+  return calc_bk_up_in( e_free, delta );
 }
 
-double calc_ak_down_out(double t, double mu, double delta, double kx, double ky){
-  return calc_bk_up_out( t, mu, delta, kx, ky );
+double calc_ak_down_out(double e_free, double delta){
+  return calc_bk_up_out( e_free, delta );
 }
 
 double larger_eigenvalue(double A, double B, double D){
@@ -89,14 +87,14 @@ double calc_eigval(int L, double t, double mu, double U, double delta, double qx
 	double diff_E1 = E1 - E2 + omega;
 	double diff_E2 = E1 - E2 - omega;
 
-	double ak_up_in = calc_ak_up_in( t, mu, delta, kx, ky );
-	double ak_q_up_out = calc_ak_up_out( t, mu, delta, diff_x, diff_y );
-	double ak_down_in = calc_ak_down_in( t, mu, delta, kx, ky );
-	double ak_q_down_out = calc_ak_down_out( t, mu, delta, diff_x, diff_y );
-	double bk_up_in = calc_bk_up_in( t, mu, delta, kx, ky );
-	double bk_q_up_out = calc_bk_up_out( t, mu, delta, diff_x, diff_y );
-	double bk_down_in = calc_bk_down_in( t, mu, delta, kx, ky );
-	double bk_q_down_out = calc_bk_down_out( t, mu, delta, diff_x, diff_y );
+	double ak_up_in = calc_ak_up_in( e_free, delta );
+	double ak_q_up_out = calc_ak_up_out( e_free2, delta );
+	double ak_down_in = calc_ak_down_in( e_free, delta );
+	double ak_q_down_out = calc_ak_down_out( e_free2, delta );
+	double bk_up_in = calc_bk_up_in( e_free, delta );
+	double bk_q_up_out = calc_bk_up_out( e_free2, delta );
+	double bk_down_in = calc_bk_down_in( e_free, delta );
+	double bk_q_down_out = calc_bk_down_out( e_free2, delta );
 
 	double factor = 1.;
 

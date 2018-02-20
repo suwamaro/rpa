@@ -9,4 +9,8 @@
 
 #include "rpa.h"
 
+/* For a square lattice */
 void calc_dispersion_square(double U);
+
+/* For a simple cubic lattice */
+void calc_dispersion_cubic(double U);

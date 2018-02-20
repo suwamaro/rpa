@@ -26,6 +26,7 @@ int main(){
   // plot_self_consistent_eq_square( U );
 
   // plot_chi0_AF( U );
+  // calc_dispersion_cubic( U );
   calc_dispersion_square( U );
 
   // calc_velocity();
