@@ -86,14 +86,6 @@ void calc_dispersion(double U){
     output_omega();
     ++q_idx;
   }
-  
-  // double delta_delta = 0.01;
-  // double delta_max = 10.0;
-  // for(double delta = delta_delta; delta <= delta_max; delta += delta_delta){
-  //   double scc = self_consistent_eq_square( L, t, mu, delta );
-  //   out << delta << std::setw( prec ) << scc << std::endl;
-  //   break;
-  // }
 
   out.close();
 }

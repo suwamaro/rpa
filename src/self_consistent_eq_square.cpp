@@ -22,9 +22,17 @@ double self_consistent_eq_square(int L, double t, double mu, double delta){
 
       double e_free = energy_free_electron( t, mu, kx, ky );
       double e_eps = 1e-12;
-      if ( e_free < - e_eps || ( std::abs( e_free ) <= e_eps && kx < 0 ) ) {	
-	/* Summing up over all k inside the Brillouin zone. Note that the half of Fermi wave vectors are taken into account. */
-	sum += 1. / eigenenergy_HF_out( e_free, delta );
+
+      /* Summing up over all k inside the Brillouin zone. */
+      if ( e_free < e_eps ) {
+	double factor = 1.;
+
+	/* Taking into account a half of the contribution from the Fermi surface */
+	if ( std::abs( e_free ) <= e_eps ) {
+	  factor = 0.5;
+	}
+
+	sum += factor / eigenenergy_HF_out( e_free, delta );
       }
     }
   }
