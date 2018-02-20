@@ -22,7 +22,7 @@ int main(){
   // calc_size_dependence();
   // calc_chi();
 
-  double U = 2.0;
+  double U = 4.0;
   // plot_self_consistent_eq_square( U );
 
   // plot_chi0_AF( U );

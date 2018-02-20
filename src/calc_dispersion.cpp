@@ -15,7 +15,7 @@
 void calc_dispersion(double U){
   double t = 1.;
   double mu = 0;
-  int L = 72;
+  int L = 32;
   double k1 = 2. * M_PI / (double)L;
 
   double delta = solve_self_consistent_eq_square( L, t, mu, U );
