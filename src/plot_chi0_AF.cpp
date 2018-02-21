@@ -32,10 +32,10 @@ void plot_chi0_AF(double U){
   double omega_MIN = 0.1;
   double omega_MAX = 0.4;
   for(double omega = omega_MIN; omega <= omega_MAX; omega += omega_delta){
-    double eigval = calc_eigval( L, t, mu, U, delta, qx, qy, omega );
+    double eigval = calc_eigval_square( L, t, mu, U, delta, qx, qy, omega );
     out << omega << std::setw( prec ) << eigval << std::endl;
   }
-  double omega0 = calc_gap( L, t, mu, U, delta, qx, qy );
+  double omega0 = calc_gap_square( L, t, mu, U, delta, qx, qy );
   
   std::cout << "omega0 = " << omega0 << std::endl;
   

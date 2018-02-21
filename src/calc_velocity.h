@@ -9,4 +9,5 @@
 
 #include "rpa.h"
 
-void calc_velocity();
+void calc_velocity_square();
+void calc_velocity_cubic();

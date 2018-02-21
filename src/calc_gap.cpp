@@ -9,7 +9,6 @@
 
 #include "calc_gap.h"
 #include "rpa_util.h"
-#include "BinarySearch.h"
 
 double calc_bk_up_in(double e_free, double delta){
   double Ek = eigenenergy_HF_in( e_free, delta );
@@ -66,69 +65,30 @@ double wave_vector_in_BZ(double k){
   return k;
 }
 
-double calc_eigval(int L, double t, double mu, double U, double delta, double qx, double qy, double omega){
-  double k1 = 2. * M_PI / (double)L;
+void add_to_sus_mat(double& A, double& B, double& D, double e_free, double e_free2, double delta, double omega){
+  double e_eps = 1e-12;
+  double E1 = eigenenergy_HF_out( e_free2, delta );
+  double E2 = eigenenergy_HF_in( e_free, delta );
+  double diff_E1 = E1 - E2 + omega;
+  double diff_E2 = E1 - E2 - omega;
   
-  double A = 0, B = 0, D = 0;
-  for(int x=-L/2; x < L/2; x++){
-    double kx = k1 * x;
-    for(int y=-L/2; y < L/2; y++){
-      double ky = k1 * y;
-
-      double e_free = energy_free_electron( t, mu, kx, ky );
-      double e_eps = 1e-12;
-      if ( e_free < e_eps ) {
-	/* Summing up over all k inside the Brillouin zone. */
-	double diff_x = wave_vector_in_BZ( kx - qx );
-	double diff_y = wave_vector_in_BZ( ky - qy );	
-	double e_free2 = energy_free_electron( t, mu, diff_x, diff_y );
-	double E1 = eigenenergy_HF_out( e_free2, delta );
-	double E2 = eigenenergy_HF_in( e_free, delta );
-	double diff_E1 = E1 - E2 + omega;
-	double diff_E2 = E1 - E2 - omega;
-
-	double ak_up_in = calc_ak_up_in( e_free, delta );
-	double ak_q_up_out = calc_ak_up_out( e_free2, delta );
-	double ak_down_in = calc_ak_down_in( e_free, delta );
-	double ak_q_down_out = calc_ak_down_out( e_free2, delta );
-	double bk_up_in = calc_bk_up_in( e_free, delta );
-	double bk_q_up_out = calc_bk_up_out( e_free2, delta );
-	double bk_down_in = calc_bk_down_in( e_free, delta );
-	double bk_q_down_out = calc_bk_down_out( e_free2, delta );
-
-	double factor = 1.;
-
-	/* Taking into account a half of the contribution from the Fermi surface */
-	if ( std::abs( e_free ) <= e_eps ) {
-	  factor = 0.5;
-	}
-	
-	A += factor * ( ak_up_in * ak_up_in * ak_q_down_out * ak_q_down_out / diff_E1 + ak_down_in * ak_down_in * ak_q_up_out * ak_q_up_out / diff_E2 );
-	B += factor * ( ak_up_in * bk_up_in * ak_q_down_out * bk_q_down_out / diff_E1 + ak_down_in * bk_down_in * ak_q_up_out * bk_q_up_out / diff_E2 );
-	D += factor * ( bk_up_in * bk_up_in * bk_q_down_out * bk_q_down_out / diff_E1 + bk_down_in * bk_down_in * bk_q_up_out * bk_q_up_out / diff_E2 );
-      }
-    }
+  double ak_up_in = calc_ak_up_in( e_free, delta );
+  double ak_q_up_out = calc_ak_up_out( e_free2, delta );
+  double ak_down_in = calc_ak_down_in( e_free, delta );
+  double ak_q_down_out = calc_ak_down_out( e_free2, delta );
+  double bk_up_in = calc_bk_up_in( e_free, delta );
+  double bk_q_up_out = calc_bk_up_out( e_free2, delta );
+  double bk_down_in = calc_bk_down_in( e_free, delta );
+  double bk_q_down_out = calc_bk_down_out( e_free2, delta );
+  
+  double factor = 1.;
+  
+  /* Taking into account a half of the contribution from the Fermi surface */
+  if ( std::abs( e_free ) <= e_eps ) {
+    factor = 0.5;
   }
-
-  int n_sites = L * L;
-  A *= 2. / (double)n_sites;
-  B *= 2. / (double)n_sites;
-  D *= 2. / (double)n_sites;
-  return larger_eigenvalue( A, B, D );
-}
-
-double calc_gap(int L, double t, double mu, double U, double delta, double qx, double qy){
-  double target = 1. / U;
-  double omega = 0.01;
   
-  using std::placeholders::_1;
-  auto calc_ev = std::bind( calc_eigval, L, t, mu, U, delta, qx, qy, _1 );
-
-  BinarySearch bs;
-  double omega_delta = 0.001;
-  // bs.find_solution( omega, target, calc_ev );
-  // bs.find_solution( omega, target, calc_ev, true, omega_delta, 0, 1., true );
-  bs.find_solution( omega, target, calc_ev, true, omega_delta );
-  
-  return omega;
+  A += factor * ( ak_up_in * ak_up_in * ak_q_down_out * ak_q_down_out / diff_E1 + ak_down_in * ak_down_in * ak_q_up_out * ak_q_up_out / diff_E2 );
+  B += factor * ( ak_up_in * bk_up_in * ak_q_down_out * bk_q_down_out / diff_E1 + ak_down_in * bk_down_in * ak_q_up_out * bk_q_up_out / diff_E2 );
+  D += factor * ( bk_up_in * bk_up_in * bk_q_down_out * bk_q_down_out / diff_E1 + bk_down_in * bk_down_in * bk_q_up_out * bk_q_up_out / diff_E2 );
 }

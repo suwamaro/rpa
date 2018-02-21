@@ -47,7 +47,7 @@ void calc_dispersion_square(double U){
       out << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << 0 << std::setw( prec ) << U << std::endl;
     } else {
       /* Finding the pole of the RPA susceptibility. */
-      double omega = calc_gap( L, t, mu, U, delta, qx, qy );
+      double omega = calc_gap_square( L, t, mu, U, delta, qx, qy );
       out << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << omega << std::setw( prec ) << U << std::endl;
     }
   };
