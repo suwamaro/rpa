@@ -38,6 +38,12 @@ find_package(Boost 1.55.0 REQUIRED COMPONENTS filesystem system)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${Boost_LIBRARIES})
 
+# Armadillo
+find_package(Armadillo REQUIRED CONFIG
+#find_package(Armadillo 4.400.2 REQUIRED CONFIG
+             PATHS "/usr/local" "$ENV{ARMA_ROOT}" NO_SYSTEM_ENVIRONMENT_PATH)
+include_directories(SYSTEM ${ARMADILLO_INCLUDE_DIRS})
+set(LIBS ${LIBS} ${ARMADILLO_LIBRARIES})
 
 # -- BUILD -------------------------------------------
 

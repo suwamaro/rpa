@@ -52,8 +52,8 @@ double calc_ak_down_out(double e_free, double delta){
   return calc_bk_up_out( e_free, delta );
 }
 
-double larger_eigenvalue(double A, double B, double D){
-  return 0.5 * ( A + D + sqrt( ( A - D ) * ( A - D ) + 4. * B * B ) );
+double larger_eigenvalue(cx_double A, cx_double B, cx_double D){
+  return std::real( 0.5 * ( A + D + sqrt( std::conj( A - D ) * ( A - D ) + 4. * std::conj(B) * B ) ) );
 }
 
 double wave_vector_in_BZ(double k){
@@ -65,12 +65,13 @@ double wave_vector_in_BZ(double k){
   return k;
 }
 
-void add_to_sus_mat(double& A, double& B, double& D, double e_free, double e_free2, double delta, double omega){
+void add_to_sus_mat(cx_double& A, cx_double& B, cx_double& D, double e_free, double e_free2, double delta, cx_double omega){
   double e_eps = 1e-12;
   double E1 = eigenenergy_HF_out( e_free2, delta );
   double E2 = eigenenergy_HF_in( e_free, delta );
-  double diff_E1 = E1 - E2 + omega;
-  double diff_E2 = E1 - E2 - omega;
+  cx_double diff_E1 = E1 - E2 + omega;
+  cx_double diff_E2 = E1 - E2 - omega;
+  
   
   double ak_up_in = calc_ak_up_in( e_free, delta );
   double ak_q_up_out = calc_ak_up_out( e_free2, delta );

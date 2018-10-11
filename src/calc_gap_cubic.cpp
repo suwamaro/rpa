@@ -14,7 +14,7 @@
 double calc_eigval_cubic(int L, double t, double mu, double U, double delta, double qx, double qy, double qz, double omega){
   double k1 = 2. * M_PI / (double)L;
   
-  double A = 0, B = 0, D = 0;
+  cx_double A = 0, B = 0, D = 0;
   for(int x=-L/2; x < L/2; x++){
     double kx = k1 * x;
     for(int y=-L/2; y < L/2; y++){

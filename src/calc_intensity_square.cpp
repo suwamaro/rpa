@@ -9,9 +9,9 @@
 
 #include "calc_gap.h"
 #include "rpa_util.h"
-#include "BinarySearch.h"
+#include <armadillo>
 
-double calc_eigval_square(int L, double t, double mu, double U, double delta, double qx, double qy, double omega){
+double calc_intensity_square(int L, double t, double mu, double U, double delta, double qx, double qy, cx_double omega){
   double k1 = 2. * M_PI / (double)L;
   
   cx_double A = 0, B = 0, D = 0;
@@ -19,7 +19,7 @@ double calc_eigval_square(int L, double t, double mu, double U, double delta, do
     double kx = k1 * x;
     for(int y=-L/2; y < L/2; y++){
       double ky = k1 * y;
-
+      
       double e_free = energy_free_electron( t, mu, kx, ky );
       double e_eps = 1e-12;
       if ( e_free < e_eps ) {
@@ -36,21 +36,24 @@ double calc_eigval_square(int L, double t, double mu, double U, double delta, do
   A *= 2. / (double)n_sites;
   B *= 2. / (double)n_sites;
   D *= 2. / (double)n_sites;
-  return larger_eigenvalue( A, B, D );
-}
-
-double calc_gap_square(int L, double t, double mu, double U, double delta, double qx, double qy){
-  double target = 1. / U;
-  double omega = 0.01;
   
-  using std::placeholders::_1;
-  auto calc_ev = std::bind( calc_eigval_square, L, t, mu, U, delta, qx, qy, _1 );
-
-  BinarySearch bs;
-  double omega_delta = 0.001;
-  // bs.find_solution( omega, target, calc_ev );
-  // bs.find_solution( omega, target, calc_ev, true, omega_delta, 0, 1., true );
-  bs.find_solution( omega, target, calc_ev, true, omega_delta );
+  arma::cx_mat chi0(2,2);
+  chi0(0,0) = A;
+  chi0(0,1) = B;
+  chi0(1,0) = std::conj(B);
+  chi0(1,1) = D;
+  arma::cx_mat denom = arma::eye<arma::cx_mat>(2,2) - U * chi0;
+  arma::cx_mat chi = chi0 * arma::inv(denom);
+  arma::vec eigval;
+  arma::eig_sym( eigval, chi );
+  // arma::cx_mat eigvec;
+  // arma::eig_sym( eigval, eigvec, chi );
   
-  return omega;
+  // std::cout << eigval(0) << std::endl;
+  // std::cout << eigval(1) << std::endl;
+  // return arma::max(arma::abs(eigval));
+  return arma::min(eigval);
+  // return arma::max(eigval);
+  
+  
 }
