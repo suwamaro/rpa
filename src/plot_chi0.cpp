@@ -77,10 +77,6 @@ void out_calc(boost::filesystem::ofstream& out, int& idx, int L, double t, doubl
     cx_double chi0 = calc_chi0( L, t, mu, kT, eta, E, qx, qy, qz );
     double chi = std::imag( RPA_calc( chi0, U ) );
     double dssf = 2. / ( 1. - exp( - E / kT ) ) * chi;
-    
-    // // for check
-    // std::cout << "( " << qx << ", " << qy << ", " << qz << " )" << std::endl;
-    
     int prec = 15;
     out << idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << E << std::setw( prec ) << dssf << std::setw( prec ) << chi << std::endl;
   }
@@ -227,5 +223,81 @@ void plot_chi0(){
     // chi1_pre = chi1;
 
   }
+  out.close();
+}
+
+void plot_chi0(int L, double eta){
+  double t = 1.;
+  double mu = 0;
+  double kT = 1e-4 * t; // kT needs to be set small enough
+
+  int prec = 15;
+      
+  /* Omegas */
+  double delta_omega = 0.01;
+  double max_omega = 10.0;
+  int n_omegas = int(max_omega/delta_omega+1);
+  std::vector<double> omegas(n_omegas);
+  for(int o=0; o < n_omegas; o++){ omegas[o] = delta_omega * o; }
+ 
+  boost::filesystem::ofstream out;
+  out.open("chi0-E.text");
+
+  double qx = 0;
+  double qy = 0;
+  int q_idx = 0;
+      
+  /* Prefactors for S cdot S */
+  double factor_SS = 3.;
+  
+  /* From the response function to the dynamic structure factor */
+  double factor_dsf = 2.;
+
+  auto output_spectrum = [&](){
+    std::cout << "( qx, qy ) = ( " << qx << ", " << qy << " )" << std::endl;
+    for(int o=0; o < n_omegas; o++){
+      double sqo = factor_dsf * factor_SS * std::imag( calc_chi0( L, t, mu, kT, eta, omegas[o], qx, qy ) );
+      out << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << omegas[o] << std::setw( prec ) << sqo << std::endl;
+    }
+  };
+
+  /* Calculating at symmetric wavevectors */
+  double k1 = 2. * M_PI / (double)L;
+  
+  for(int x=0; x < L/4; x++){
+    qx = M_PI - k1 * x;
+    qy = k1 * x;
+    output_spectrum();
+    ++q_idx;
+  }
+
+  for(int x=0; x < L/4; x++){
+    qx = 0.5 * M_PI - k1 * x;
+    qy = 0.5 * M_PI - k1 * x;
+    output_spectrum();
+    ++q_idx;
+  }
+  
+  for(int x=0; x < L/2; x++){
+    qx = k1 * x;
+    qy = 0;
+    output_spectrum();
+    ++q_idx;
+  }
+
+  for(int y=0; y < L/2; y++){
+    qx = M_PI;
+    qy = k1 * y;
+    output_spectrum();
+    ++q_idx;
+  }
+
+  for(int x=0; x <= L/4; x++){
+    qx = M_PI - k1 * x;
+    qy = M_PI - k1 * x;
+    output_spectrum();
+    ++q_idx;
+  }
+
   out.close();
 }

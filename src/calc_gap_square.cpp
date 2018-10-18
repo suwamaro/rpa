@@ -36,7 +36,7 @@ double calc_eigval_square(int L, double t, double mu, double U, double delta, do
   A *= 2. / (double)n_sites;
   B *= 2. / (double)n_sites;
   D *= 2. / (double)n_sites;
-  return larger_eigenvalue( A, B, D );
+  return std::real( larger_eigenvalue( A, B, D ) );
 }
 
 double calc_gap_square(int L, double t, double mu, double U, double delta, double qx, double qy){

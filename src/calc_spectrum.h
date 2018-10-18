@@ -10,7 +10,7 @@
 #include "rpa.h"
 
 /* For a square lattice */
-void calc_spectrum_square(double U);
+void calc_spectrum_square(double U, int L, double eta);
 
 /* For a simple cubic lattice */
 // void calc_spectrum_cubic(double U);

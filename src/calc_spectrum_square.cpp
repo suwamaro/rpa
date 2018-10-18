@@ -11,22 +11,17 @@
 #include "self_consistent_eq.h"
 #include "calc_gap.h"
 
-void calc_spectrum_square(double U){
+void calc_spectrum_square(double U, int L, double eta){
   /* Parameters */
   double t = 1.;
   double mu = 0;
-  int L = 16;
-  double eta = 0.001;
   double k1 = 2. * M_PI / (double)L;
-  // double delta_omega = 0.05;
-  // double max_omega = 0.001;
-
-  double delta_omega = 0.01;
-  double max_omega = 2.0;
   
   int prec = 15;
   
   /* Omegas */
+  double delta_omega = 0.001;
+  double max_omega = 10.0;
   int n_omegas = int(max_omega/delta_omega+1);
   std::vector<double> omegas(n_omegas);
   for(int o=0; o < n_omegas; o++){ omegas[o] = delta_omega * o; }
@@ -52,27 +47,14 @@ void calc_spectrum_square(double U){
   /* R = ( pi, pi )                 */
 
   auto output_spectrum = [&](){
-    std::cout << "( qx, qy ) = ( " << qx << ", " << qy << " )" << std::endl;
-
-    /* Gap is 0 at (0,0) and (pi,pi) */
-    if ( std::abs( qx ) + std::abs( qy ) < 1e-12 ) {
-      for(int o=0; o < n_omegas; o++){
-	out << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << omegas[o] << std::setw( prec ) << 0 << std::setw( prec ) << U << std::endl;
-      }
-    } else if ( std::abs( qx - M_PI ) + std::abs( qy - M_PI ) < 1e-12 ) {
-      for(int o=0; o < n_omegas; o++){
-	out << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << omegas[o] << std::setw( prec ) << 0 << std::setw( prec ) << U << std::endl;
-      }
-    } else {
-      /* Finding the pole of the RPA susceptibility. */
-      for(int o=0; o < n_omegas; o++){
-	cx_double cx_omega(omegas[o], eta);
-	double chi = calc_intensity_square( L, t, mu, U, delta, qx, qy, cx_omega );
-	out << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << omegas[o] << std::setw( prec ) << chi << std::setw( prec ) << U << std::endl;
-      }
+    std::cout << "( qidx, qx, qy ) = ( " << q_idx << ", " << qx << ", " << qy << " )" << std::endl;
+    for(int o=0; o < n_omegas; o++){
+      cx_double cx_omega(omegas[o], eta);	
+      double chi = calc_intensity_square( L, t, mu, U, delta, qx, qy, cx_omega );
+      out << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << omegas[o] << std::setw( prec ) << chi << std::setw( prec ) << U << std::endl;
     }
   };
-      
+    
   for(int x=0; x < L/4; x++){
     qx = M_PI - k1 * x;
     qy = k1 * x;

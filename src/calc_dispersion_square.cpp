@@ -12,10 +12,9 @@
 #include "calc_gap.h"
 #include "BinarySearch.h"
 
-void calc_dispersion_square(double U){
+void calc_dispersion_square(double U, int L){
   double t = 1.;
   double mu = 0;
-  int L = 16;
   double k1 = 2. * M_PI / (double)L;
 
   double delta = solve_self_consistent_eq_square( L, t, mu, U );

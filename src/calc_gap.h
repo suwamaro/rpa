@@ -10,7 +10,7 @@
 #include "rpa.h"
 
 /* Common to the lattices */
-double larger_eigenvalue(cx_double A, cx_double B, cx_double D);
+cx_double larger_eigenvalue(cx_double A, cx_double B, cx_double D);
 double wave_vector_in_BZ(double k);
 void add_to_sus_mat(cx_double& A, cx_double& B, cx_double& D, double e_free, double e_free2, double delta, cx_double omega);
 

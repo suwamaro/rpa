@@ -15,6 +15,7 @@ double calc_intensity_square(int L, double t, double mu, double U, double delta,
   double k1 = 2. * M_PI / (double)L;
   
   cx_double A = 0, B = 0, D = 0;
+  /* Summing up at all the wavevectors */
   for(int x=-L/2; x < L/2; x++){
     double kx = k1 * x;
     for(int y=-L/2; y < L/2; y++){
@@ -37,23 +38,35 @@ double calc_intensity_square(int L, double t, double mu, double U, double delta,
   B *= 2. / (double)n_sites;
   D *= 2. / (double)n_sites;
   
-  arma::cx_mat chi0(2,2);
-  chi0(0,0) = A;
-  chi0(0,1) = B;
-  chi0(1,0) = std::conj(B);
-  chi0(1,1) = D;
-  arma::cx_mat denom = arma::eye<arma::cx_mat>(2,2) - U * chi0;
-  arma::cx_mat chi = chi0 * arma::inv(denom);
-  arma::vec eigval;
-  arma::eig_sym( eigval, chi );
-  // arma::cx_mat eigvec;
-  // arma::eig_sym( eigval, eigvec, chi );
+  /* Prefactors */
+  double factor_SS = 3.;
+
+  /* From the response function to the dynamic structure factor */
+  double factor_dsf = 2.;
+
+  /* RPA */
+  arma::cx_mat chi0_mat(2,2);
+  chi0_mat(0,0) = A;
+  chi0_mat(0,1) = B;
+  chi0_mat(1,0) = std::conj(B); // Taking the conjugate  
+  chi0_mat(1,1) = D;
+  arma::cx_mat denom = arma::eye<arma::cx_mat>(2,2) - U * chi0_mat;
+  arma::cx_mat chi_mat = chi0_mat * arma::inv(denom);
+
+  /* Taking the linear combitation */
+  cx_double chi = chi_mat(0,0) + chi_mat(0,1) + chi_mat(1,0) + chi_mat(1,1);
+
+  /* Cancelling double counts related to the sublattices */
+  chi *= 0.5;
+
+  //   // for check
+  // std::cout << qx << "   " << qy << "   " << omega << "   " << A << "   " << B << "   " << D << "   " << "   " << chi << std::endl;
   
-  // std::cout << eigval(0) << std::endl;
-  // std::cout << eigval(1) << std::endl;
-  // return arma::max(arma::abs(eigval));
-  return arma::min(eigval);
-  // return arma::max(eigval);
-  
+  double chi_Im = std::imag( chi );
+  if ( chi_Im > 0 ) {
+    return factor_dsf * factor_SS * chi_Im;
+  } else {   // Numerical error?
+    return 0;
+  }
   
 }

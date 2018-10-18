@@ -14,3 +14,4 @@
 
 void calc_size_dependence();
 void plot_chi0();
+void plot_chi0(int L, double eta);

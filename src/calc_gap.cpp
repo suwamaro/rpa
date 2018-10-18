@@ -52,8 +52,8 @@ double calc_ak_down_out(double e_free, double delta){
   return calc_bk_up_out( e_free, delta );
 }
 
-double larger_eigenvalue(cx_double A, cx_double B, cx_double D){
-  return std::real( 0.5 * ( A + D + sqrt( std::conj( A - D ) * ( A - D ) + 4. * std::conj(B) * B ) ) );
+cx_double larger_eigenvalue(cx_double A, cx_double B, cx_double D){
+  return 0.5 * ( A + D + sqrt( std::conj( A - D ) * ( A - D ) + 4. * std::conj(B) * B ) );
 }
 
 double wave_vector_in_BZ(double k){

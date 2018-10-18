@@ -19,17 +19,20 @@
 #include "calc_spectrum.h"
 
 int main(){
-  // plot_chi0();
+  int L = 48;
+  double eta = 0.001;
+    
+  // plot_chi0( L, eta );
   // calc_size_dependence();
   // calc_chi();
 
-  double U = 16.0;
+  double U = 4.0;
+  
   // plot_self_consistent_eq_square( U );
-
   // plot_chi0_AF( U );
-  // calc_dispersion_cubic( U );
-  // calc_dispersion_square( U );
-  calc_spectrum_square( U );  
+  // calc_dispersion_cubic( U, L );
+  // calc_dispersion_square( U, L );
+  calc_spectrum_square( U, L, eta );  
 
   // calc_velocity_cubic();
   // calc_velocity_square();
