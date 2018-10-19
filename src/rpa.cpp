@@ -27,7 +27,8 @@ int main(){
   // calc_chi();
 
   double U = 4.0;
-  
+  // double U = 0.000005;
+    
   // plot_self_consistent_eq_square( U );
   // plot_chi0_AF( U );
   // calc_dispersion_cubic( U, L );

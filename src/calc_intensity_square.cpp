@@ -11,13 +11,14 @@
 #include "rpa_util.h"
 #include <armadillo>
 
-double calc_intensity_square(int L, double t, double mu, double U, double delta, double qx, double qy, cx_double omega){
+double calc_intensity_square(int L, double t, double mu, double U, double delta, double qx, double qy, cx_double omega, int index){
   double k1 = 2. * M_PI / (double)L;
   
   cx_double A = 0, B = 0, D = 0;
   /* Summing up at all the wavevectors */
-  for(int x=-L/2; x < L/2; x++){
+  for(int x=-L/2; x < L/2; x++){    
     double kx = k1 * x;
+    
     for(int y=-L/2; y < L/2; y++){
       double ky = k1 * y;
       
@@ -53,14 +54,12 @@ double calc_intensity_square(int L, double t, double mu, double U, double delta,
   arma::cx_mat denom = arma::eye<arma::cx_mat>(2,2) - U * chi0_mat;
   arma::cx_mat chi_mat = chi0_mat * arma::inv(denom);
 
-  /* Taking the linear combitation */
-  cx_double chi = chi_mat(0,0) + chi_mat(0,1) + chi_mat(1,0) + chi_mat(1,1);
+  /* Taking the linear combitation only from index */
+  int index2 = index ^ 1;
+  cx_double chi = chi_mat(index, index) + chi_mat(index2, index);
 
-  /* Cancelling double counts related to the sublattices */
-  chi *= 0.5;
-
-  //   // for check
-  // std::cout << qx << "   " << qy << "   " << omega << "   " << A << "   " << B << "   " << D << "   " << "   " << chi << std::endl;
+  // // for check
+  // std::cout << qx << "  " << qy << "  " << omega << "  " << A << "  " << B << "  " << D << "  " << chi_mat(0,0) << "  " << chi_mat(0,1) << "  " << chi_mat(1,0) << "  " << chi_mat(1,1) << "  " << chi << std::endl;
   
   double chi_Im = std::imag( chi );
   if ( chi_Im > 0 ) {

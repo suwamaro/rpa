@@ -46,7 +46,7 @@ cx_double calc_chi0(int L, double t, double mu, double kT, double eta, double E,
 
 cx_double calc_chi0(int L, double t, double mu, double kT, double eta, double E, double qx, double qy){
   double k1 = 2. * M_PI / (double)L;
-  cx_double chi0 = 0.;
+  cx_double chi0 = 0;
   for(int x2=-L/2; x2 < L/2; x2++){
     double kx = k1 * x2;
     for(int y2=-L/2; y2 < L/2; y2++){
