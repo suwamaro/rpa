@@ -20,14 +20,14 @@
 
 int main(){
   int L = 48;
-  double eta = 0.001;
+  double eta = 0.01;
     
-  // plot_chi0( L, eta );
+  plot_chi0( L, eta );
   // calc_size_dependence();
   // calc_chi();
 
   double U = 4.0;
-  // double U = 0.000005;
+  // double U = 0.00001;
     
   // plot_self_consistent_eq_square( U );
   // plot_chi0_AF( U );

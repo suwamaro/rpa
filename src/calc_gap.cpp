@@ -70,8 +70,8 @@ void add_to_sus_mat(cx_double& A, cx_double& B, cx_double& D, double e_free, dou
   double E1 = eigenenergy_HF_out( e_free2, delta );
   double E2 = eigenenergy_HF_in( e_free, delta );
   cx_double diff_E1 = E1 - E2 + omega;
+  // cx_double diff_E2 = E1 - E2 - std::conj(omega);
   cx_double diff_E2 = E1 - E2 - omega;
-  
   
   double ak_up_in = calc_ak_up_in( e_free, delta );
   double ak_q_up_out = calc_ak_up_out( e_free2, delta );

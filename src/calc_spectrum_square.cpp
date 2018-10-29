@@ -20,9 +20,10 @@ void calc_spectrum_square(double U, int L, double eta){
   int prec = 15;
   
   /* Omegas */
-  double delta_omega = 0.01;
-  // double delta_omega = 0.002;
+  // double delta_omega = 0.01;
+  double delta_omega = 0.001;
   
+  // double max_omega = 4.0;
   double max_omega = 10.0;
   int n_omegas = int(max_omega/delta_omega+0.5);
   std::vector<double> omegas(n_omegas);
@@ -48,25 +49,28 @@ void calc_spectrum_square(double U, int L, double eta){
   /* X = ( pi/2, pi/2 )             */
   /* R = ( pi, pi )                 */
 
+  /* Prefactors */
+  double factor_SS = 3.;
+
+  /* From the response function to the dynamic structure factor */
+  double factor_dsf = 2.;
+  
   auto output_spectrum = [&](){
     std::cout << "( qidx, qx, qy ) = ( " << q_idx << ", " << qx << ", " << qy << " )" << std::endl;
     for(int o=0; o < n_omegas; o++){
       cx_double cx_omega(omegas[o], eta);
-
-      /* Taking the linear combitation from 0 (index) at (qx,qy) and from 1 at (qx+M_PI,qy+M_PI) */
-      double chi = 0;
-      chi += calc_intensity_square( L, t, mu, U, delta, qx, qy, cx_omega, 0 );
-      chi += calc_intensity_square( L, t, mu, U, delta, qx + M_PI, qy + M_PI, cx_omega, 1 );
-      chi *= 0.5;
-
+      
+      cx_double chi = calc_intensity_square( L, t, mu, U, delta, qx, qy, cx_omega, 0 );
+      double spec = factor_dsf * factor_SS * std::imag(chi);
+      
       /* Output */
-      out << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << omegas[o] << std::setw( prec ) << chi << std::setw( prec ) << U << std::endl;
+      out << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec << std::setw( prec ) << U << std::endl;
     }
   };
 
   // // for check
-  // qx = k1;
-  // qy = 0;
+  // qx = M_PI - k1;
+  // qy = M_PI;
   // output_spectrum();
   // return;
   

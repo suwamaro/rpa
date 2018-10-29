@@ -11,7 +11,7 @@
 #include "rpa_util.h"
 #include <armadillo>
 
-double calc_intensity_square(int L, double t, double mu, double U, double delta, double qx, double qy, cx_double omega, int index){
+cx_double calc_intensity_square(int L, double t, double mu, double U, double delta, double qx, double qy, cx_double omega, int index){
   double k1 = 2. * M_PI / (double)L;
   
   cx_double A = 0, B = 0, D = 0;
@@ -37,35 +37,22 @@ double calc_intensity_square(int L, double t, double mu, double U, double delta,
   int n_sites = L * L;
   A *= 2. / (double)n_sites;
   B *= 2. / (double)n_sites;
-  D *= 2. / (double)n_sites;
-  
-  /* Prefactors */
-  double factor_SS = 3.;
-
-  /* From the response function to the dynamic structure factor */
-  double factor_dsf = 2.;
+  D *= 2. / (double)n_sites;  
 
   /* RPA */
   arma::cx_mat chi0_mat(2,2);
   chi0_mat(0,0) = A;
   chi0_mat(0,1) = B;
-  chi0_mat(1,0) = std::conj(B); // Taking the conjugate  
+  chi0_mat(1,0) = B;
+  // chi0_mat(1,0) = std::conj(B); // Taking the conjugate  
   chi0_mat(1,1) = D;
   arma::cx_mat denom = arma::eye<arma::cx_mat>(2,2) - U * chi0_mat;
   arma::cx_mat chi_mat = chi0_mat * arma::inv(denom);
 
-  /* Taking the linear combitation only from index */
-  int index2 = index ^ 1;
-  cx_double chi = chi_mat(index, index) + chi_mat(index2, index);
-
+  cx_double chi = chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1);
+  
   // // for check
   // std::cout << qx << "  " << qy << "  " << omega << "  " << A << "  " << B << "  " << D << "  " << chi_mat(0,0) << "  " << chi_mat(0,1) << "  " << chi_mat(1,0) << "  " << chi_mat(1,1) << "  " << chi << std::endl;
-  
-  double chi_Im = std::imag( chi );
-  if ( chi_Im > 0 ) {
-    return factor_dsf * factor_SS * chi_Im;
-  } else {   // Numerical error?
-    return 0;
-  }
-  
+
+  return chi;  
 }
