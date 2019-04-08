@@ -49,9 +49,6 @@ void calc_spectrum_square(double U, int L, double eta){
   /* X = ( pi/2, pi/2 )             */
   /* R = ( pi, pi )                 */
 
-  /* Prefactors */
-  double factor_SS = 3.;
-
   /* From the response function to the dynamic structure factor */
   double factor_dsf = 2.;
   
@@ -59,9 +56,10 @@ void calc_spectrum_square(double U, int L, double eta){
     std::cout << "( qidx, qx, qy ) = ( " << q_idx << ", " << qx << ", " << qy << " )" << std::endl;
     for(int o=0; o < n_omegas; o++){
       cx_double cx_omega(omegas[o], eta);
-      
+
+      /* The (S^+ S^-) response function, or the retarded Green's function */
       cx_double chi = calc_intensity_square( L, t, mu, U, delta, qx, qy, cx_omega, 0 );
-      double spec = factor_dsf * factor_SS * std::imag(chi);
+      double spec = factor_dsf * std::imag(chi);
       
       /* Output */
       out << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec << std::setw( prec ) << U << std::endl;

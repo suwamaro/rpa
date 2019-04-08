@@ -33,7 +33,7 @@ cx_double calc_intensity_square(int L, double t, double mu, double U, double del
       }
     }
   }
-
+  
   int n_sites = L * L;
   A *= 2. / (double)n_sites;
   B *= 2. / (double)n_sites;
@@ -41,15 +41,18 @@ cx_double calc_intensity_square(int L, double t, double mu, double U, double del
 
   /* RPA */
   arma::cx_mat chi0_mat(2,2);
-  chi0_mat(0,0) = A;
-  chi0_mat(0,1) = B;
-  chi0_mat(1,0) = B;
+  chi0_mat(0,0) = A;   // (A, A) correlation
+  chi0_mat(0,1) = B;   // (A, B)
+  chi0_mat(1,0) = B;   // (B, A)
   // chi0_mat(1,0) = std::conj(B); // Taking the conjugate  
-  chi0_mat(1,1) = D;
+  chi0_mat(1,1) = D;   // (B, B)
   arma::cx_mat denom = arma::eye<arma::cx_mat>(2,2) - U * chi0_mat;
   arma::cx_mat chi_mat = chi0_mat * arma::inv(denom);
 
-  cx_double chi = chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1);
+  // Double counting from A and B
+  // Double counting in summing up for wavevectors because of the sublattice order?
+  double factor_sublattice = 0.5;
+  cx_double chi = factor_sublattice * factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );
   
   // // for check
   // std::cout << qx << "  " << qy << "  " << omega << "  " << A << "  " << B << "  " << D << "  " << chi_mat(0,0) << "  " << chi_mat(0,1) << "  " << chi_mat(1,0) << "  " << chi_mat(1,1) << "  " << chi << std::endl;
