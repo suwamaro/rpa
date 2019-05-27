@@ -19,7 +19,10 @@ double self_consistent_eq_cubic(int L, double t, double mu, double delta){
     double kx = k1 * x;
     for(int y=-L/2; y < L/2; y++){
       double ky = k1 * y;
-      for(int z=-L/2; z < L/2; z++){
+
+      // for check
+      for(int z=-L/2; z < L/2; z+=L/2){	      
+      // for(int z=-L/2; z < L/2; z++){
 	double kz = k1 * z;
       
 	double e_free = energy_free_electron( t, mu, kx, ky, kz );
@@ -39,8 +42,10 @@ double self_consistent_eq_cubic(int L, double t, double mu, double delta){
       }
     }
   }
-  
-  int n_sites = L * L * L;
+
+  // for check
+  int n_sites = L * L * 2;
+  // int n_sites = L * L * L;  
   return sum / (double)( n_sites );
 }
 

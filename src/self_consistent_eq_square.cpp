@@ -23,6 +23,9 @@ double self_consistent_eq_square(int L, double t, double mu, double delta){
       double e_free = energy_free_electron( t, mu, kx, ky );
       double e_eps = 1e-12;
 
+      // for check
+      std::cerr << kx << "  " << ky << "  " << e_free << std::endl;
+	
       /* Summing up over all k inside the Brillouin zone. */
       if ( e_free < e_eps ) {
 	double factor = 1.;

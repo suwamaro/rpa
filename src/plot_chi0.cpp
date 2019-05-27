@@ -246,17 +246,14 @@ void plot_chi0(int L, double eta){
   double qx = 0;
   double qy = 0;
   int q_idx = 0;
-      
-  /* Prefactors for S cdot S */
-  double factor_SS = 3.;
-  
+        
   /* From the response function to the dynamic structure factor */
   double factor_dsf = 2.;
 
   auto output_spectrum = [&](){
     std::cout << "( qx, qy ) = ( " << qx << ", " << qy << " )" << std::endl;
     for(int o=0; o < n_omegas; o++){
-      double sqo = factor_dsf * factor_SS * std::imag( calc_chi0( L, t, mu, kT, eta, omegas[o], qx, qy ) );
+      double sqo = factor_dsf * std::imag( calc_chi0( L, t, mu, kT, eta, omegas[o], qx, qy ) );
       out << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << omegas[o] << std::setw( prec ) << sqo << std::endl;
     }
   };
