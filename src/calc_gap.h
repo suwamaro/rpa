@@ -11,15 +11,20 @@
 
 /* Coefficients */
 double denominator_in(double ek1, double ek2, double ek3, double delta);
-cx_double calc_ak_in(double ek1, double ek2, double ek3, double delta);
-cx_double calc_ak_out(double ek1, double ek2, double ek3, double delta);
-double calc_bk_in(double ek1, double ek2, double ek3, double delta);
-double calc_bk_out(double ek1, double ek2, double ek3, double delta);
+cx_double calc_bk_up_in(double ek1, double ek2, double ek3, double delta);
+cx_double calc_bk_up_out(double ek1, double ek2, double ek3, double delta);
+cx_double calc_ak_up_in(double ek1, double ek2, double ek3, double delta);
+cx_double calc_ak_up_out(double ek1, double ek2, double ek3, double delta);
+cx_double calc_bk_down_in(double ek1, double ek2, double ek3, double delta);
+cx_double calc_bk_down_out(double ek1, double ek2, double ek3, double delta);
+cx_double calc_ak_down_in(double ek1, double ek2, double ek3, double delta);
+cx_double calc_ak_down_out(double ek1, double ek2, double ek3, double delta);
 
 /* Common to the lattices */
 cx_double larger_eigenvalue(cx_double A, cx_double B, cx_double D);
 double wave_vector_in_BZ(double k);
 void add_to_sus_mat(cx_double& A, cx_double& B, cx_double& D, double e_free, double e_free2, double delta, cx_double omega);
+void add_to_sus_mat2(hoppings const& ts, cx_double& A, cx_double& B, cx_double& D, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega);
 
 /* For a square lattice */
 double calc_eigval_square(int L, double t, double mu, double U, double delta, double qx, double qy, double omega);

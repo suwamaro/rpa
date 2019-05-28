@@ -15,47 +15,28 @@ cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U,
   double k1 = 2. * M_PI / (double)L;
   
   cx_double A = 0, B = 0, D = 0;
-  /* Summing up at all the wavevectors */
-  for(int z=-1; z < 1; z++){
-    double kz = M_PI * z;
+
+  // for check
+  for(int z=0; z < 1; z++){
+  // for(int z=-1; z < 1; z++){
     
+    double kz = M_PI * z;
     for(int x=-L/2; x < L/2; x++){    
       double kx = k1 * x;
-      
       for(int y=-L/2; y < L/2; y++){
 	double ky = k1 * y;
-	
-	double e_free1 = energy_free_electron_bilayer1( ts, mu, kx, ky, kz );
-	double e_free2 = energy_free_electron_bilayer2( ts, mu, kx, ky, kz );
-	// double e_free = energy_free_electron_bilayer( ts, mu, kx, ky, kz );	
-	/* Summing up over all k inside the Brillouin zone. */
-	double diff_x = wave_vector_in_BZ( kx - qx );
-	double diff_y = wave_vector_in_BZ( ky - qy );
-	double diff_z = wave_vector_in_BZ( kz - qz );
-	double e_free3 = energy_free_electron_bilayer1( ts, mu, diff_x, diff_y, diff_z );
-	double e_free4 = energy_free_electron_bilayer2( ts, mu, diff_x, diff_y, diff_z );
-	
-	double e_eps = 1e-12;	  
-	if ( e_free1 < e_eps ) {
-	  add_to_sus_mat( A, B, D, e_free1, e_free3, delta, omega );
-	  add_to_sus_mat( A, B, D, e_free1, e_free4, delta, omega );
-	}
-	if ( e_free2 < e_eps ) {
-	  // add_to_sus_mat( A, B, D, e_free2, e_free3, delta, omega );
-	  // add_to_sus_mat( A, B, D, e_free2, e_free4, delta, omega );
-	}
+	add_to_sus_mat2( ts, A, B, D, qx, qy, qz, kx, ky, kz, delta, omega );	
       }
     }
   }
+
+  // for check
+  int n_sites = L * L;
+  // int n_sites = L * L * 2;
   
-  int n_sites = L * L * 2;
   A *= 2. / (double)n_sites;
   B *= 2. / (double)n_sites;
-  D *= 2. / (double)n_sites;
-  // A *= 0.5 * 2. / (double)n_sites;
-  // B *= 0.5 * 2. / (double)n_sites;
-  // D *= 0.5 * 2. / (double)n_sites;  
-  
+  D *= 2. / (double)n_sites;  
 
   /* RPA */
   arma::cx_mat chi0_mat(2,2);
@@ -69,10 +50,11 @@ cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U,
 
   // Double counting from A and B
   // Double counting in summing up for wavevectors because of the sublattice order?
-  double factor_sublattice = 1.0;
+  double factor_sublattice = 0.25;
   // double factor_sublattice = 0.5;
   
-  cx_double chi = factor_sublattice * factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );
+  cx_double chi = factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );
+  
   
   // // for check
   // std::cout << qx << "  " << qy << "  " << omega << "  " << A << "  " << B << "  " << D << "  " << chi_mat(0,0) << "  " << chi_mat(0,1) << "  " << chi_mat(1,0) << "  " << chi_mat(1,1) << "  " << chi << std::endl;

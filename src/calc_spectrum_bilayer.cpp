@@ -74,7 +74,10 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
   // output_spectrum();
   // return;
 
-  for(int z=-1; z < 1; z++){
+  // for check
+  for(int z=0; z < 1; z++){
+  // for(int z=-1; z < 1; z++){
+    
     qz = M_PI * z;
     
     for(int x=0; x < L/4; x++){

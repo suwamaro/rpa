@@ -16,17 +16,20 @@ double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double d
   /* Monotonically decreasing as a function of delta */
   double k1 = 2. * M_PI / (double)L;
   double sum = 0;
-  for(int z=-1; z < 1; z++){
+
+  // for check
+  for(int z=0; z < 1; z++){
+  // for(int z=-1; z < 1; z++){
+    
     double kz = M_PI * z;
     for(int x=-L/2; x < L/2; x++){
       double kx = k1 * x;
       for(int y=-L/2; y < L/2; y++){
 	double ky = k1 * y;      
 	double e_eps = 1e-12;
-	double factor = 1.;
 	
-	// for check
-	std::cerr << "kx = " << kx << "  ky = " << ky << "  kz = " << kz << std::endl;
+	// // for check
+	// std::cerr << "kx = " << kx << "  ky = " << ky << "  kz = " << kz << std::endl;
 
 	/* Checking if k is inside/outside the BZ. */
 	double k_len = std::abs(kx) + std::abs(ky);
@@ -34,83 +37,62 @@ double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double d
 	/* Outside the BZ */
 	if ( k_len - M_PI >=  e_eps ) continue;
 
+	/* Prefactor */
+	double factor = 1.;
+	
 	/* On the zone boundary */
 	if ( std::abs(k_len - M_PI) < e_eps ) {
 	  factor = 0.5;
 	}
-	
+
+	/* Sum of the Fourier transformed hoppings */
 	double ek1 = ts.ek1(kx, ky, kz);
 	double ek2 = ts.ek2(kx, ky, kz);
 	double ek3 = ts.ek3(kx, ky, kz);
 
-	// for check
-	std::cerr << "ek1 = " << ek1 << "  ek2 = " << ek2 << "  ek3 = " << ek3 << std::endl;
+	// // for check
+	// std::cerr << "ek1 = " << ek1 << "  ek2 = " << ek2 << "  ek3 = " << ek3 << std::endl;
 	
-	/* Checking if the denominator is zero. */
-	double denom_in = denominator_in(ek1, ek2, ek3, delta);
+	// /* Checking if the denominator is zero. */
+	// double denom_in = denominator_in(ek1, ek2, ek3, delta);
 
-	std::cerr << "denom_in = " << denom_in << std::endl;
+	// std::cerr << "denom_in = " << denom_in << std::endl;
 
-	/* Special case */
-	if ( std::abs(denom_in) < e_eps ) {
-	  sum += factor;
-	  continue;
-	}
-
-	
-	// double e_free = energy_free_electron_bilayer( ts, mu, kx, ky, kz );
-
-	// double e_free1 = energy_free_electron_bilayer1( ts, mu, kx, ky, kz );
-	// double e_free2 = energy_free_electron_bilayer2( ts, mu, kx, ky, kz );
-	
-	// double Ek_in = eigenenergy_HF_in(ek1, ek2, ek3, 0) - mu;
-	// double Ek_out = eigenenergy_HF_out(ek1, ek2, ek3, 0) - mu;
-	double Ek_in = eigenenergy_HF_in(ek1, ek2, ek3, delta) - mu;
-	// double Ek_out = eigenenergy_HF_out(ek1, ek2, ek3, delta) - mu;
-	
-	// for check
-	// if ( std::abs(e_free) < 1e-10 ) {
-	  // std::cerr << kx << "  " << ky << "  " << kz << "  " << e_free1 << "  " << e_free2 << std::endl;
+	// /* Special case */
+	// if ( std::abs(denom_in) < e_eps ) {
+	//   sum += factor;
+	//   continue;
 	// }
-	
+
+	/* Eigenenergy inside the BZ */
+	double Ek_in = eigenenergy_HF_in(ek1, ek2, ek3, delta) - mu;
+
 	/* Summing up for Ek < EF. */
 	if ( Ek_in < e_eps ) {
-	  // double factor = 1.;
-	  
-	  /* Taking into account a half of the contribution from the Fermi surface */
-	  // if ( std::abs( Ek_in ) <= e_eps ) {
-	  //   factor = 0.5;
-	  // }
-
-	  cx_double ak = calc_ak_in(ek1, ek2, ek3, delta);
-	  double bk = calc_bk_in(ek1, ek2, ek3, delta);
+	  cx_double ak_up = calc_ak_up_in(ek1, ek2, ek3, delta);
+	  cx_double ak_down = calc_ak_down_in(ek1, ek2, ek3, delta);
 
 	  // // for check
 	  // std::cerr << "ak = " << ak << "   bk = " << bk << std::endl;
-	  
-	  sum += factor * (std::norm(ak) - bk*bk);
-	}
-	// if ( Ek_out < e_eps ) {
-	//   double factor = 1.;
-	  
-	//   /* Taking into account a half of the contribution from the Fermi surface */
-	//   if ( std::abs( Ek_out ) <= e_eps ) {
-	//     factor = 0.5;
-	//   }
 
-	//   cx_double ak = calc_ak_out(ek1, ek2, ek3, delta);
-	//   double bk = calc_bk_out(ek1, ek2, ek3, delta);
-	//   sum += factor * (std::norm(ak) - bk*bk);
-	// }	
-      }
-    }
-  }
-  int n_sites = L * L * 2;
+	  /* |a|^2 - |b|^2 */
+	  sum += factor * (std::norm(ak_up) - std::norm(ak_down));
+	}
+      } /* end for y */
+    } /* end for x */
+  } /* end for z */
+
+
+  // for check
+  int n_sites = L * L;
+  // int n_sites = L * L * 2;
+  
   sum /= (double)( n_sites * delta );
 
   // // for check
   // std::cerr << delta << "  " << sum << std::endl;
-  
+
+  /* The self-consistent condition: sum = 1/U */
   return sum;
 }
 
