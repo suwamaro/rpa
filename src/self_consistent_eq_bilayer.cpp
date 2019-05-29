@@ -17,10 +17,7 @@ double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double d
   double k1 = 2. * M_PI / (double)L;
   double sum = 0;
 
-  // for check
-  for(int z=0; z < 1; z++){
-  // for(int z=-1; z < 1; z++){
-    
+  for(int z=0; z < 2; z++){    
     double kz = M_PI * z;
     for(int x=-L/2; x < L/2; x++){
       double kx = k1 * x;
@@ -33,7 +30,7 @@ double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double d
 
 	/* Checking if k is inside/outside the BZ. */
 	double k_len = std::abs(kx) + std::abs(ky);
-
+	
 	/* Outside the BZ */
 	if ( k_len - M_PI >=  e_eps ) continue;
 
@@ -65,10 +62,10 @@ double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double d
 	// }
 
 	/* Eigenenergy inside the BZ */
-	double Ek_in = eigenenergy_HF_in(ek1, ek2, ek3, delta) - mu;
+	double Ek_in = eigenenergy_HF_in(ek1, ek2, ek3, delta);
 
 	/* Summing up for Ek < EF. */
-	if ( Ek_in < e_eps ) {
+	if ( Ek_in < mu + e_eps ) {
 	  cx_double ak_up = calc_ak_up_in(ek1, ek2, ek3, delta);
 	  cx_double ak_down = calc_ak_down_in(ek1, ek2, ek3, delta);
 
@@ -82,15 +79,8 @@ double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double d
     } /* end for x */
   } /* end for z */
 
-
-  // for check
-  int n_sites = L * L;
-  // int n_sites = L * L * 2;
-  
+  int n_sites = L * L * 2;  
   sum /= (double)( n_sites * delta );
-
-  // // for check
-  // std::cerr << delta << "  " << sum << std::endl;
 
   /* The self-consistent condition: sum = 1/U */
   return sum;

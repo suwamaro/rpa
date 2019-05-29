@@ -17,14 +17,10 @@ cx_double calc_intensity_cubic(int L, double t, double mu, double U, double delt
   cx_double A = 0, B = 0, D = 0;
   /* Summing up at all the wavevectors */
   for(int x=-L/2; x < L/2; x++){    
-    double kx = k1 * x;
-    
+    double kx = k1 * x;    
     for(int y=-L/2; y < L/2; y++){
       double ky = k1 * y;
-
-      // for check
-      for(int z=-L/2; z < L/2; z+=L/2){	
-      // for(int z=-L/2; z < L/2; z++){	
+      for(int z=-L/2; z < L/2; z++){	
 	double kz = k1 * z;      
 	
 	double e_free = energy_free_electron( t, mu, kx, ky, kz );
@@ -41,10 +37,7 @@ cx_double calc_intensity_cubic(int L, double t, double mu, double U, double delt
     }
   }
 
-  // for check
-  int n_sites = L * L * 2;
-  // int n_sites = L * L * L;
-  
+  int n_sites = L * L * L;  
   A *= 2. / (double)n_sites;
   B *= 2. / (double)n_sites;
   D *= 2. / (double)n_sites;  

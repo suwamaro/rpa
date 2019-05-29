@@ -16,24 +16,18 @@ cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U,
   
   cx_double A = 0, B = 0, D = 0;
 
-  // for check
-  for(int z=0; z < 1; z++){
-  // for(int z=-1; z < 1; z++){
-    
+  for(int z=0; z < 2; z++){    
     double kz = M_PI * z;
     for(int x=-L/2; x < L/2; x++){    
       double kx = k1 * x;
       for(int y=-L/2; y < L/2; y++){
 	double ky = k1 * y;
-	add_to_sus_mat2( ts, A, B, D, qx, qy, qz, kx, ky, kz, delta, omega );	
+	add_to_sus_mat2( ts, mu, A, B, D, qx, qy, qz, kx, ky, kz, delta, omega );
       }
     }
   }
 
-  // for check
-  int n_sites = L * L;
-  // int n_sites = L * L * 2;
-  
+  int n_sites = L * L * 2;  
   A *= 2. / (double)n_sites;
   B *= 2. / (double)n_sites;
   D *= 2. / (double)n_sites;  
@@ -50,10 +44,12 @@ cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U,
 
   // Double counting from A and B
   // Double counting in summing up for wavevectors because of the sublattice order?
-  double factor_sublattice = 0.25;
-  // double factor_sublattice = 0.5;
+  double factor_sublattice = 0.5;  
+  // cx_double chi = factor_sublattice * factor_sublattice * ( chi_mat(0,0) - std::conj(chi_mat(1,0)) - std::conj(chi_mat(0,1)) + chi_mat(1,1) );
+  // cx_double chi = factor_sublattice * factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - std::conj(chi_mat(0,1)) + chi_mat(1,1) );
   
-  cx_double chi = factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );
+  cx_double chi = factor_sublattice * factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );
+  
   
   
   // // for check

@@ -54,8 +54,5 @@ cx_double calc_intensity_square(int L, double t, double mu, double U, double del
   double factor_sublattice = 0.5;
   cx_double chi = factor_sublattice * factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );
   
-  // // for check
-  // std::cout << qx << "  " << qy << "  " << omega << "  " << A << "  " << B << "  " << D << "  " << chi_mat(0,0) << "  " << chi_mat(0,1) << "  " << chi_mat(1,0) << "  " << chi_mat(1,1) << "  " << chi << std::endl;
-
   return chi;  
 }

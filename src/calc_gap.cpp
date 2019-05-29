@@ -10,6 +10,8 @@
 #include "calc_gap.h"
 #include "rpa_util.h"
 
+/* Reference: A. Singh and Z. Tesanovic, PRB 41, 11457 (1990) */
+
 double denominator_in(double ek1, double ek2, double ek3, double delta){
   double Ek = eigenenergy_HF_in(ek1, ek2, ek3, delta);
   cx_double nume(ek1, ek2);
@@ -31,6 +33,10 @@ cx_double calc_bk_up_in(double ek1, double ek2, double ek3, double delta){
   cx_double nume(ek1, ek2);
   double g = Ek - delta - ek3;
   double denom = sqrt( g*g + std::norm(nume) );
+
+  // // for check
+  // std::cerr << Ek << " " << ek1 << " " << g << std::endl;
+  
   return nume / denom;
 }
 
@@ -49,6 +55,7 @@ cx_double calc_bk_up_out(double ek1, double ek2, double ek3, double delta){
 
 cx_double calc_ak_up_in(double ek1, double ek2, double ek3, double delta){
   return sqrt( 1 - std::norm( calc_bk_up_in(ek1, ek2, ek3, delta) ) );
+  
 }
 
 cx_double calc_ak_up_out(double ek1, double ek2, double ek3, double delta){
@@ -56,19 +63,19 @@ cx_double calc_ak_up_out(double ek1, double ek2, double ek3, double delta){
 }
 
 cx_double calc_bk_down_in(double ek1, double ek2, double ek3, double delta){
-  return calc_ak_up_in(ek1, ek2, ek3, delta);
+  return std::conj(calc_ak_up_in(ek1, ek2, ek3, delta));
 }
 
 cx_double calc_bk_down_out(double ek1, double ek2, double ek3, double delta){
-  return calc_ak_up_out(ek1, ek2, ek3, delta);
+  return std::conj(calc_ak_up_out(ek1, ek2, ek3, delta));
 }
 
 cx_double calc_ak_down_in(double ek1, double ek2, double ek3, double delta){
-  return calc_bk_up_in(ek1, ek2, ek3, delta);
+  return std::conj(calc_bk_up_in(ek1, ek2, ek3, delta));
 }
 
 cx_double calc_ak_down_out(double ek1, double ek2, double ek3, double delta){
-  return calc_bk_up_out(ek1, ek2, ek3, delta);
+  return std::conj(calc_bk_up_out(ek1, ek2, ek3, delta));
 }
 
 double calc_bk_up_in(double e_free, double delta){
@@ -150,21 +157,53 @@ void add_to_sus_mat(cx_double& A, cx_double& B, cx_double& D, double e_free, dou
   if ( std::abs( e_free ) <= e_eps ) {
     factor = 0.5;
   }
-  
+
+  //   // for check
+  // std::cerr << "e_free = " << e_free << "  e_free2 = " << e_free2 << std::endl;
+  // std::cerr << std::real(bk_up_in) << " " << std::real(bk_q_up_out) << std::endl;
+  // std::cerr << std::real(ak_up_in) << " " << std::real(ak_q_down_out) << " " << std::real(ak_down_in) << " " << std::real(ak_q_up_out) << " " << std::real(bk_up_in) << " " << std::real(bk_q_down_out) << " " << std::real(bk_down_in) << " " << std::real(bk_q_up_out) << std::endl;
   A += factor * ( ak_up_in * ak_up_in * ak_q_down_out * ak_q_down_out / diff_E1 + ak_down_in * ak_down_in * ak_q_up_out * ak_q_up_out / diff_E2 );
   B += factor * ( ak_up_in * bk_up_in * ak_q_down_out * bk_q_down_out / diff_E1 + ak_down_in * bk_down_in * ak_q_up_out * bk_q_up_out / diff_E2 );
   D += factor * ( bk_up_in * bk_up_in * bk_q_down_out * bk_q_down_out / diff_E1 + bk_down_in * bk_down_in * bk_q_up_out * bk_q_up_out / diff_E2 );
 }
 
-void add_to_sus_mat2(hoppings const& ts, cx_double& A, cx_double& B, cx_double& D, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega){
+void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, cx_double& D, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega){
   double e_eps = 1e-12;
   
   /* Checking if k is inside/outside the BZ. */
+  // double k_len = std::abs(kx) + std::abs(ky) + std::abs(kz);  
   double k_len = std::abs(kx) + std::abs(ky);
 
   /* Outside the BZ */
   if ( k_len - M_PI >=  e_eps ) return;
 
+  double diff_x = wave_vector_in_BZ( kx - qx );
+  double diff_y = wave_vector_in_BZ( ky - qy );
+  double diff_z = wave_vector_in_BZ( kz - qz );
+  
+  double ek1 = ts.ek1(kx, ky, kz);
+  double ek2 = ts.ek2(kx, ky, kz);
+  double ek3 = ts.ek3(kx, ky, kz);
+  
+  double ek_q1 = ts.ek1(diff_x, diff_y, diff_z);
+  double ek_q2 = ts.ek2(diff_x, diff_y, diff_z);
+  double ek_q3 = ts.ek3(diff_x, diff_y, diff_z);
+  
+  double Ek = eigenenergy_HF_in(ek1, ek2, ek3, delta);
+  double Ek_q = eigenenergy_HF_out(ek_q1, ek_q2, ek_q3, delta);
+
+  // // for check
+  // std::cerr << qx << " " << qy << " " << qz << " " << kx << " " << ky << " " << kz << "  " << Ek << "  " << Ek_q;
+  // if ( std::abs(Ek-mu) < e_eps ) std::cerr << "  0\n";
+  // else if ( Ek - mu > e_eps ) std::cerr << "  positive\n";
+  // else std::cerr << "  negative\n";
+  
+  /* Checking if the eigenenergy is below the chemical potential. */
+  if ( Ek > mu + e_eps ) return;
+
+  // // for check
+  // std::cerr << "Considering..."  << std::endl;
+  
   /* Prefactor */
   double factor = 1.;
   
@@ -173,29 +212,18 @@ void add_to_sus_mat2(hoppings const& ts, cx_double& A, cx_double& B, cx_double& 
     factor = 0.5;
   }
 		
-  double diff_x = wave_vector_in_BZ( kx - qx );
-  double diff_y = wave_vector_in_BZ( ky - qy );
-  double diff_z = wave_vector_in_BZ( kz - qz );
-
-  double ek1 = ts.ek1(kx, ky, kz);
-  double ek2 = ts.ek2(kx, ky, kz);
-  double ek3 = ts.ek3(kx, ky, kz);
-  double ek_q1 = ts.ek1(diff_x, diff_y, diff_z);
-  double ek_q2 = ts.ek2(diff_x, diff_y, diff_z);
-  double ek_q3 = ts.ek3(diff_x, diff_y, diff_z);
-
   // /* Checking if the denominators are zero. */
   // double denom_in = denominator_in(ek1, ek2, ek3, delta);
   // double denom_out = denominator_out(ek_q1, ek_q2, ek_q3, delta);  
 
   cx_double ak_up_in = calc_ak_up_in(ek1, ek2, ek3, delta);
-  cx_double ak_q_up_out = calc_ak_up_in(ek_q1, ek_q2, ek_q3, delta);
+  cx_double ak_q_up_out = calc_ak_up_out(ek_q1, ek_q2, ek_q3, delta);
   cx_double ak_down_in = calc_ak_down_in(ek1, ek2, ek3, delta);
-  cx_double ak_q_down_out = calc_ak_down_in(ek_q1, ek_q2, ek_q3, delta);
+  cx_double ak_q_down_out = calc_ak_down_out(ek_q1, ek_q2, ek_q3, delta);
   cx_double bk_up_in = calc_bk_up_in(ek1, ek2, ek3, delta);
-  cx_double bk_q_up_out = calc_bk_up_in(ek_q1, ek_q2, ek_q3, delta);
+  cx_double bk_q_up_out = calc_bk_up_out(ek_q1, ek_q2, ek_q3, delta);
   cx_double bk_down_in = calc_bk_down_in(ek1, ek2, ek3, delta);
-  cx_double bk_q_down_out = calc_bk_down_in(ek_q1, ek_q2, ek_q3, delta);    
+  cx_double bk_q_down_out = calc_bk_down_out(ek_q1, ek_q2, ek_q3, delta);    
   
   // /* Special case */
   // if ( std::abs(denom_in) < e_eps ) {
@@ -213,16 +241,20 @@ void add_to_sus_mat2(hoppings const& ts, cx_double& A, cx_double& B, cx_double& 
     // ak_q = calc_ak_out(ek_q1, ek_q2, ek_q3, delta);    
     // bk_q = calc_bk_out(ek_q1, ek_q2, ek_q3, delta);
   // }
-  
-  double Ek = eigenenergy_HF_in(ek1, ek2, ek3, delta);
-  double Ek_q = eigenenergy_HF_out(ek_q1, ek_q2, ek_q3, delta);
-  
+    
   cx_double diff_E1 = Ek_q - Ek + omega;
   // cx_double diff_E2 = Ek_q - Ek - std::conj(omega);
   cx_double diff_E2 = Ek_q - Ek - omega;
 
   // // for check
-  // std::cerr << qx << " " << qy << " " << qz << " " << kx << " " << ky << " " << kz << " " << diff_x << " " << diff_y << " " << diff_z << std::endl;
+  // std::cerr << qx << " " << qy << " " << kx << " " << ky << " ";
+  // std::cerr << std::real(bk_up_in) << " " << std::real(bk_q_up_out) << std::endl;  
+  // std::cerr << std::real(ak_up_in) << " " << std::real(ak_q_down_out) << " " << std::real(ak_down_in) << " " << std::real(ak_q_up_out) << " " << std::real(bk_up_in) << " " << std::real(bk_q_down_out) << " " << std::real(bk_down_in) << " " << std::real(bk_q_up_out) << std::endl;
+    // std::cerr << qx << " " << qy << " " << kx << " " << ky << " " << diff_x << " " << diff_y << " " << std::real(ak_up_in) << " " << std::real(ak_q_down_out) << " " << std::real(ak_down_in) << " " << std::real(ak_q_up_out) << " " << std::real(bk_up_in) << " " << std::real(bk_q_down_out) << " " << std::real(bk_down_in) << " " << std::real(bk_q_up_out) << std::endl;  
+  // std::cerr << qx << " " << qy << " " << qz << " " << kx << " " << ky << " " << kz << " " << diff_x << " " << diff_y << " " << diff_z << " " << std::real(ak_up_in) << " " << std::real(ak_q_down_out) << " " << std::real(ak_down_in) << " " << std::real(ak_q_up_out) << " " << std::real(bk_up_in) << " " << std::real(bk_q_down_out) << " " << std::real(bk_down_in) << " " << std::real(bk_q_up_out) << std::endl;
+
+  // std::cerr << "delta = " << delta << std::endl;
+  // std::cerr << "eks" << std::endl;
   // std::cerr << ek1 << " " << ek2 << " " << ek3 << " " << ek_q1 << " " << ek_q2 << " " << ek_q3 << std::endl;
   // // std::cerr << "denom_in = " << denom_in << std::endl;
   // // std::cerr << "denom_out = " << denom_out << std::endl;

@@ -19,14 +19,17 @@
 #include "calc_spectrum.h"
 
 int main(){
+  // int L = 8;
   int L = 16;
+  
   double eta = 0.00001;
     
   // plot_chi0( L, eta );
   // calc_size_dependence();
   // calc_chi();
 
-  double U = 5.0;
+  double U = 4.0;
+  // double U = 0.34;
   // double U = 0.00001;
     
   // plot_self_consistent_eq_square( U );
