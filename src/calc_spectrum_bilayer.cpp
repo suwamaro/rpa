@@ -11,21 +11,17 @@
 #include "self_consistent_eq.h"
 #include "calc_gap.h"
 
-void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L, double eta){
+void calc_spectrum_bilayer(double theta, double phi, double t3, double U, double mu, int L, double eta){
   /* Parameters */
   double t, t_bar, tp, tpp, tz, tz_bar, tzp;
   hoppings ts(theta, phi, t3);
-  double mu = 0;
   double k1 = 2. * M_PI / (double)L;
   
   int prec = 15;
   
   /* Omegas */
-  // double delta_omega = 0.01;
-  double delta_omega = 0.001;
-  
-  double max_omega = 10.0;
-  // double max_omega = 1.2;
+  double delta_omega = 0.001;  
+  double max_omega = ts.t_max() * 10;
   int n_omegas = int(max_omega/delta_omega+0.5);
   std::vector<double> omegas(n_omegas);
   for(int o=1; o <= n_omegas; o++){ omegas[o-1] = delta_omega * o; }

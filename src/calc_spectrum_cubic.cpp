@@ -68,7 +68,7 @@ void calc_spectrum_cubic(double U, int L, double eta){
   };
 
   // for check with the bilayer
-  for(int z=-1; z < 1; z++){
+  for(int z=0; z < 2; z++){
     qz = M_PI * z;
     
     for(int x=0; x < L/4; x++){

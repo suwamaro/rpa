@@ -19,7 +19,7 @@ double self_consistent_eq_cubic(int L, double t, double mu, double delta){
     double kx = k1 * x;
     for(int y=-L/2; y < L/2; y++){
       double ky = k1 * y;
-      for(int z=-L/2; z < L/2; z++){
+      for(int z=-L/2; z < L/2; z++){	
 	double kz = k1 * z;
       
 	double e_free = energy_free_electron( t, mu, kx, ky, kz );

@@ -65,14 +65,16 @@ double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double d
 	double Ek_in = eigenenergy_HF_in(ek1, ek2, ek3, delta);
 
 	/* Summing up for Ek < EF. */
-	if ( Ek_in < mu + e_eps ) {
+	if ( Ek_in < mu ) {
+	// if ( Ek_in < mu + e_eps ) {
+	  
 	  cx_double ak_up = calc_ak_up_in(ek1, ek2, ek3, delta);
 	  cx_double ak_down = calc_ak_down_in(ek1, ek2, ek3, delta);
 
 	  // // for check
 	  // std::cerr << "ak = " << ak << "   bk = " << bk << std::endl;
 
-	  /* |a|^2 - |b|^2 */
+	  /* |a^up|^2 - |a^down|^2 */
 	  sum += factor * (std::norm(ak_up) - std::norm(ak_down));
 	}
       } /* end for y */

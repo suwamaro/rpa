@@ -14,7 +14,7 @@
 cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, int index){
   double k1 = 2. * M_PI / (double)L;
   
-  cx_double A = 0, B = 0, D = 0;
+  cx_double A = 0, B = 0, C = 0, D = 0;
 
   for(int z=0; z < 2; z++){    
     double kz = M_PI * z;
@@ -22,7 +22,9 @@ cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U,
       double kx = k1 * x;
       for(int y=-L/2; y < L/2; y++){
 	double ky = k1 * y;
-	add_to_sus_mat2( ts, mu, A, B, D, qx, qy, qz, kx, ky, kz, delta, omega );
+	add_to_sus_mat2( ts, mu, A, B, C, D, qx, qy, qz, kx, ky, kz, delta, omega );
+	// add_to_sus_mat2( ts, mu, A, B, D, qx, qy, qz, kx, ky, kz, delta, omega );
+	
       }
     }
   }
@@ -30,13 +32,15 @@ cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U,
   int n_sites = L * L * 2;  
   A *= 2. / (double)n_sites;
   B *= 2. / (double)n_sites;
+  C *= 2. / (double)n_sites;  
   D *= 2. / (double)n_sites;  
 
   /* RPA */
   arma::cx_mat chi0_mat(2,2);
   chi0_mat(0,0) = A;   // (A, A) correlation
   chi0_mat(0,1) = B;   // (A, B)
-  chi0_mat(1,0) = B;   // (B, A)
+  chi0_mat(1,0) = C;   // (B, A)
+  // chi0_mat(1,0) = B;   // (B, A)  
   // chi0_mat(1,0) = std::conj(B); // Taking the conjugate  
   chi0_mat(1,1) = D;   // (B, B)
   arma::cx_mat denom = arma::eye<arma::cx_mat>(2,2) - U * chi0_mat;

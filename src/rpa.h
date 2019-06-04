@@ -24,7 +24,8 @@ public:
   hoppings(double theta, double phi, double t3);
   double ek1(double kx, double ky, double kz) const;
   double ek2(double kx, double ky, double kz) const;
-  double ek3(double kx, double ky, double kz) const;  
+  double ek3(double kx, double ky, double kz) const;
+  double t_max() const;
   /* Parameters of the t2g three-band model */
   /* Reference: J.-M. Carter, et al., PRB 87 014433 (2013) 
                 S. Mohapatra, et al., PRB 95, 094435 (2017). */

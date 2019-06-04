@@ -28,8 +28,8 @@ int main(){
   // calc_size_dependence();
   // calc_chi();
 
-  double U = 4.0;
-  // double U = 0.34;
+  // double U = 5.0;
+  double U = 0.34;
   // double U = 0.00001;
     
   // plot_self_consistent_eq_square( U );
@@ -42,8 +42,9 @@ int main(){
   
   double theta = 0.237 * M_PI;   // Octahedral distortion
   double phi = 12. / 180. * M_PI;   // Octahedral rotation
-  double t3 = 0.03;   // Third-nearest xy-xy hopping amplitude
-  calc_spectrum_bilayer( theta, phi, t3, U, L, eta );    
+  double t3 = - 0.03;   // Third-nearest xy-xy hopping amplitude
+  double mu = - 0.0245129;
+  calc_spectrum_bilayer( theta, phi, t3, U, mu, L, eta );    
 
   // calc_velocity_cubic();
   // calc_velocity_square();

@@ -26,14 +26,22 @@ hoppings::hoppings(double theta, double phi, double t_third){
   tz_bar = (t1z * st2 - t4z * ct2) * sp + tmz * ct2 * cp;
   tzp = t2z * st2 + t6z * ct2 / 2;
   
-  // for check
-  t = 1.0;
-  t_bar = - 0.0353;  
-  tp = - 0.12;
-  tpp = - 0.113;
-  tz = - 0.5;
-  tz_bar = 0.4835;  
-  tzp = - 0.08;
+  // // for check
+  // t = 0.8;
+  // t_bar = 0.6;
+  // tp = 0;
+  // tpp = 0.0;
+  // tz = 0.0;
+  // tz_bar = 0;
+  // tzp = 0;
+
+  // t = 0.1219;
+  // t_bar = - 0.0043;
+  // tp = - 0.0147;
+  // tpp = - 0.0138;
+  // tz = - 0.0631;
+  // tz_bar = 0.0589;
+  // tzp = - 0.0108;
   
   // for check
   std::cerr << t << "  " << t_bar << "  " << tp << "  " << tpp << "  " << tz << "  " << tz_bar << "  " << tzp << std::endl;
@@ -48,6 +56,15 @@ double hoppings::ek2(double kx, double ky, double kz) const {
 }
 
 double hoppings::ek3(double kx, double ky, double kz) const {
-  return - 2. * tp * (cos(kx+ky) + cos(kx-ky)) - 2. * tpp * (cos(2*kx) + cos(2*ky)) - 2. * tzp * cos(kz) * (cos(kx) + cos(ky));
-  
+  return - 2. * tp * (cos(kx+ky) + cos(kx-ky)) - 2. * tpp * (cos(2*kx) + cos(2*ky)) - 2. * tzp * cos(kz) * (cos(kx) + cos(ky));  
+}
+
+double hoppings::t_max() const {
+  double tmax = 0;
+  tmax = std::max( tmax, sqrt(t*t + t_bar*t_bar) );
+  tmax = std::max( tmax, std::abs(tp) );
+  tmax = std::max( tmax, std::abs(tpp) );
+  tmax = std::max( tmax, sqrt(tz*tz + tz_bar*tz_bar) );
+  tmax = std::max( tmax, std::abs(tzp) );
+  return tmax;
 }
