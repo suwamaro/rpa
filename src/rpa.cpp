@@ -40,11 +40,14 @@ int main(){
   // calc_spectrum_square( U, L, eta );
   // calc_spectrum_cubic( U, L, eta );
   
+  // double theta = asin(1./sqrt(3));   // Cubic
+  // double phi = 0;   // Octahedral rotation
+  // double t3 = 0;   // Third-nearest xy-xy hopping amplitude
   double theta = 0.237 * M_PI;   // Octahedral distortion
   double phi = 12. / 180. * M_PI;   // Octahedral rotation
   double t3 = - 0.03;   // Third-nearest xy-xy hopping amplitude
-  double mu = - 0.0245129;
-  calc_spectrum_bilayer( theta, phi, t3, U, mu, L, eta );    
+  
+  calc_spectrum_bilayer( theta, phi, t3, U, L, eta );    
 
   // calc_velocity_cubic();
   // calc_velocity_square();

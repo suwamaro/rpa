@@ -34,7 +34,7 @@ hoppings::hoppings(double theta, double phi, double t_third){
   // tz = 0.0;
   // tz_bar = 0;
   // tzp = 0;
-
+  
   // t = 0.1219;
   // t_bar = - 0.0043;
   // tp = - 0.0147;

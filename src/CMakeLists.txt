@@ -19,6 +19,7 @@ calc_spectrum_cubic.cpp
 calc_intensity_square.cpp
 calc_intensity_bilayer.cpp
 calc_intensity_cubic.cpp
+calc_chemical_potential_bilayer.cpp
 hoppings.cpp) 
 
 add_executable(rpa rpa.cpp $<TARGET_OBJECTS:rpa_base>)

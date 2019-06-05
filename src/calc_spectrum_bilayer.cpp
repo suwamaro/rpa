@@ -10,8 +10,9 @@
 #include "calc_spectrum.h"
 #include "self_consistent_eq.h"
 #include "calc_gap.h"
+#include "calc_chemical_potential.h"
 
-void calc_spectrum_bilayer(double theta, double phi, double t3, double U, double mu, int L, double eta){
+void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L, double eta){
   /* Parameters */
   double t, t_bar, tp, tpp, tz, tz_bar, tzp;
   hoppings ts(theta, phi, t3);
@@ -27,6 +28,7 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, double
   for(int o=1; o <= n_omegas; o++){ omegas[o-1] = delta_omega * o; }
 
   /* Calculate the gap */
+  double mu = calc_chemical_potential_bilayer( L, ts );
   double delta = solve_self_consistent_eq_bilayer( L, ts, mu, U );
   std::cout << "delta = " << delta << std::endl;
 
