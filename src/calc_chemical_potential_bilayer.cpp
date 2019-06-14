@@ -27,10 +27,10 @@ double calc_chemical_potential_bilayer(int L, hoppings const& ts){
 	double ek2 = ts.ek2(kx, ky, kz);
 	double ek3 = ts.ek3(kx, ky, kz);
 
-	double Ek_up = eigenenergy_HF_out(ek1, ek2, ek3, delta);
+	double Ek_up = eigenenergy_HF_plus(ek1, ek2, ek3, delta);
 	E_min = std::min( E_min, Ek_up );
 	
-	double Ek_low = eigenenergy_HF_in(ek1, ek2, ek3, delta);
+	double Ek_low = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
 	E_max = std::max( E_max, Ek_low );
       } /* end for y */
     } /* end for x */

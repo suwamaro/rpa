@@ -11,14 +11,18 @@
 
 /* Coefficients */
 double denominator_in(double ek1, double ek2, double ek3, double delta);
-cx_double calc_bk_up_in(double ek1, double ek2, double ek3, double delta);
-cx_double calc_bk_up_out(double ek1, double ek2, double ek3, double delta);
-cx_double calc_ak_up_in(double ek1, double ek2, double ek3, double delta);
-cx_double calc_ak_up_out(double ek1, double ek2, double ek3, double delta);
-cx_double calc_bk_down_in(double ek1, double ek2, double ek3, double delta);
-cx_double calc_bk_down_out(double ek1, double ek2, double ek3, double delta);
-cx_double calc_ak_down_in(double ek1, double ek2, double ek3, double delta);
-cx_double calc_ak_down_out(double ek1, double ek2, double ek3, double delta);
+
+cx_double calc_ak_up_in_minus(double ek1, double ek2, double ek3, double delta);
+cx_double calc_ak_down_in_minus(double ek1, double ek2, double ek3, double delta);
+
+// cx_double calc_bk_up_in(double ek1, double ek2, double ek3, double delta);
+// cx_double calc_bk_up_out(double ek1, double ek2, double ek3, double delta);
+// cx_double calc_ak_up_in(double ek1, double ek2, double ek3, double delta);
+// cx_double calc_ak_up_out(double ek1, double ek2, double ek3, double delta);
+// cx_double calc_bk_down_in(double ek1, double ek2, double ek3, double delta);
+// cx_double calc_bk_down_out(double ek1, double ek2, double ek3, double delta);
+// cx_double calc_ak_down_in(double ek1, double ek2, double ek3, double delta);
+// cx_double calc_ak_down_out(double ek1, double ek2, double ek3, double delta);
 
 /* Common to the lattices */
 cx_double larger_eigenvalue(cx_double A, cx_double B, cx_double D);

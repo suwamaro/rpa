@@ -35,7 +35,7 @@ double self_consistent_eq_square(int L, double t, double mu, double delta){
 	  factor = 0.5;
 	}
 
-	sum += factor / eigenenergy_HF_out( e_free, delta );
+	sum += factor / eigenenergy_HF_plus( e_free, delta );
       }
     }
   }

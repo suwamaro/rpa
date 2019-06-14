@@ -83,19 +83,19 @@ double energy_free_electron_bilayer2(hoppings const& ts, double mu, double kx, d
   return - 2. * tk - mu;
 }
 
-double eigenenergy_HF_in(double e_free, double delta){
+double eigenenergy_HF_minus(double e_free, double delta){
   return - sqrt( delta * delta + e_free * e_free );
 }
 
-double eigenenergy_HF_out(double e_free, double delta){
+double eigenenergy_HF_plus(double e_free, double delta){
   return sqrt( delta * delta + e_free * e_free );
 }
 
-double eigenenergy_HF_in(double ek1, double ek2, double ek3, double delta){
+double eigenenergy_HF_minus(double ek1, double ek2, double ek3, double delta){
   return ek3 - sqrt(delta*delta + ek1*ek1 + ek2*ek2);
 }
 
-double eigenenergy_HF_out(double ek1, double ek2, double ek3, double delta){
+double eigenenergy_HF_plus(double ek1, double ek2, double ek3, double delta){
   return ek3 + sqrt(delta*delta + ek1*ek1 + ek2*ek2);
 }
 

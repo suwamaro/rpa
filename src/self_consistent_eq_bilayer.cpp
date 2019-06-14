@@ -25,8 +25,10 @@ double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double d
 	double ky = k1 * y;      
 	double e_eps = 1e-12;
 	
-	// // for check
+	// for check
+	// std::cerr << std::endl << kx << " " << ky << " " << kz;
 	// std::cerr << "kx = " << kx << "  ky = " << ky << "  kz = " << kz << std::endl;
+	
 
 	/* Checking if k is inside/outside the BZ. */
 	double k_len = std::abs(kx) + std::abs(ky);
@@ -62,17 +64,19 @@ double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double d
 	// }
 
 	/* Eigenenergy inside the BZ */
-	double Ek_in = eigenenergy_HF_in(ek1, ek2, ek3, delta);
+	double Ek_in = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
 
 	/* Summing up for Ek < EF. */
 	if ( Ek_in < mu ) {
 	// if ( Ek_in < mu + e_eps ) {
 	  
-	  cx_double ak_up = calc_ak_up_in(ek1, ek2, ek3, delta);
-	  cx_double ak_down = calc_ak_down_in(ek1, ek2, ek3, delta);
+	  cx_double ak_up = calc_ak_up_in_minus(ek1, ek2, ek3, delta);
+	  cx_double ak_down = calc_ak_down_in_minus(ek1, ek2, ek3, delta);
 
 	  // // for check
+	  // std::cerr << kx << std::setw(10) << ky << std::setw(10) << kz << std::setw(20) << ak_up << std::setw(20) << ak_down << std::endl;
 	  // std::cerr << "ak = " << ak << "   bk = " << bk << std::endl;
+	  
 
 	  /* |a^up|^2 - |a^down|^2 */
 	  sum += factor * (std::norm(ak_up) - std::norm(ak_down));
