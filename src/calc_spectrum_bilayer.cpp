@@ -21,7 +21,7 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
   int prec = 15;
   
   /* Omegas */
-  double delta_omega = 0.001;    
+  double delta_omega = 0.001;  
   double max_omega = ts.t_max() * 10;
   int n_omegas = int(max_omega/delta_omega+0.5);
   std::vector<double> omegas(n_omegas);

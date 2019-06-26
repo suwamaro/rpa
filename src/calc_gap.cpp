@@ -39,8 +39,7 @@ cx_double calc_ak_up_in_minus(double ek1, double ek2, double ek3, double delta){
   double denom = sqrt( std::norm(diag) + std::norm(off_diag) );
   // return std::abs(diag) / denom;   /* Taking the absolute. */
   // return - diag / denom;
-  return diag / denom;
-  
+  return diag / denom;  
 }
 cx_double calc_ak_down_in_minus(double ek1, double ek2, double ek3, double delta){
   return calc_bk_up_in_minus(ek1, ek2, ek3, delta);
@@ -56,7 +55,8 @@ cx_double calc_bk_up_in_plus(double ek1, double ek2, double ek3, double delta){
     double diag = diagonal(ek3, delta, E);
     cx_double off_diag = off_diagonal(ek1, ek2);
     double denom = sqrt( std::norm(diag) + std::norm(off_diag) );
-    return - std::conj(off_diag) / denom;    
+    return - off_diag / denom;
+    // return - std::conj(off_diag) / denom;    /* for the square lattice */
     // return std::conj(off_diag) / denom;        
     // return off_diag / denom;    
   }
@@ -73,8 +73,7 @@ cx_double calc_ak_up_in_plus(double ek1, double ek2, double ek3, double delta){
     double denom = sqrt( std::norm(diag) + std::norm(off_diag) );
     // return std::abs(diag) / denom;   /* Taking the absolute. */
     // return - diag / denom;
-    return diag / denom;
-    
+    return diag / denom;    
   }
 }
 cx_double calc_ak_down_in_plus(double ek1, double ek2, double ek3, double delta){
@@ -307,6 +306,7 @@ void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, 
   // bk_q_down = calc_bk_down_in_plus( - ek_q1, - ek_q2, ek_q3, delta);
   
   if ( zz ) {
+    /* Correct? */
     A += factor * factor2 * ( std::norm(ak_up) * std::norm(ak_q_up) / diff_E1 + std::norm(ak_up) * std::norm(ak_q_up) / diff_E2 );
     A += factor * factor2 * ( std::norm(ak_down) * std::norm(ak_q_down) / diff_E1 + std::norm(ak_down) * std::norm(ak_q_down) / diff_E2 );    
     

@@ -35,8 +35,8 @@ hoppings::hoppings(double theta, double phi, double t_third){
   // tz_bar = 0;
   // tzp = 0;
   
-  // // for check
-  // std::cerr << t << "  " << t_bar << "  " << tp << "  " << tpp << "  " << tz << "  " << tz_bar << "  " << tzp << std::endl;
+  // for check
+  std::cerr << t << "  " << t_bar << "  " << tp << "  " << tpp << "  " << tz << "  " << tz_bar << "  " << tzp << std::endl;
 }
 
 double hoppings::ek1(double kx, double ky, double kz) const {
