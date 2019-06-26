@@ -20,17 +20,16 @@
 
 int main(){
   // int L = 8;
-  int L = 16;
-  
+  // int L = 16;
+  int L = 56;
   double eta = 0.00001;
     
   // plot_chi0( L, eta );
   // calc_size_dependence();
   // calc_chi();
 
-  // double U = 5.0;
+  // double U = 5.0;  
   double U = 0.34;
-  // double U = 0.00001;
     
   // plot_self_consistent_eq_square( U );
   // plot_chi0_AF( U );
@@ -43,8 +42,9 @@ int main(){
   // double theta = asin(1./sqrt(3));   // Cubic
   // double phi = 0;   // Octahedral rotation
   // double t3 = 0;   // Third-nearest xy-xy hopping amplitude
+  
   double theta = 0.237 * M_PI;   // Octahedral distortion
-  double phi = 12. / 180. * M_PI;   // Octahedral rotation
+  double phi = 12. / 180. * M_PI;   // Octahedral rotation  
   double t3 = - 0.03;   // Third-nearest xy-xy hopping amplitude
   
   calc_spectrum_bilayer( theta, phi, t3, U, L, eta );    

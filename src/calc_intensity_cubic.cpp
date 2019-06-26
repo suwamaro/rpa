@@ -36,8 +36,8 @@ cx_double calc_intensity_cubic(int L, double t, double mu, double U, double delt
       }
     }
   }
-
-  int n_sites = L * L * L;    
+  
+  int n_sites = L * L * L;  
   A *= 2. / (double)n_sites;
   B *= 2. / (double)n_sites;
   D *= 2. / (double)n_sites;  

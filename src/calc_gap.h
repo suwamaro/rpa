@@ -12,6 +12,9 @@
 /* Coefficients */
 double denominator_in(double ek1, double ek2, double ek3, double delta);
 
+double G_AA_up_minus(double ek1, double ek2, double ek3, double delta);
+double G_AA_down_minus(double ek1, double ek2, double ek3, double delta);
+
 cx_double calc_ak_up_in_minus(double ek1, double ek2, double ek3, double delta);
 cx_double calc_ak_down_in_minus(double ek1, double ek2, double ek3, double delta);
 
@@ -28,7 +31,7 @@ cx_double calc_ak_down_in_minus(double ek1, double ek2, double ek3, double delta
 cx_double larger_eigenvalue(cx_double A, cx_double B, cx_double D);
 double wave_vector_in_BZ(double k);
 void add_to_sus_mat(cx_double& A, cx_double& B, cx_double& D, double e_free, double e_free2, double delta, cx_double omega);
-void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, cx_double& C, cx_double& D, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega);
+void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, cx_double& C, cx_double& D, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega, bool zz);
 // void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, cx_double& D, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega);
 
 /* For a square lattice */
@@ -37,7 +40,7 @@ double calc_gap_square(int L, double t, double mu, double U, double delta, doubl
 cx_double calc_intensity_square(int L, double t, double mu, double U, double delta, double qx, double qy, cx_double omega, int index);
 
 /* For a bilayer lattice */
-cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, int index);
+cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, int index, bool zz);
 
 /* For a simple cubic lattice */
 cx_double calc_intensity_cubic(int L, double t, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, int index);

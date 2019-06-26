@@ -13,6 +13,8 @@
 #include "BinarySearch.h"
 
 double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double delta){
+  double eps = 1e-12;
+  
   /* Monotonically decreasing as a function of delta */
   double k1 = 2. * M_PI / (double)L;
   double sum = 0;
@@ -25,22 +27,16 @@ double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double d
 	double ky = k1 * y;      
 	double e_eps = 1e-12;
 	
-	// for check
-	// std::cerr << std::endl << kx << " " << ky << " " << kz;
-	// std::cerr << "kx = " << kx << "  ky = " << ky << "  kz = " << kz << std::endl;
-	
-
 	/* Checking if k is inside/outside the BZ. */
-	double k_len = std::abs(kx) + std::abs(ky);
-	
-	/* Outside the BZ */
-	if ( k_len - M_PI >=  e_eps ) continue;
+	double mu_free = 0;  /* Assume at half filling */
+	double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc */
+	if ( e_free > mu_free + eps ) continue;
 
 	/* Prefactor */
 	double factor = 1.;
 	
 	/* On the zone boundary */
-	if ( std::abs(k_len - M_PI) < e_eps ) {
+	if ( std::abs(e_free - mu_free) < eps ) {	
 	  factor = 0.5;
 	}
 
@@ -49,38 +45,10 @@ double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double d
 	double ek2 = ts.ek2(kx, ky, kz);
 	double ek3 = ts.ek3(kx, ky, kz);
 
-	// // for check
-	// std::cerr << "ek1 = " << ek1 << "  ek2 = " << ek2 << "  ek3 = " << ek3 << std::endl;
-	
-	// /* Checking if the denominator is zero. */
-	// double denom_in = denominator_in(ek1, ek2, ek3, delta);
+	cx_double ak_up = calc_ak_up_in_minus(ek1, ek2, ek3, delta);
+	cx_double ak_down = calc_ak_down_in_minus(ek1, ek2, ek3, delta);
 
-	// std::cerr << "denom_in = " << denom_in << std::endl;
-
-	// /* Special case */
-	// if ( std::abs(denom_in) < e_eps ) {
-	//   sum += factor;
-	//   continue;
-	// }
-
-	/* Eigenenergy inside the BZ */
-	double Ek_in = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
-
-	/* Summing up for Ek < EF. */
-	if ( Ek_in < mu ) {
-	// if ( Ek_in < mu + e_eps ) {
-	  
-	  cx_double ak_up = calc_ak_up_in_minus(ek1, ek2, ek3, delta);
-	  cx_double ak_down = calc_ak_down_in_minus(ek1, ek2, ek3, delta);
-
-	  // // for check
-	  // std::cerr << kx << std::setw(10) << ky << std::setw(10) << kz << std::setw(20) << ak_up << std::setw(20) << ak_down << std::endl;
-	  // std::cerr << "ak = " << ak << "   bk = " << bk << std::endl;
-	  
-
-	  /* |a^up|^2 - |a^down|^2 */
-	  sum += factor * (std::norm(ak_up) - std::norm(ak_down));
-	}
+	sum += factor * (std::norm(ak_up) - std::norm(ak_down));
       } /* end for y */
     } /* end for x */
   } /* end for z */

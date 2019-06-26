@@ -12,228 +12,163 @@
 
 /* Reference: A. Singh and Z. Tesanovic, PRB 41, 11457 (1990) */
 
-double denominator_in(double ek1, double ek2, double ek3, double delta){
-  double Ek = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
-  cx_double nume(ek1, ek2);
-  double g = Ek - delta - ek3;
-  double denom = sqrt( g*g + std::norm(nume) );
-  return denom;
-}
-
-double denominator_out(double ek1, double ek2, double ek3, double delta){
-  double Ek = eigenenergy_HF_plus(ek1, ek2, ek3, delta);
-  cx_double nume(ek1, ek2);
-  double g = Ek - delta - ek3;
-  double denom = sqrt( g*g + std::norm(nume) );
-  return denom;
-}
-
 bool diagonal_H(double ek1, double ek2) {  
   return ek1 * ek1 + ek2 * ek2 < 1e-12;
 }
-
 double diagonal(double ek3, double delta, double E){
   return E - ek3 - delta;
 }
-
 cx_double off_diagonal(double ek1, double ek2){
   cx_double comp(ek1, - ek2);
   return comp;
 }
-
-cx_double calc_ak_up(double ek1, double ek2, double ek3, double delta, double E){
-  double diag = diagonal(ek3, delta, E);
-  cx_double off_diag = off_diagonal(ek1, ek2);
-  double denom = sqrt( std::norm(diag) + std::norm(off_diag) );
-  return diag / denom;
-}
-
-cx_double calc_bk_up(double ek1, double ek2, double ek3, double delta, double E){
+cx_double calc_bk_up_in_minus(double ek1, double ek2, double ek3, double delta){
+  double E = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
   double diag = diagonal(ek3, delta, E);
   cx_double off_diag = off_diagonal(ek1, ek2);
   double denom = sqrt( std::norm(diag) + std::norm(off_diag) );
   return off_diag / denom;
+  // return - off_diag / denom;  
 }
-
-cx_double calc_ak_down(double ek1, double ek2, double ek3, double delta, double E){
-  return calc_bk_up(ek1, ek2, ek3, delta, E);
-}
-
-cx_double calc_bk_down(double ek1, double ek2, double ek3, double delta, double E){
-  return calc_ak_up(ek1, ek2, ek3, delta, E);
-}
-
 cx_double calc_ak_up_in_minus(double ek1, double ek2, double ek3, double delta){
-  if ( diagonal_H(ek1, ek2) ) {
-    return - 1.;
-  } else {
-    double E = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
-    return calc_ak_up(ek1, ek2, ek3, delta, E);
-  }
+  // cx_double bk = calc_bk_up_in_minus(ek1, ek2, ek3, delta);
+  // return sqrt(1. - std::norm(bk));  
+  double E = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
+  double diag = diagonal(ek3, delta, E);
+  cx_double off_diag = off_diagonal(ek1, ek2);
+  double denom = sqrt( std::norm(diag) + std::norm(off_diag) );
+  // return std::abs(diag) / denom;   /* Taking the absolute. */
+  // return - diag / denom;
+  return diag / denom;
+  
 }
-
-cx_double calc_ak_up_in_plus(double ek1, double ek2, double ek3, double delta){
-  if ( diagonal_H(ek1, ek2) ) {
-    return 0.;
-  } else {
-    double E = eigenenergy_HF_plus(ek1, ek2, ek3, delta);
-    return calc_ak_up(ek1, ek2, ek3, delta, E);
-  }
-}
-
-cx_double calc_bk_up_in_minus(double ek1, double ek2, double ek3, double delta){
-  if ( diagonal_H(ek1, ek2) ) {
-    return 0.;
-  } else {
-    double E = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
-    return calc_bk_up(ek1, ek2, ek3, delta, E);
-  }
-}
-
-cx_double calc_bk_up_in_plus(double ek1, double ek2, double ek3, double delta){
-  if ( diagonal_H(ek1, ek2) ) {
-    return 1.;  /* Correct? */
-  } else {
-    double E = eigenenergy_HF_plus(ek1, ek2, ek3, delta);
-    return calc_bk_up(ek1, ek2, ek3, delta, E);
-  }
-}
-
 cx_double calc_ak_down_in_minus(double ek1, double ek2, double ek3, double delta){
   return calc_bk_up_in_minus(ek1, ek2, ek3, delta);
 }
-
-cx_double calc_ak_down_in_plus(double ek1, double ek2, double ek3, double delta){
-  return calc_bk_up_in_plus(ek1, ek2, ek3, delta);
-}
-
 cx_double calc_bk_down_in_minus(double ek1, double ek2, double ek3, double delta){
   return calc_ak_up_in_minus(ek1, ek2, ek3, delta);
 }
-
+cx_double calc_bk_up_in_plus(double ek1, double ek2, double ek3, double delta){
+  if ( diagonal_H(ek1, ek2) ) {
+    return 1.;  /* It doesn't matter. */
+  } else {  
+    double E = eigenenergy_HF_plus(ek1, ek2, ek3, delta);
+    double diag = diagonal(ek3, delta, E);
+    cx_double off_diag = off_diagonal(ek1, ek2);
+    double denom = sqrt( std::norm(diag) + std::norm(off_diag) );
+    return - std::conj(off_diag) / denom;    
+    // return std::conj(off_diag) / denom;        
+    // return off_diag / denom;    
+  }
+}
+cx_double calc_ak_up_in_plus(double ek1, double ek2, double ek3, double delta){
+  // cx_double bk = calc_bk_up_in_plus(ek1, ek2, ek3, delta);
+  // return sqrt(1. - std::norm(bk));  
+  if ( diagonal_H(ek1, ek2) ) {
+    return 0.;
+  } else {  
+    double E = eigenenergy_HF_plus(ek1, ek2, ek3, delta);
+    double diag = diagonal(ek3, delta, E);
+    cx_double off_diag = off_diagonal(ek1, ek2);
+    double denom = sqrt( std::norm(diag) + std::norm(off_diag) );
+    // return std::abs(diag) / denom;   /* Taking the absolute. */
+    // return - diag / denom;
+    return diag / denom;
+    
+  }
+}
+cx_double calc_ak_down_in_plus(double ek1, double ek2, double ek3, double delta){
+  return calc_bk_up_in_plus(ek1, ek2, ek3, delta);
+}
 cx_double calc_bk_down_in_plus(double ek1, double ek2, double ek3, double delta){
   return calc_ak_up_in_plus(ek1, ek2, ek3, delta);
 }
 
-cx_double calc_ak_up_out_minus(double ek1, double ek2, double ek3, double delta){
-  return calc_ak_down_in_minus( - ek1, - ek2, ek3, delta );  /* k + pi */
-}
-
-cx_double calc_ak_up_out_plus(double ek1, double ek2, double ek3, double delta){
-  return calc_ak_down_in_plus( - ek1, - ek2, ek3, delta );  /* k + pi */
-}
-
-cx_double calc_bk_up_out_minus(double ek1, double ek2, double ek3, double delta){
-  return calc_bk_down_in_minus( - ek1, - ek2, ek3, delta );  /* k + pi */
-}
-
-cx_double calc_bk_up_out_plus(double ek1, double ek2, double ek3, double delta){
-  return calc_bk_down_in_plus( - ek1, - ek2, ek3, delta );  /* k + pi */
-}
-
-cx_double calc_ak_down_out_minus(double ek1, double ek2, double ek3, double delta){
-  return calc_ak_up_in_minus( - ek1, - ek2, ek3, delta );  /* k + pi */
-}
-
-cx_double calc_ak_down_out_plus(double ek1, double ek2, double ek3, double delta){
-  return calc_ak_up_in_plus( - ek1, - ek2, ek3, delta );  /* k + pi */
-}
-
-cx_double calc_bk_down_out_minus(double ek1, double ek2, double ek3, double delta){
-  return calc_bk_up_in_minus( - ek1, - ek2, ek3, delta );  /* k + pi */
-}
-
-cx_double calc_bk_down_out_plus(double ek1, double ek2, double ek3, double delta){
-  return calc_bk_up_in_plus( - ek1, - ek2, ek3, delta );  /* k + pi */
-}
-
-
-// cx_double calc_bk_up_in(double ek1, double ek2, double ek3, double delta){
-//   if ( diagonal_H(ek1, ek2) ) {
-//     return 0.;
-//   } else {
-//     double E = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
-//     double diag = E - ek3 - delta;
-//     cx_double off_diag(ek1, - ek2);
-//     double denom = sqrt( std::norm(diag) + std::norm(off_diag) );
-//     return off_diag / denom;
-//   }
+// double G_AA(double E, double delta, double spin){
+//   return 0.5 * ( 1. - spin * delta / E );
 // }
-// cx_double calc_ak_down_in(double ek1, double ek2, double ek3, double delta){
-//   return calc_bk_up_in(ek1, ek2, ek3, delta);
+// double G_AA_minus(double ek1, double ek2, double ek3, double delta, double spin){
+//   double E = ek3 - sqrt(delta*delta + ek1*ek1 + ek2*ek2);
+//   return G_AA( E, delta, spin );
 // }
-// cx_double calc_bk_down_in(double ek1, double ek2, double ek3, double delta){
-//   return calc_ak_up_in(ek1, ek2, ek3, delta);
+// double G_AA_plus(double ek1, double ek2, double ek3, double delta, double spin){
+//   double E = ek3 + sqrt(delta*delta + ek1*ek1 + ek2*ek2);
+//   return G_AA( E, delta, spin );
 // }
-// cx_double calc_ak_up_out(double ek1, double ek2, double ek3, double delta){
-//   return - std::conj(calc_ak_down_in( - ek1, - ek2, ek3, delta ));  /* k + pi */
-//   // return std::conj(calc_ak_down_in( - ek1, - ek2, ek3, delta ));  /* k + pi */  
+// double G_AA_up_minus(double ek1, double ek2, double ek3, double delta){
+//   return G_AA_minus( ek1, ek2, ek3, delta, 1.0 );
 // }
-// cx_double calc_bk_up_out(double ek1, double ek2, double ek3, double delta){
-//   return - std::conj(calc_bk_down_in( - ek1, - ek2, ek3, delta ));  /* k + pi */
-//   // return - /* - */ calc_bk_down_in( - ek1, - ek2, ek3, delta );  /* k + pi */
-  
+// double G_AA_down_minus(double ek1, double ek2, double ek3, double delta){
+//   return G_AA_minus( ek1, ek2, ek3, delta, - 1.0 );
 // }
-// cx_double calc_ak_down_out(double ek1, double ek2, double ek3, double delta){
-//   return - /* - */ std::conj(calc_ak_up_in( - ek1, - ek2, ek3, delta));  /* k + pi */
-//   // return - /* - */ calc_ak_up_in( - ek1, - ek2, ek3, delta);  /* k + pi */
-  
+// double G_AA_up_plus(double ek1, double ek2, double ek3, double delta){
+//   return G_AA_plus( ek1, ek2, ek3, delta, 1.0 );
 // }
-// cx_double calc_bk_down_out(double ek1, double ek2, double ek3, double delta){
-//   return - std::conj(calc_bk_up_in( - ek1, - ek2, ek3, delta)); /* k + pi */
-//   // return std::conj(calc_bk_up_in( - ek1, - ek2, ek3, delta)); /* k + pi */
-  
+// double G_AA_down_plus(double ek1, double ek2, double ek3, double delta){
+//   return G_AA_plus( ek1, ek2, ek3, delta, - 1.0 );
 // }
 
-// cx_double calc_ak_up_in(double ek1, double ek2, double ek3, double delta){
-//   if ( diagonal_H(ek1, ek2) ) {
-//     return 1.;
-//   } else {
-//     double E = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
-//     double diag = E - ek3 - delta;
-//     cx_double off_diag(ek1, ek2);
-//     double denom = sqrt( std::norm(diag) + std::norm(off_diag) );
-//     return - diag / denom;
-//   }
+// cx_double G_AB(cx_double phi, double E){
+//   return - 0.5 * phi / E;
 // }
-// cx_double calc_bk_up_in(double ek1, double ek2, double ek3, double delta){
-//   if ( diagonal_H(ek1, ek2) ) {
-//     return 0.;
-//   } else {
-//     double E = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
-//     double diag = E - ek3 - delta;
-//     cx_double off_diag(ek1, - ek2);
-//     double denom = sqrt( std::norm(diag) + std::norm(off_diag) );
-//     return - off_diag / denom;
-//     // return off_diag / denom;  
-    
-//   }
+// cx_double G_AB_up_minus(double ek1, double ek2, double ek3, double delta){
+//   cx_double phi(ek1, - ek2);  
+//   double E = ek3 - sqrt(delta*delta + ek1*ek1 + ek2*ek2);
+//   return G_AB( phi, E );
 // }
-// cx_double calc_ak_down_in(double ek1, double ek2, double ek3, double delta){
-//   return calc_bk_up_in(ek1, ek2, ek3, delta);
+// cx_double G_AB_down_minus(double ek1, double ek2, double ek3, double delta){
+//   cx_double phi(ek1, ek2);  
+//   double E = ek3 - sqrt(delta*delta + ek1*ek1 + ek2*ek2);
+//   return G_AB( phi, E );
 // }
-// cx_double calc_bk_down_in(double ek1, double ek2, double ek3, double delta){
-//   return calc_ak_up_in(ek1, ek2, ek3, delta);
+// cx_double G_AB_up_plus(double ek1, double ek2, double ek3, double delta){
+//   cx_double phi(ek1, - ek2);  
+//   double E = ek3 + sqrt(delta*delta + ek1*ek1 + ek2*ek2);
+//   return G_AB( phi, E );
 // }
-// cx_double calc_ak_up_out(double ek1, double ek2, double ek3, double delta){
-//   return - std::conj(calc_ak_down_in( - ek1, - ek2, ek3, delta ));  /* k + pi */
-//   // return std::conj(calc_ak_down_in( - ek1, - ek2, ek3, delta ));  /* k + pi */  
+// cx_double G_AB_down_plus(double ek1, double ek2, double ek3, double delta){
+//   cx_double phi(ek1, ek2);  
+//   double E = ek3 + sqrt(delta*delta + ek1*ek1 + ek2*ek2);
+//   return G_AB( phi, E );
 // }
-// cx_double calc_bk_up_out(double ek1, double ek2, double ek3, double delta){
-//   return - std::conj(calc_bk_down_in( - ek1, - ek2, ek3, delta ));  /* k + pi */
-//   // return - /* - */ calc_bk_down_in( - ek1, - ek2, ek3, delta );  /* k + pi */
-  
+
+// cx_double G_BA_up_minus(double ek1, double ek2, double ek3, double delta){
+//   return std::conj(G_AB_up_minus(ek1, ek2, ek3, delta));
 // }
-// cx_double calc_ak_down_out(double ek1, double ek2, double ek3, double delta){
-//   return - /* - */ std::conj(calc_ak_up_in( - ek1, - ek2, ek3, delta));  /* k + pi */
-//   // return - /* - */ calc_ak_up_in( - ek1, - ek2, ek3, delta);  /* k + pi */
-  
+// cx_double G_BA_down_minus(double ek1, double ek2, double ek3, double delta){
+//   return std::conj(G_AB_down_minus(ek1, ek2, ek3, delta));
 // }
-// cx_double calc_bk_down_out(double ek1, double ek2, double ek3, double delta){
-//   return - std::conj(calc_bk_up_in( - ek1, - ek2, ek3, delta)); /* k + pi */
-//   // return std::conj(calc_bk_up_in( - ek1, - ek2, ek3, delta)); /* k + pi */
-  
+// cx_double G_BA_up_plus(double ek1, double ek2, double ek3, double delta){
+//   return std::conj(G_AB_up_plus(ek1, ek2, ek3, delta));
 // }
+// cx_double G_BA_down_plus(double ek1, double ek2, double ek3, double delta){
+//   return std::conj(G_AB_down_plus(ek1, ek2, ek3, delta));
+// }
+
+// double G_BB(double E, double delta, double spin){
+//   return 0.5 * ( 1. + spin * delta / E );
+// }
+// double G_BB_minus(double ek1, double ek2, double ek3, double delta, double spin){
+//   double E = ek3 - sqrt(delta*delta + ek1*ek1 + ek2*ek2);
+//   return G_BB( E, delta, spin );
+// }
+// double G_BB_plus(double ek1, double ek2, double ek3, double delta, double spin){
+//   double E = ek3 + sqrt(delta*delta + ek1*ek1 + ek2*ek2);
+//   return G_BB( E, delta, spin );
+// }
+// double G_BB_up_minus(double ek1, double ek2, double ek3, double delta){
+//   return G_BB_minus( ek1, ek2, ek3, delta, 1.0 );
+// }
+// double G_BB_down_minus(double ek1, double ek2, double ek3, double delta){
+//   return G_BB_minus( ek1, ek2, ek3, delta, - 1.0 );
+// }
+// double G_BB_up_plus(double ek1, double ek2, double ek3, double delta){
+//   return G_BB_plus( ek1, ek2, ek3, delta, 1.0 );
+// }
+// double G_BB_down_plus(double ek1, double ek2, double ek3, double delta){
+//   return G_BB_plus( ek1, ek2, ek3, delta, - 1.0 );
+// }
+
 
 double calc_bk_up_in(double e_free, double delta){
   double Ek = eigenenergy_HF_minus( e_free, delta );
@@ -243,7 +178,7 @@ double calc_bk_up_in(double e_free, double delta){
 double calc_bk_up_out(double e_free, double delta){
   double Ek = eigenenergy_HF_plus( e_free, delta );
   
-    /* Special treatment on the Fermi surface */
+  /* Special treatment on the Fermi surface */
   double e_eps = 1e-12;
   if ( std::abs( e_free ) <= e_eps ) { return 1.; }
   else {
@@ -296,7 +231,6 @@ void add_to_sus_mat(cx_double& A, cx_double& B, cx_double& D, double e_free, dou
   double E1 = eigenenergy_HF_plus( e_free2, delta );
   double E2 = eigenenergy_HF_minus( e_free, delta );
   cx_double diff_E1 = E1 - E2 + omega;
-  // cx_double diff_E2 = E1 - E2 - std::conj(omega);
   cx_double diff_E2 = E1 - E2 - omega;
   
   double ak_up_in = calc_ak_up_in( e_free, delta );
@@ -314,174 +248,83 @@ void add_to_sus_mat(cx_double& A, cx_double& B, cx_double& D, double e_free, dou
   if ( std::abs( e_free ) <= e_eps ) {
     factor = 0.5;
   }
-
-  // // for check
-  // std::cerr << "e_free = " << e_free << "  e_free2 = " << e_free2 << std::endl;
-  // std::cerr << std::real(bk_up_in) << " " << std::real(bk_q_up_out) << std::endl;
-  // std::cerr << std::real(ak_up_in) << " " << std::real(ak_q_down_out) << " " << std::real(ak_down_in) << " " << std::real(ak_q_up_out) << " " << std::real(bk_up_in) << " " << std::real(bk_q_down_out) << " " << std::real(bk_down_in) << " " << std::real(bk_q_up_out) << std::endl;
-  
+   
   A += factor * ( ak_up_in * ak_up_in * ak_q_down_out * ak_q_down_out / diff_E1 + ak_down_in * ak_down_in * ak_q_up_out * ak_q_up_out / diff_E2 );
   B += factor * ( ak_up_in * bk_up_in * ak_q_down_out * bk_q_down_out / diff_E1 + ak_down_in * bk_down_in * ak_q_up_out * bk_q_up_out / diff_E2 );
   D += factor * ( bk_up_in * bk_up_in * bk_q_down_out * bk_q_down_out / diff_E1 + bk_down_in * bk_down_in * bk_q_up_out * bk_q_up_out / diff_E2 );
 }
 
-void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, cx_double& C, cx_double& D, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega){
-  double e_eps = 1e-12;
-  
-  /* Checking if k is inside/outside the BZ. */
-  // double k_len = std::abs(kx) + std::abs(ky) + std::abs(kz);  
-  double k_len = std::abs(kx) + std::abs(ky);
-
-  /* Outside the BZ */
-  if ( k_len - M_PI >=  e_eps ) return;
+void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, cx_double& C, cx_double& D, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega, bool zz){
+  double eps = 1e-12;
   
   double ek1 = ts.ek1(kx, ky, kz);
   double ek2 = ts.ek2(kx, ky, kz);
   double ek3 = ts.ek3(kx, ky, kz);
-
   double Ek = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
-  // double Ek = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
-  
   
   /* Checking if the eigenenergy is below the chemical potential. */
-  if ( Ek > mu ) return;
-  // if ( Ek > mu + e_eps ) return;
+  double mu_free = 0;  /* Assume at half filling */
+  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc */
+  if ( e_free > mu_free + eps ) return;
+    
+  /* Prefactor */
+  double factor = 1.;
+  double factor2 = 1.;
+  
+  /* On the zone boundary */
+  if ( std::abs(e_free - mu_free) < eps ) {
+    factor = 0.5;
+  }
   
   double diff_x = wave_vector_in_BZ( kx - qx );
   double diff_y = wave_vector_in_BZ( ky - qy );
   double diff_z = wave_vector_in_BZ( kz - qz );
   
+  // double e_free2 = energy_free_electron( 1., mu_free, diff_x, diff_y );  /* ad-hoc */
+  
   double ek_q1 = ts.ek1(diff_x, diff_y, diff_z);
   double ek_q2 = ts.ek2(diff_x, diff_y, diff_z);
   double ek_q3 = ts.ek3(diff_x, diff_y, diff_z);
-  
   double Ek_q = eigenenergy_HF_plus(ek_q1, ek_q2, ek_q3, delta);
-  // double Ek_q = eigenenergy_HF_plus(ek_q1, ek_q2, ek_q3, delta);
   
-
-  // // for check
-  // std::cerr << qx << " " << qy << " " << qz << " " << kx << " " << ky << " " << kz << "  " << Ek << "  " << Ek_q;
-  // if ( std::abs(Ek-mu) < e_eps ) std::cerr << "  0\n";
-  // else if ( Ek - mu > e_eps ) std::cerr << "  positive\n";
-  // else std::cerr << "  negative\n";
-    
-
-  // // for check
-  // std::cerr << "Considering..."  << std::endl;
+  cx_double diff_E1 = Ek_q - Ek + omega;
+  cx_double diff_E2 = Ek_q - Ek - omega;
   
-  /* Prefactor */
-  double factor = 1.;
-  
-  /* On the zone boundary */
-  if ( std::abs(k_len - M_PI) < e_eps ) {
-    factor = 0.5;
-  }
-		
-  // /* Checking if the denominators are zero. */
-  // double denom_in = denominator_in(ek1, ek2, ek3, delta);
-  // double denom_out = denominator_out(ek_q1, ek_q2, ek_q3, delta);  
-
   cx_double ak_up = calc_ak_up_in_minus(ek1, ek2, ek3, delta);
   cx_double ak_down = calc_ak_down_in_minus(ek1, ek2, ek3, delta);
   cx_double bk_up = calc_bk_up_in_minus(ek1, ek2, ek3, delta);
   cx_double bk_down = calc_bk_down_in_minus(ek1, ek2, ek3, delta);
 
   cx_double ak_q_up, ak_q_down, bk_q_up, bk_q_down;
-  double k_q_len = std::abs(diff_x) + std::abs(diff_y);
+  ak_q_up = calc_ak_up_in_plus( ek_q1, ek_q2, ek_q3, delta);
+  ak_q_down = calc_ak_down_in_plus( ek_q1, ek_q2, ek_q3, delta);
+  bk_q_up = calc_bk_up_in_plus( ek_q1, ek_q2, ek_q3, delta);
+  bk_q_down = calc_bk_down_in_plus( ek_q1, ek_q2, ek_q3, delta);
 
-  if ( k_q_len - M_PI > - e_eps ) {  /* Correct? */
-    /* Outside the magnetic BZ */
-    ak_q_up = calc_ak_up_out_plus(ek_q1, ek_q2, ek_q3, delta);
-    ak_q_down = calc_ak_down_out_plus(ek_q1, ek_q2, ek_q3, delta);
-    bk_q_up = calc_bk_up_out_plus(ek_q1, ek_q2, ek_q3, delta);
-    bk_q_down = calc_bk_down_out_plus(ek_q1, ek_q2, ek_q3, delta);
+  // ak_q_up = calc_ak_up_in_plus( - ek_q1, - ek_q2, ek_q3, delta);
+  // ak_q_down = calc_ak_down_in_plus( - ek_q1, - ek_q2, ek_q3, delta);
+  // bk_q_up = calc_bk_up_in_plus( - ek_q1, - ek_q2, ek_q3, delta);
+  // bk_q_down = calc_bk_down_in_plus( - ek_q1, - ek_q2, ek_q3, delta);
+  
+  if ( zz ) {
+    A += factor * factor2 * ( std::norm(ak_up) * std::norm(ak_q_up) / diff_E1 + std::norm(ak_up) * std::norm(ak_q_up) / diff_E2 );
+    A += factor * factor2 * ( std::norm(ak_down) * std::norm(ak_q_down) / diff_E1 + std::norm(ak_down) * std::norm(ak_q_down) / diff_E2 );    
+    
+    B += factor * factor2 * ( std::conj(ak_up) * bk_up * ak_q_up * std::conj(bk_q_up) / diff_E1 + std::conj(ak_up) * bk_up * ak_q_up * std::conj(bk_q_up) / diff_E2 );
+    B += factor * factor2 * ( std::conj(ak_down) * bk_down * ak_q_down * std::conj(bk_q_down) / diff_E1 + std::conj(ak_down) * bk_down * ak_q_down * std::conj(bk_q_down) / diff_E2 );    
+    
+    C += factor * factor2 * ( ak_up * std::conj(bk_up) * std::conj(ak_q_up) * bk_q_up / diff_E1 + ak_up * std::conj(bk_up) * std::conj(ak_q_up) * bk_q_up / diff_E2 );
+    C += factor * factor2 * ( ak_down * std::conj(bk_down) * std::conj(ak_q_down) * bk_q_down / diff_E1 + ak_down * std::conj(bk_down) * std::conj(ak_q_down) * bk_q_down / diff_E2 );    
+
+    D += factor * factor2 * ( std::norm(bk_up) * std::norm(bk_q_up) / diff_E1 + std::norm(bk_up) * std::norm(bk_q_up) / diff_E2 );
+    D += factor * factor2 * ( std::norm(bk_down) * std::norm(bk_q_down) / diff_E1 + std::norm(bk_down) * std::norm(bk_q_down) / diff_E2 );    
   } else {
-    /* Inside the magnetic BZ */
-    ak_q_up = calc_ak_up_in_plus(ek_q1, ek_q2, ek_q3, delta);
-    ak_q_down = calc_ak_down_in_plus(ek_q1, ek_q2, ek_q3, delta);
-    bk_q_up = calc_bk_up_in_plus(ek_q1, ek_q2, ek_q3, delta);
-    bk_q_down = calc_bk_down_in_plus(ek_q1, ek_q2, ek_q3, delta);    
+    A += factor * factor2 * ( std::norm(ak_up) * std::norm(ak_q_down) / diff_E1 + std::norm(ak_down) * std::norm(ak_q_up) / diff_E2 );
+    
+    B += factor * factor2 * ( std::conj(ak_up) * bk_up * ak_q_down * std::conj(bk_q_down) / diff_E1 + std::conj(ak_down) * bk_down * ak_q_up * std::conj(bk_q_up) / diff_E2 );
+    
+    C += factor * factor2 * ( ak_up * std::conj(bk_up) * std::conj(ak_q_down) * bk_q_down / diff_E1 + ak_down * std::conj(bk_down) * std::conj(ak_q_up) * bk_q_up / diff_E2 );
+
+    D += factor * factor2 * ( std::norm(bk_up) * std::norm(bk_q_down) / diff_E1 + std::norm(bk_down) * std::norm(bk_q_up) / diff_E2 );
   }
-  
-  
-  //   cx_double ak_up_in = calc_ak_up_in(ek1, ek2, ek3, delta);
-  // cx_double ak_q_up_out = calc_ak_up_out(ek_q1, ek_q2, ek_q3, delta);
-  // cx_double ak_down_in = calc_ak_down_in(ek1, ek2, ek3, delta);
-  // cx_double ak_q_down_out = calc_ak_down_out(ek_q1, ek_q2, ek_q3, delta);
-  // cx_double bk_up_in = calc_bk_up_in(ek1, ek2, ek3, delta);
-  // cx_double bk_q_up_out = calc_bk_up_out(ek_q1, ek_q2, ek_q3, delta);
-  // cx_double bk_down_in = calc_bk_down_in(ek1, ek2, ek3, delta);
-  // cx_double bk_q_down_out = calc_bk_down_out(ek_q1, ek_q2, ek_q3, delta);  
-  
-  
-  // /* Special case */
-  // if ( std::abs(denom_in) < e_eps ) {
-  //   ak = 1.;
-  //   bk = 0.;
-  // } else {
-    // ak = calc_ak_in(ek1, ek2, ek3, delta);
-    // bk = calc_bk_in(ek1, ek2, ek3, delta);    
-  // }
-  
-  // if ( std::abs(denom_out) < e_eps ) {
-  //   ak_q = 1.;
-  //   bk_q = 0.;
-  // } else {
-    // ak_q = calc_ak_out(ek_q1, ek_q2, ek_q3, delta);    
-    // bk_q = calc_bk_out(ek_q1, ek_q2, ek_q3, delta);
-  // }
-    
-  cx_double diff_E1 = Ek_q - Ek + omega;
-  cx_double diff_E2 = Ek_q - Ek - omega;
-
-  // // // for check
-  // std::cerr << qx << " " << qy << " " << kx << " " << ky << " ";
-  // std::cerr << std::real(bk_up_in) << " " << std::real(bk_q_up_out) << std::endl;  
-  // std::cerr << std::real(ak_up_in) << " " << std::real(ak_q_down_out) << " " << std::real(ak_down_in) << " " << std::real(ak_q_up_out) << " " << std::real(bk_up_in) << " " << std::real(bk_q_down_out) << " " << std::real(bk_down_in) << " " << std::real(bk_q_up_out) << std::endl;
-  
-    // std::cerr << qx << " " << qy << " " << kx << " " << ky << " " << diff_x << " " << diff_y << " " << std::real(ak_up_in) << " " << std::real(ak_q_down_out) << " " << std::real(ak_down_in) << " " << std::real(ak_q_up_out) << " " << std::real(bk_up_in) << " " << std::real(bk_q_down_out) << " " << std::real(bk_down_in) << " " << std::real(bk_q_up_out) << std::endl;  
-  // std::cerr << qx << " " << qy << " " << qz << " " << kx << " " << ky << " " << kz << " " << diff_x << " " << diff_y << " " << diff_z << " " << std::real(ak_up_in) << " " << std::real(ak_q_down_out) << " " << std::real(ak_down_in) << " " << std::real(ak_q_up_out) << " " << std::real(bk_up_in) << " " << std::real(bk_q_down_out) << " " << std::real(bk_down_in) << " " << std::real(bk_q_up_out) << std::endl;
-
-  // std::cerr << "delta = " << delta << std::endl;
-  // std::cerr << "eks" << std::endl;
-  // std::cerr << ek1 << " " << ek2 << " " << ek3 << " " << ek_q1 << " " << ek_q2 << " " << ek_q3 << std::endl;
-  // // std::cerr << "denom_in = " << denom_in << std::endl;
-  // // std::cerr << "denom_out = " << denom_out << std::endl;
-  // std::cerr << Ek << " " << Ek_q << " " << ak << " " << ak_q << " " << bk << " " << bk_q << std::endl;
-  
-  // A += factor * ( std::norm(ak) * bk_q * bk_q / diff_E1 + bk * bk * std::norm(ak_q) / diff_E2 );
-  // // B += factor * ak * bk * std::conj(ak_q) * bk_q * ( 1. / diff_E1 + 1. / diff_E2 );
-  // B += factor * ak * bk * ak_q * bk_q * ( 1. / diff_E1 + 1. / diff_E2 );
-  
-  // D += factor * ( bk * bk * std::norm(ak_q) / diff_E1 + std::norm(ak) * bk_q * bk_q / diff_E2 );
-
-
-  // // for check
-  // std::cerr << qx << " " << qy << " " << kx << " " << ky << std::endl;
-  // std::cerr << std::norm(ak_up_in) << " " << std::norm(ak_q_down_out) << " " << std::norm(ak_down_in) << " " << std::norm(ak_q_up_out) << std::endl;
-  // std::cerr << ak_up_in << " " << std::conj(bk_up_in) << " " << ak_q_down_out << " " << std::conj(bk_q_down_out) << " " << ak_down_in << " " << std::conj(bk_down_in) << " " << ak_q_up_out << " " << std::conj(bk_q_up_out) << std::endl;
-    
-  A += factor * ( std::norm(ak_up) * std::norm(ak_q_down) / diff_E1 + std::norm(ak_down) * std::norm(ak_q_up) / diff_E2 );
-
-  B += factor * ( ak_up * bk_up * ak_q_down * bk_q_down / diff_E1 + ak_down * bk_down * ak_q_up * bk_q_up / diff_E2 );  
-  C += factor * ( std::conj(ak_up * bk_up * ak_q_down * bk_q_down) / diff_E1 + std::conj(ak_down * bk_down * ak_q_up * bk_q_up) / diff_E2 );
-  D += factor * ( std::norm(bk_up) * std::norm(bk_q_down) / diff_E1 + std::norm(bk_down) * std::norm(bk_q_up) / diff_E2 );
-
-  //   A += factor * ( std::norm(ak_up_in) * std::norm(ak_q_down_out) / diff_E1 + std::norm(ak_down_in) * std::norm(ak_q_up_out) / diff_E2 );
-
-  // B += factor * ( ak_up_in * bk_up_in * ak_q_down_out * bk_q_down_out / diff_E1 + ak_down_in * bk_down_in * ak_q_up_out * bk_q_up_out / diff_E2 );  
-  // C += factor * ( std::conj(ak_up_in * bk_up_in * ak_q_down_out * bk_q_down_out) / diff_E1 + std::conj(ak_down_in * bk_down_in * ak_q_up_out * bk_q_up_out) / diff_E2 );
-  // D += factor * ( std::norm(bk_up_in) * std::norm(bk_q_down_out) / diff_E1 + std::norm(bk_down_in) * std::norm(bk_q_up_out) / diff_E2 );
-
-
-  
-  // B += factor * ( ak_up_in * bk_up_in * ak_q_down_out * bk_q_down_out / diff_E1 + std::conj(ak_down_in * bk_down_in * ak_q_up_out * bk_q_up_out) / diff_E2 );  
-  // C += factor * ( std::conj(ak_up_in * bk_up_in * ak_q_down_out * bk_q_down_out) / diff_E1 + ak_down_in * bk_down_in * ak_q_up_out * bk_q_up_out / diff_E2 );  
-
-  // B += factor * ( ak_up_in * std::conj(bk_up_in) * ak_q_down_out * std::conj(bk_q_down_out) / diff_E1 + ak_down_in * std::conj(bk_down_in) * ak_q_up_out * std::conj(bk_q_up_out) / diff_E2 );
-  // C += factor * ( std::conj(ak_up_in) * bk_up_in * std::conj(ak_q_down_out) * bk_q_down_out / diff_E1 + std::conj(ak_down_in) * bk_down_in * std::conj(ak_q_up_out) * bk_q_up_out / diff_E2 );
-  
-  
-  // B += factor * ( ak_up_in * bk_up_in * ak_q_down_out * bk_q_down_out / diff_E1 + ak_down_in * bk_down_in * ak_q_up_out * bk_q_up_out / diff_E2 );
-  
 }

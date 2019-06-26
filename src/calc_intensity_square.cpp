@@ -38,7 +38,7 @@ cx_double calc_intensity_square(int L, double t, double mu, double U, double del
   A *= 2. / (double)n_sites;
   B *= 2. / (double)n_sites;
   D *= 2. / (double)n_sites;  
-
+  
   /* RPA */
   arma::cx_mat chi0_mat(2,2);
   chi0_mat(0,0) = A;   // (A, A) correlation
@@ -53,6 +53,13 @@ cx_double calc_intensity_square(int L, double t, double mu, double U, double del
   // Double counting in summing up for wavevectors because of the sublattice order?
   double factor_sublattice = 0.5;
   cx_double chi = factor_sublattice * factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );
+
+  // // for check
+  // std::cerr << "chi0: " << chi0_mat(0,0) << "  " << chi0_mat(0,1) << "  " << chi0_mat(1,0) << "  " << chi0_mat(1,1) << std::endl;
+
+  // std::cerr << "chi:  " << chi_mat(0,0) << "  " << chi_mat(0,1) << "  " << chi_mat(1,0) << "  " << chi_mat(1,1) << std::endl;  
+
+  // std::cerr << "return: " << chi << std::endl;
   
   return chi;  
 }

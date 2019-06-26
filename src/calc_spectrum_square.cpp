@@ -67,8 +67,8 @@ void calc_spectrum_square(double U, int L, double eta){
   };
 
   // // for check
-  // qx = M_PI - k1;
-  // qy = M_PI;
+  // qx = 0;
+  // qy = 0;
   // output_spectrum();
   // return;
   

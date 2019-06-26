@@ -21,7 +21,7 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
   int prec = 15;
   
   /* Omegas */
-  double delta_omega = 0.001;  
+  double delta_omega = 0.001;    
   double max_omega = ts.t_max() * 10;
   int n_omegas = int(max_omega/delta_omega+0.5);
   std::vector<double> omegas(n_omegas);
@@ -33,8 +33,9 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
   std::cout << "delta = " << delta << std::endl;
 
   /* Output */
-  boost::filesystem::ofstream out;
-  out.open("spectrum.text");
+  boost::filesystem::ofstream out_xy, out_z;
+  out_xy.open("spectrum-xy.text");
+  out_z.open("spectrum-z.text");
 
   /* Wavenumbers */
   double qx = 0;
@@ -49,23 +50,40 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
   /* Sigma = ( pi/2, pi/2 )         */
   /* M = ( pi, pi )                 */
 
-  /* From the response function to the dynamic structure factor */
-  double factor_dsf = 2.;
-  
+  /* From the response function to the dynamic structure factor */  
   auto output_spectrum = [&](){
     std::cout << "( qidx, qx, qy, qz ) = ( " << q_idx << ", " << qx << ", " << qy << ", " << qz << " )" << std::endl;
     for(int o=0; o < n_omegas; o++){
       cx_double cx_omega(omegas[o], eta);
 
       /* The (S^+ S^-) response function, or the retarded Green's function */
-      cx_double chi = calc_intensity_bilayer( L, ts, mu, U, delta, qx, qy, qz, cx_omega, 0 );
-      double spec = factor_dsf * std::imag(chi);
+      bool zz = false;
+      double factor_dsf = 2.;
+      cx_double chi_xy = calc_intensity_bilayer( L, ts, mu, U, delta, qx, qy, qz, cx_omega, 0, zz );
+      double spec_xy = factor_dsf * std::imag(chi_xy);
       
       /* Output */
-      out << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec << std::setw( prec ) << U << std::endl;
+      out_xy << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_xy << std::setw( prec ) << U << std::endl;
+
+      /* The (S^z S^z) response function, or the retarded Green's function */
+      zz = true;
+      factor_dsf = 2. / 4.;
+      
+      cx_double chi_z = calc_intensity_bilayer( L, ts, mu, U, delta, qx, qy, qz, cx_omega, 0, zz );
+      double spec_z = factor_dsf * std::imag(chi_z);
+      
+      /* Output */
+      out_z << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_z << std::setw( prec ) << U << std::endl;      
     }
   };
 
+  // // for check
+  // qx = 0;
+  // qy = 0;
+  // qz = 0;
+  // output_spectrum();
+  // return;
+  
   // // for check
   // qx = M_PI - k1;
   // qy = M_PI;
@@ -111,5 +129,6 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
     }
   }
 
-  out.close();
+  out_xy.close();
+  out_z.close();
 }

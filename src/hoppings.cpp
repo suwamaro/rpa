@@ -30,21 +30,13 @@ hoppings::hoppings(double theta, double phi, double t_third){
   // t = 0.8;
   // t_bar = 0.6;
   // tp = 0;
-  // tpp = 0.0;
-  // tz = 0.0;
+  // tpp = 0;
+  // tz = 0;
   // tz_bar = 0;
   // tzp = 0;
   
-  // t = 0.1219;
-  // t_bar = - 0.0043;
-  // tp = - 0.0147;
-  // tpp = - 0.0138;
-  // tz = - 0.0631;
-  // tz_bar = 0.0589;
-  // tzp = - 0.0108;
-  
-  // for check
-  std::cerr << t << "  " << t_bar << "  " << tp << "  " << tpp << "  " << tz << "  " << tz_bar << "  " << tzp << std::endl;
+  // // for check
+  // std::cerr << t << "  " << t_bar << "  " << tp << "  " << tpp << "  " << tz << "  " << tz_bar << "  " << tzp << std::endl;
 }
 
 double hoppings::ek1(double kx, double ky, double kz) const {
@@ -56,7 +48,7 @@ double hoppings::ek2(double kx, double ky, double kz) const {
 }
 
 double hoppings::ek3(double kx, double ky, double kz) const {
-  return - 2. * tp * (cos(kx+ky) + cos(kx-ky)) - 2. * tpp * (cos(2*kx) + cos(2*ky)) - 2. * tzp * cos(kz) * (cos(kx) + cos(ky));  
+  return - 2. * tp * (cos(kx+ky) + cos(kx-ky)) - 2. * tpp * (cos(2*kx) + cos(2*ky)) - 2. * tzp * cos(kz) * (cos(kx) + cos(ky));
 }
 
 double hoppings::t_max() const {

@@ -36,7 +36,7 @@ double calc_chemical_potential_bilayer(int L, hoppings const& ts){
     } /* end for x */
   } /* end for z */
 
-  double mu = 0.5 * ( E_min + E_max );
+  double mu = 0.5 * ( E_min + E_max );  
   std::cout << "E_min of the upper band = " << E_min << std::endl;
   std::cout << "E_max of the lower band = " << E_max << std::endl;
   if ( std::abs( E_min - E_max ) < 1e-12 ) {
