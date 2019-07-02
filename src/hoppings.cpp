@@ -27,8 +27,8 @@ hoppings::hoppings(double theta, double phi, double t_third){
   tzp = t2z * st2 + t6z * ct2 / 2;
   
   // // for check
-  // t = 0.8;
-  // t_bar = 0.6;
+  // t = 1.0;
+  // t_bar = 0;
   // tp = 0;
   // tpp = 0;
   // tz = 0;

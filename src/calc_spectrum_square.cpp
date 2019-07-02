@@ -58,19 +58,13 @@ void calc_spectrum_square(double U, int L, double eta){
       cx_double cx_omega(omegas[o], eta);
 
       /* The (S^+ S^-) response function, or the retarded Green's function */
-      cx_double chi = calc_intensity_square( L, t, mu, U, delta, qx, qy, cx_omega, 0 );
+      cx_double chi = calc_intensity_square( L, t, mu, U, delta, qx, qy, cx_omega);
       double spec = factor_dsf * std::imag(chi);
       
       /* Output */
       out << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec << std::setw( prec ) << U << std::endl;
     }
   };
-
-  // // for check
-  // qx = 0;
-  // qy = 0;
-  // output_spectrum();
-  // return;
   
   for(int x=0; x < L/4; x++){
     qx = M_PI - k1 * x;

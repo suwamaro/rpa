@@ -11,11 +11,10 @@
 #include "rpa_util.h"
 #include <armadillo>
 
-cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, int index, bool zz){
+cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, bool zz){
   double k1 = 2. * M_PI / (double)L;
   
   cx_double A = 0, B = 0, C = 0, D = 0;
-
   for(int z=0; z < 2; z++){    
     double kz = M_PI * z;
     for(int x=-L/2; x < L/2; x++){    
@@ -27,14 +26,12 @@ cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U,
     }
   }
 
-  int n_sites = L * L * 2;  
-  A *= 2. / (double)n_sites;
-  B *= 2. / (double)n_sites;
-  C *= 2. / (double)n_sites;  
-  D *= 2. / (double)n_sites;  
-
-  // // for check
-  // std::cerr << A << "  " << B << "  " << C << "  " << D << std::endl;
+  int n_sites = L * L * 2;
+  double norm = 2. / (double)n_sites;
+  A *= norm;
+  B *= norm;
+  C *= norm;
+  D *= norm;
   
   /* RPA */
   arma::cx_mat chi0_mat(2,2);
@@ -45,11 +42,7 @@ cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U,
   arma::cx_mat denom = arma::eye<arma::cx_mat>(2,2) - U * chi0_mat;
   arma::cx_mat chi_mat = chi0_mat * arma::inv(denom);
 
-  // // for check
-  // chi_mat = chi0_mat;
-  
   // Double counting from A and B
-  // Double counting in summing up for wavevectors because of the sublattice order?
   double factor_sublattice = 0.5;  
   cx_double chi = factor_sublattice * factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );
   

@@ -11,7 +11,7 @@
 #include "rpa_util.h"
 #include <armadillo>
 
-cx_double calc_intensity_cubic(int L, double t, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, int index){
+cx_double calc_intensity_cubic(int L, double t, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega){
   double k1 = 2. * M_PI / (double)L;
   
   cx_double A = 0, B = 0, D = 0;
@@ -47,13 +47,11 @@ cx_double calc_intensity_cubic(int L, double t, double mu, double U, double delt
   chi0_mat(0,0) = A;   // (A, A) correlation
   chi0_mat(0,1) = B;   // (A, B)
   chi0_mat(1,0) = B;   // (B, A)
-  // chi0_mat(1,0) = std::conj(B); // Taking the conjugate  
   chi0_mat(1,1) = D;   // (B, B)
   arma::cx_mat denom = arma::eye<arma::cx_mat>(2,2) - U * chi0_mat;
   arma::cx_mat chi_mat = chi0_mat * arma::inv(denom);
 
   // Double counting from A and B
-  // Double counting in summing up for wavevectors because of the sublattice order?
   double factor_sublattice = 0.5;
   cx_double chi = factor_sublattice * factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );
   
