@@ -9,9 +9,8 @@
 
 #include "calc_chemical_potential.h"
 
-double calc_chemical_potential_bilayer(int L, hoppings const& ts){
-  /* Find the chemical potential as the average of the maximum of the lower band and the minimum of the upper band with Delta = 0. */
-  double delta = 0;
+double calc_chemical_potential_bilayer(int L, hoppings const& ts, double delta){
+  /* Find the chemical potential as the average of the maximum of the lower band and the minimum of the upper. */
   double k1 = 2. * M_PI / (double)L;
   double E_min = std::numeric_limits<double>::max();
   double E_max = - std::numeric_limits<double>::max();

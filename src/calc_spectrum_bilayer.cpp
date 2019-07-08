@@ -26,11 +26,14 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
   std::vector<double> omegas(n_omegas);
   for(int o=1; o <= n_omegas; o++){ omegas[o-1] = delta_omega * o; }
 
-  /* Calculate the gap */
-  double mu = calc_chemical_potential_bilayer( L, ts );
-  double delta = solve_self_consistent_eq_bilayer( L, ts, mu, U );
+  /* Calculate the chemical potential and the charge gap. */
+  std::cout << "Setting delta = 0." << std::endl;  /* Gap parameter */
+  double delta = 0;  /* to get the Fermi energy */
+  double mu = calc_chemical_potential_bilayer( L, ts, delta );  
+  delta = solve_self_consistent_eq_bilayer( L, ts, mu, U );
   std::cout << "delta = " << delta << std::endl;
-
+  mu = calc_chemical_potential_bilayer( L, ts, delta );  /* Updated */
+  
   /* Output */
   boost::filesystem::ofstream out_xy, out_z;
   out_xy.open("spectrum-xy.text");
