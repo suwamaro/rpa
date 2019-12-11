@@ -38,13 +38,19 @@ cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U,
   chi0_mat(0,0) = A;   // (A, A) correlation
   chi0_mat(0,1) = B;   // (A, B)
   chi0_mat(1,0) = C;   // (B, A)
-  chi0_mat(1,1) = D;   // (B, B)  
-  arma::cx_mat denom = arma::eye<arma::cx_mat>(2,2) - U * chi0_mat;
+  chi0_mat(1,1) = D;   // (B, B)
+
+  /* Transverse = < \sigma^- \sigma^+ >; Longitudinal (zz) = < \sigma^z \sigma^z > */
+  /* Note that 2 < \sigma^- \sigma^+ > = < \sigma^z \sigma^z > (U -> 0 for the SU(2) case) */  
+  double factor_channel = 1.0;
+  if ( zz ) { factor_channel = 0.5; }
+  
+  arma::cx_mat denom = arma::eye<arma::cx_mat>(2,2) - factor_channel * U * chi0_mat;
   arma::cx_mat chi_mat = chi0_mat * arma::inv(denom);
 
   // Double counting from A and B
   double factor_sublattice = 0.5;  
-  cx_double chi = factor_sublattice * factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );
+  cx_double chi = factor_sublattice * factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );  
   
   // // for check
   // std::cout << qx << "  " << qy << "  " << std::real(omega) << "  " << A << "  " << B << "  " << C << "  " << D << "  " << chi_mat(0,0) << "  " << chi_mat(0,1) << "  " << chi_mat(1,0) << "  " << chi_mat(1,1) << "  " << chi << std::endl;

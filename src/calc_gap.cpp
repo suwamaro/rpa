@@ -154,7 +154,6 @@ void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, 
     
   /* Prefactor */
   double factor = 1.;
-  if ( zz ) { factor = 0.25; }
   
   /* On the zone boundary */
   if ( std::abs(e_free - mu_free) < eps ) {

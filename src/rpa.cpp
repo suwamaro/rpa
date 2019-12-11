@@ -27,7 +27,6 @@ int main(){
   // calc_chi();
 
   // double U = 5.0;  
-  // double U = 0.337;
   double U = 0.34;
     
   // plot_self_consistent_eq_square( U );
@@ -42,7 +41,6 @@ int main(){
   // double phi = 0;   // Octahedral rotation
   // double t3 = 0;   // Third-nearest xy-xy hopping amplitude
   
-  // double theta = 0.234 * M_PI;   // Octahedral distortion
   double theta = 0.237 * M_PI;   // Octahedral distortion  
   double phi = 12. / 180. * M_PI;   // Octahedral rotation  
   double t3 = - 0.03;   // Third-nearest xy-xy hopping amplitude
