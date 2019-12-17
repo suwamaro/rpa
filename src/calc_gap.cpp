@@ -146,6 +146,11 @@ void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, 
   double ek2 = ts.ek2(kx, ky, kz);
   double ek3 = ts.ek3(kx, ky, kz);
   double Ek = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
+
+  cx_double ak_up = calc_ak_up_in_minus(ek1, ek2, ek3, delta);
+  cx_double ak_down = calc_ak_down_in_minus(ek1, ek2, ek3, delta);
+  cx_double bk_up = calc_bk_up_in_minus(ek1, ek2, ek3, delta);
+  cx_double bk_down = calc_bk_down_in_minus(ek1, ek2, ek3, delta);
   
   /* Checking if the eigenenergy is below the chemical potential. */
   double mu_free = 0;  /* Assume at half filling */
@@ -160,52 +165,62 @@ void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, 
     factor *= 0.5;
   }
   
-  double diff_x = wave_vector_in_BZ( kx - qx );
-  double diff_y = wave_vector_in_BZ( ky - qy );
-  double diff_z = wave_vector_in_BZ( kz - qz );
+  double diff_xm = wave_vector_in_BZ( kx - qx );
+  double diff_ym = wave_vector_in_BZ( ky - qy );
+  double diff_zm = wave_vector_in_BZ( kz - qz );
   
-  double ek_q1 = ts.ek1(diff_x, diff_y, diff_z);
-  double ek_q2 = ts.ek2(diff_x, diff_y, diff_z);
-  double ek_q3 = ts.ek3(diff_x, diff_y, diff_z);
-  double Ek_q = eigenenergy_HF_plus(ek_q1, ek_q2, ek_q3, delta);
+  double ek_q1m = ts.ek1(diff_xm, diff_ym, diff_zm);
+  double ek_q2m = ts.ek2(diff_xm, diff_ym, diff_zm);
+  double ek_q3m = ts.ek3(diff_xm, diff_ym, diff_zm);
+  double Ek_qm = eigenenergy_HF_plus(ek_q1m, ek_q2m, ek_q3m, delta);
   
-  cx_double diff_E1 = Ek_q - Ek + omega;
-  cx_double diff_E2 = Ek_q - Ek - omega;
+  cx_double diff_E2m = Ek_qm - Ek + omega;
+
+  double diff_xp = wave_vector_in_BZ( kx + qx );
+  double diff_yp = wave_vector_in_BZ( ky + qy );
+  double diff_zp = wave_vector_in_BZ( kz + qz );
   
-  cx_double ak_up = calc_ak_up_in_minus(ek1, ek2, ek3, delta);
-  cx_double ak_down = calc_ak_down_in_minus(ek1, ek2, ek3, delta);
-  cx_double bk_up = calc_bk_up_in_minus(ek1, ek2, ek3, delta);
-  cx_double bk_down = calc_bk_down_in_minus(ek1, ek2, ek3, delta);
+  double ek_q1p = ts.ek1(diff_xp, diff_yp, diff_zp);
+  double ek_q2p = ts.ek2(diff_xp, diff_yp, diff_zp);
+  double ek_q3p = ts.ek3(diff_xp, diff_yp, diff_zp);
+  double Ek_qp = eigenenergy_HF_plus(ek_q1p, ek_q2p, ek_q3p, delta);
+  
+  cx_double diff_E1p = Ek_qp - Ek - omega;  
 
   /* For k-q inside the magnetic BZ, the negative sign for b comes from k -> k + pi. */
   /* For k-q outside the magnetic BZ, the negative sign for b comes from the Fourier transform. */
   double sign_A = 1.;
   double sign_B = - 1.;
   
-  cx_double ak_q_up = sign_A * calc_ak_up_in_plus( ek_q1, ek_q2, ek_q3, delta);
-  cx_double ak_q_down = sign_A * calc_ak_down_in_plus( ek_q1, ek_q2, ek_q3, delta);  
-  cx_double bk_q_up = sign_B * calc_bk_up_in_plus( ek_q1, ek_q2, ek_q3, delta);
-  cx_double bk_q_down = sign_B * calc_bk_down_in_plus( ek_q1, ek_q2, ek_q3, delta);
+  cx_double ak_qm_up = sign_A * calc_ak_up_in_plus( ek_q1m, ek_q2m, ek_q3m, delta);
+  cx_double ak_qm_down = sign_A * calc_ak_down_in_plus( ek_q1m, ek_q2m, ek_q3m, delta);  
+  cx_double bk_qm_up = sign_B * calc_bk_up_in_plus( ek_q1m, ek_q2m, ek_q3m, delta);
+  cx_double bk_qm_down = sign_B * calc_bk_down_in_plus( ek_q1m, ek_q2m, ek_q3m, delta);
+
+  cx_double ak_qp_up = sign_A * calc_ak_up_in_plus( ek_q1p, ek_q2p, ek_q3p, delta);
+  cx_double ak_qp_down = sign_A * calc_ak_down_in_plus( ek_q1p, ek_q2p, ek_q3p, delta);  
+  cx_double bk_qp_up = sign_B * calc_bk_up_in_plus( ek_q1p, ek_q2p, ek_q3p, delta);
+  cx_double bk_qp_down = sign_B * calc_bk_down_in_plus( ek_q1p, ek_q2p, ek_q3p, delta);  
   
   if ( zz ) {
-    A += factor * ( std::norm(ak_up) * std::norm(ak_q_up) / diff_E1 + std::norm(ak_up) * std::norm(ak_q_up) / diff_E2 );
-    A += factor * ( std::norm(ak_down) * std::norm(ak_q_down) / diff_E1 + std::norm(ak_down) * std::norm(ak_q_down) / diff_E2 );    
+    A += factor * ( std::norm(ak_up) * std::norm(ak_qp_up) / diff_E1p + std::norm(ak_up) * std::norm(ak_qm_up) / diff_E2m );
+    A += factor * ( std::norm(ak_down) * std::norm(ak_qp_down) / diff_E1p + std::norm(ak_down) * std::norm(ak_qm_down) / diff_E2m );    
     
-    B += factor * ( std::conj(ak_up) * bk_up * ak_q_up * std::conj(bk_q_up) / diff_E1 + std::conj(ak_up) * bk_up * ak_q_up * std::conj(bk_q_up) / diff_E2 );
-    B += factor * ( std::conj(ak_down) * bk_down * ak_q_down * std::conj(bk_q_down) / diff_E1 + std::conj(ak_down) * bk_down * ak_q_down * std::conj(bk_q_down) / diff_E2 );    
+    B += factor * ( std::conj(ak_up) * bk_up * ak_qp_up * std::conj(bk_qp_up) / diff_E1p + std::conj(bk_up) * ak_up * bk_qm_up * std::conj(ak_qm_up) / diff_E2m );
+    B += factor * ( std::conj(ak_down) * bk_down * ak_qp_down * std::conj(bk_qp_down) / diff_E1p + std::conj(bk_down) * ak_down * bk_qm_down * std::conj(ak_qm_down) / diff_E2m );    
     
-    C += factor * ( ak_up * std::conj(bk_up) * std::conj(ak_q_up) * bk_q_up / diff_E1 + ak_up * std::conj(bk_up) * std::conj(ak_q_up) * bk_q_up / diff_E2 );
-    C += factor * ( ak_down * std::conj(bk_down) * std::conj(ak_q_down) * bk_q_down / diff_E1 + ak_down * std::conj(bk_down) * std::conj(ak_q_down) * bk_q_down / diff_E2 );    
+    C += factor * ( ak_up * std::conj(bk_up) * std::conj(ak_qp_up) * bk_qp_up / diff_E1p + bk_up * std::conj(ak_up) * std::conj(bk_qm_up) * ak_qm_up / diff_E2m );
+    C += factor * ( ak_down * std::conj(bk_down) * std::conj(ak_qp_down) * bk_qp_down / diff_E1p + bk_down * std::conj(ak_down) * std::conj(bk_qm_down) * ak_qm_down / diff_E2m );    
 
-    D += factor * ( std::norm(bk_up) * std::norm(bk_q_up) / diff_E1 + std::norm(bk_up) * std::norm(bk_q_up) / diff_E2 );
-    D += factor * ( std::norm(bk_down) * std::norm(bk_q_down) / diff_E1 + std::norm(bk_down) * std::norm(bk_q_down) / diff_E2 );    
+    D += factor * ( std::norm(bk_up) * std::norm(bk_qp_up) / diff_E1p + std::norm(bk_up) * std::norm(bk_qm_up) / diff_E2m );
+    D += factor * ( std::norm(bk_down) * std::norm(bk_qp_down) / diff_E1p + std::norm(bk_down) * std::norm(bk_qm_down) / diff_E2m );    
   } else {
-    A += factor * ( std::norm(ak_up) * std::norm(ak_q_down) / diff_E1 + std::norm(ak_down) * std::norm(ak_q_up) / diff_E2 );
+    A += factor * ( std::norm(ak_down) * std::norm(ak_qp_up) / diff_E1p + std::norm(ak_up) * std::norm(ak_qm_down) / diff_E2m );
     
-    B += factor * ( std::conj(ak_up) * bk_up * ak_q_down * std::conj(bk_q_down) / diff_E1 + std::conj(ak_down) * bk_down * ak_q_up * std::conj(bk_q_up) / diff_E2 );
+    B += factor * ( std::conj(ak_down) * bk_down * ak_qp_up * std::conj(bk_qp_up) / diff_E1p + std::conj(bk_up) * ak_up * bk_qm_down * std::conj(ak_qm_down) / diff_E2m );
     
-    C += factor * ( ak_up * std::conj(bk_up) * std::conj(ak_q_down) * bk_q_down / diff_E1 + ak_down * std::conj(bk_down) * std::conj(ak_q_up) * bk_q_up / diff_E2 );
+    C += factor * ( ak_down * std::conj(bk_down) * std::conj(ak_qp_up) * bk_qp_up / diff_E1p + bk_up * std::conj(ak_up) * std::conj(bk_qm_down) * ak_qm_down / diff_E2m );
 
-    D += factor * ( std::norm(bk_up) * std::norm(bk_q_down) / diff_E1 + std::norm(bk_down) * std::norm(bk_q_up) / diff_E2 );
+    D += factor * ( std::norm(bk_down) * std::norm(bk_qp_up) / diff_E1p + std::norm(bk_up) * std::norm(bk_qm_down) / diff_E2m );    
   }
 }
