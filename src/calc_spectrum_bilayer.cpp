@@ -106,8 +106,6 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
 
   /* Single particle energy */
   calc_single_particle_energy_bilayer( ts, L, delta );
-
-  return;
   
   /* Output */
   std::ofstream out_xy, out_z;
