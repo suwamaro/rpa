@@ -21,7 +21,7 @@ void plot_self_consistent_eq_square(double U){
   using std::placeholders::_1;
   auto scc = std::bind( self_consistent_eq_square, L, t, mu, _1 );
 
-  boost::filesystem::ofstream out;
+  std::ofstream out;
   out.open("sceq-delta.text");
 
   int prec = 15;

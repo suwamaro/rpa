@@ -12,6 +12,76 @@
 #include "calc_gap.h"
 #include "calc_chemical_potential.h"
 
+std::tuple<double, double> calc_single_particle_energy(hoppings const& ts, double kx, double ky, double kz, double delta){
+  double ek1 = ts.ek1(kx, ky, kz);
+  double ek2 = ts.ek2(kx, ky, kz);
+  double ek3 = ts.ek3(kx, ky, kz);
+  double Em = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
+  double Ep = eigenenergy_HF_plus(ek1, ek2, ek3, delta);
+  return std::make_tuple(Em, Ep);
+}
+
+void calc_single_particle_energy_bilayer(hoppings const& ts, int L, double delta){
+  /* Output */
+  std::ofstream out_e;
+  out_e.open("single_particle_energy.text");
+  
+  /* Wavenumbers */
+  double qx = 0;
+  double qy = 0;
+  double qz = 0;
+  int q_idx = 0;
+
+  int prec = 15;
+  double k1 = 2. * M_PI / (double)L;
+  
+  auto output_energy = [&](){
+    auto [Em, Ep] = calc_single_particle_energy( ts, qx, qy, qz, delta );
+    out_e << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << Em << std::setw( prec ) << Ep << std::endl;
+  };
+  
+  for(int z=0; z < 2; z++){
+    qz = M_PI * z;
+    
+    for(int x=0; x < L/4; x++){
+      qx = M_PI - k1 * x;
+      qy = k1 * x;
+      output_energy();
+      ++q_idx;
+    }
+    
+    for(int x=0; x < L/4; x++){
+      qx = 0.5 * M_PI - k1 * x;
+      qy = 0.5 * M_PI - k1 * x;
+      output_energy();
+      ++q_idx;
+    }
+    
+    for(int x=0; x < L/2; x++){
+      qx = k1 * x;
+      qy = 0;
+      output_energy();
+      ++q_idx;
+    }
+    
+    for(int y=0; y < L/2; y++){
+      qx = M_PI;
+      qy = k1 * y;
+      output_energy();
+      ++q_idx;
+    }
+    
+    for(int x=0; x <= L/4; x++){
+      qx = M_PI - k1 * x;
+      qy = M_PI - k1 * x;
+      output_energy();
+      ++q_idx;
+    }
+  }
+
+  out_e.close();
+}
+
 void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L, double eta){
   /* Parameters */
   hoppings ts(theta, phi, t3);
@@ -33,9 +103,14 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
   delta = solve_self_consistent_eq_bilayer( L, ts, mu, U );
   std::cout << "delta = " << delta << std::endl;
   mu = calc_chemical_potential_bilayer( L, ts, delta );  /* Updated */
+
+  /* Single particle energy */
+  calc_single_particle_energy_bilayer( ts, L, delta );
+
+  return;
   
   /* Output */
-  boost::filesystem::ofstream out_xy, out_z;
+  std::ofstream out_xy, out_z;
   out_xy.open("spectrum-xy.text");
   out_z.open("spectrum-z.text");
 

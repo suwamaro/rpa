@@ -21,7 +21,7 @@ void plot_chi0_AF(double U){
   double delta = solve_self_consistent_eq_square( L, t, mu, U );
   std::cout << "delta = " << delta << std::endl;
   
-  boost::filesystem::ofstream out;
+  std::ofstream out;
   out.open("chi0-omega.text");
 
   int prec = 15;

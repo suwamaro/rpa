@@ -21,7 +21,7 @@ void calc_velocity_square() {
   double qy = M_PI - k1;
   int prec = 15;
   
-  boost::filesystem::ofstream out;
+  std::ofstream out;
   out.open("velocity.text");
   
   double U_delta = 0.05;
@@ -49,7 +49,7 @@ void calc_velocity_cubic() {
   double qz = M_PI - k1;
   int prec = 15;
   
-  boost::filesystem::ofstream out;
+  std::ofstream out;
   out.open("velocity.text");
   
   double U_delta = 1.;

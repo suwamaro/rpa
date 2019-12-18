@@ -34,7 +34,7 @@ void calc_spectrum_cubic(double U, int L, double eta){
   std::cout << "delta = " << delta << std::endl;
 
   /* Output */
-  boost::filesystem::ofstream out;
+  std::ofstream out;
   out.open("spectrum.text");
 
   /* Wavenumbers */
