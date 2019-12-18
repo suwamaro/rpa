@@ -84,7 +84,7 @@ void calc_single_particle_energy_bilayer(hoppings const& ts, int L, double delta
 
 void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L, double eta){
   /* Parameters */
-  hoppings ts(theta, phi, t3);
+  hoppings_Sr3Ir2O7 ts(theta, phi, t3);
   double k1 = 2. * M_PI / (double)L;
   
   int prec = 15;
@@ -147,7 +147,7 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
       out_z << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_z << std::setw( prec ) << U << std::endl;      
     }
   };
-
+      
   for(int z=0; z < 2; z++){
     qz = M_PI * z;
     

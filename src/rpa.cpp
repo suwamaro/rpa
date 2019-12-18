@@ -26,7 +26,7 @@ int main(){
   // calc_size_dependence();
   // calc_chi();
 
-  // double U = 5.0;  
+  // double U = 3.45;
   double U = 0.34;
     
   // plot_self_consistent_eq_square( U );

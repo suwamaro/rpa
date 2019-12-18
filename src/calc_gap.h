@@ -22,8 +22,7 @@ void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, 
 /* For a square lattice */
 double calc_eigval_square(int L, double t, double mu, double U, double delta, double qx, double qy, double omega);
 double calc_gap_square(int L, double t, double mu, double U, double delta, double qx, double qy);
-cx_double calc_intensity_square(int L, double t, double mu, double U, double delta, double qx, double qy, cx_double omega);
-// cx_double calc_intensity_square2(int L, double t, double mu, double U, double delta, double qx, double qy, cx_double omega, bool zz);
+cx_double calc_intensity_square(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, cx_double omega, bool zz);
 
 /* For a bilayer lattice */
 cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, bool zz);
