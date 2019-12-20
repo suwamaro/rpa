@@ -9,9 +9,10 @@
 
 #include "self_consistent_eq.h"
 #include "rpa_util.h"
+#include "calc_gap.h"
 #include "BinarySearch.h"
 
-double self_consistent_eq_square(int L, double t, double mu, double delta){
+double self_consistent_eq_square(int L, hoppings_square const& ts, double mu, double delta){
   /* Monotonically decreasing as a function of delta */
   double k1 = 2. * M_PI / (double)L;
   double sum = 0;
@@ -20,7 +21,7 @@ double self_consistent_eq_square(int L, double t, double mu, double delta){
     for(int y=-L/2; y < L/2; y++){
       double ky = k1 * y;
 
-      double e_free = energy_free_electron( t, mu, kx, ky );
+      double e_free = energy_free_electron( ts.t, mu, kx, ky );
       double e_eps = 1e-12;
 	
       /* Summing up over all k inside the Brillouin zone. */
@@ -32,21 +33,32 @@ double self_consistent_eq_square(int L, double t, double mu, double delta){
 	  factor = 0.5;
 	}
 
-	sum += factor / eigenenergy_HF_plus( e_free, delta );
+	/* Sum of the Fourier transformed hoppings */
+	double ek1 = ts.ek1(kx, ky);
+	double ek2 = ts.ek2(kx, ky);
+	double ek3 = ts.ek3(kx, ky);
+
+	cx_double ak_up = calc_ak_up_in_minus(ek1, ek2, ek3, delta);
+	cx_double ak_down = calc_ak_down_in_minus(ek1, ek2, ek3, delta);
+
+	sum += factor * (std::norm(ak_up) - std::norm(ak_down));
       }
     }
   }
   int n_sites = L * L;
-  return sum / (double)( n_sites );
+  sum /= (double)( n_sites * delta );
+
+  /* The self-consistent condition: sum = 1/U */
+  return sum;  
 }
 
-double solve_self_consistent_eq_square(int L, double t, double mu, double U){
+double solve_self_consistent_eq_square(int L, hoppings_square const& ts, double mu, double U){
   std::cout << "Finding a self-consistent solution for U=" << U << std::endl;
   double target = 1. / U;
   double delta = 0.45 * U;
 
   using std::placeholders::_1;
-  auto scc = std::bind( self_consistent_eq_square, L, t, mu, _1 );
+  auto scc = std::bind( self_consistent_eq_square, L, ts, mu, _1 );
 
   BinarySearch bs;
   bs.find_solution( delta, target, scc );

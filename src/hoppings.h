@@ -12,9 +12,9 @@
 
 class hoppings {
 public:
-  double ek1(double kx, double ky, double kz) const;
-  double ek2(double kx, double ky, double kz) const;
-  double ek3(double kx, double ky, double kz) const;
+  virtual double ek1(double kx, double ky, double kz) const = 0;
+  virtual double ek2(double kx, double ky, double kz) const = 0;
+  virtual double ek3(double kx, double ky, double kz) const = 0;
   double t_max() const;
   
   /* Parameters of an effective one-band model */
@@ -27,15 +27,43 @@ public:
   double tzp = 0;
 };
 
-class hoppings_simple : public hoppings {
+class hoppings_square : public hoppings {
 public:
-  hoppings_simple(double t);
+  double ek1(double kx, double ky, double kz = 0) const;
+  double ek2(double kx, double ky, double kz = 0) const;
+  double ek3(double kx, double ky, double kz = 0) const;
+  hoppings_square(double t);
+
+  // instantiations
+  static std::unique_ptr<hoppings_square> mk_square(double v);
 };
 
-class hoppings_Sr3Ir2O7 : public hoppings {
+class hoppings_cubic : public hoppings {
+public:
+  double ek1(double kx, double ky, double kz) const;
+  double ek2(double kx, double ky, double kz) const;
+  double ek3(double kx, double ky, double kz) const;
+  hoppings_cubic(double t);
+
+  // instantiations
+  static std::unique_ptr<hoppings_cubic> mk_cubic(double v);
+};
+
+class hoppings_bilayer : public hoppings {
+public:
+  hoppings_bilayer(){};
+  double ek1(double kx, double ky, double kz) const;
+  double ek2(double kx, double ky, double kz) const;
+  double ek3(double kx, double ky, double kz) const;  
+};
+  
+class hoppings_Sr3Ir2O7 : public hoppings_bilayer {
 public:  
   hoppings_Sr3Ir2O7(double theta, double phi, double t3);
-
+  
+  // instantiations
+  static std::unique_ptr<hoppings_Sr3Ir2O7> mk_Sr3Ir2O7(double theta, double phi, double t3);
+  
 private:
   /* Parameters of the t2g three-band model */
   /* Reference: J.-M. Carter, et al., PRB 87 014433 (2013) 

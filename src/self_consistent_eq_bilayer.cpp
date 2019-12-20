@@ -12,7 +12,7 @@
 #include "calc_gap.h"
 #include "BinarySearch.h"
 
-double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double delta){
+double self_consistent_eq_bilayer(int L, hoppings_bilayer const& ts, double mu, double delta){
   double eps = 1e-12;
   
   /* Monotonically decreasing as a function of delta */
@@ -60,7 +60,7 @@ double self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double d
   return sum;
 }
 
-double solve_self_consistent_eq_bilayer(int L, hoppings const& ts, double mu, double U){
+double solve_self_consistent_eq_bilayer(int L, hoppings_bilayer const& ts, double mu, double U){
   std::cout << "Finding a self-consistent solution for U=" << U << std::endl;
   double target = 1. / U;
   double delta = 0.45 * U;

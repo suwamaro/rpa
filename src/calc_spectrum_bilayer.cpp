@@ -83,15 +83,14 @@ void calc_single_particle_energy_bilayer(hoppings const& ts, int L, double delta
 }
 
 void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L, double eta){
-  /* Parameters */
-  hoppings_Sr3Ir2O7 ts(theta, phi, t3);
+  std::unique_ptr<hoppings_bilayer> ts;
+  ts = hoppings_Sr3Ir2O7::mk_Sr3Ir2O7(theta, phi, t3);
   double k1 = 2. * M_PI / (double)L;
-  
   int prec = 15;
   
   /* Omegas */
   double delta_omega = 0.001;  
-  double max_omega = ts.t_max() * 10;
+  double max_omega = ts->t_max() * 10;
   int n_omegas = int(max_omega/delta_omega+0.5);
   std::vector<double> omegas(n_omegas);
   for(int o=1; o <= n_omegas; o++){ omegas[o-1] = delta_omega * o; }
@@ -99,13 +98,13 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
   /* Calculate the chemical potential and the charge gap. */
   std::cout << "Setting delta = 0." << std::endl;  /* Gap parameter */
   double delta = 0;  /* to get the Fermi energy */
-  double mu = calc_chemical_potential_bilayer( L, ts, delta );  
-  delta = solve_self_consistent_eq_bilayer( L, ts, mu, U );
+  double mu = calc_chemical_potential_bilayer( L, *ts, delta );  
+  delta = solve_self_consistent_eq_bilayer( L, *ts, mu, U );
   std::cout << "delta = " << delta << std::endl;
-  mu = calc_chemical_potential_bilayer( L, ts, delta );  /* Updated */
+  mu = calc_chemical_potential_bilayer( L, *ts, delta );  /* Updated */
 
   /* Single particle energy */
-  calc_single_particle_energy_bilayer( ts, L, delta );
+  calc_single_particle_energy_bilayer( *ts, L, delta );
   
   /* Output */
   std::ofstream out_xy, out_z;
@@ -133,14 +132,14 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
 
       /* The (S^+ S^-) response function, or the retarded Green's function */
       double factor_dsf = 2.;
-      cx_double chi_xy = calc_intensity_bilayer( L, ts, mu, U, delta, qx, qy, qz, cx_omega, false );
+      cx_double chi_xy = calc_intensity_bilayer( L, *ts, mu, U, delta, qx, qy, qz, cx_omega, false );
       double spec_xy = factor_dsf * std::imag(chi_xy);
       
       /* Output */
       out_xy << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_xy << std::setw( prec ) << U << std::endl;
 
       /* The (S^z S^z) response function, or the retarded Green's function */
-      cx_double chi_z = calc_intensity_bilayer( L, ts, mu, U, delta, qx, qy, qz, cx_omega, true );
+      cx_double chi_z = calc_intensity_bilayer( L, *ts, mu, U, delta, qx, qy, qz, cx_omega, true );
       double spec_z = factor_dsf * std::imag(chi_z);
       
       /* Output */

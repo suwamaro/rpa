@@ -28,6 +28,6 @@ cx_double calc_intensity_square(int L, hoppings const& ts, double mu, double U, 
 cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, bool zz);
 
 /* For a simple cubic lattice */
-cx_double calc_intensity_cubic(int L, double t, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega);
+cx_double calc_intensity_cubic(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, bool zz);
 double calc_eigval_cubic(int L, double t, double mu, double U, double delta, double qx, double qy, double qz, double omega);
 double calc_gap_cubic(int L, double t, double mu, double U, double delta, double qx, double qy, double qz);

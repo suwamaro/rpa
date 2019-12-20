@@ -12,23 +12,25 @@
 #include "calc_gap.h"
 
 void calc_spectrum_square(double U, int L, double eta){
-  /* Parameters */
+  /* Parameters */  
   double t = 1.;
   double mu = 0;
-  hoppings_simple ts(t);
   double k1 = 2. * M_PI / (double)L;
+  
+  std::unique_ptr<hoppings_square> ts;
+  ts = hoppings_square::mk_square(t);
   
   int prec = 15;
   
   /* Omegas */
   double delta_omega = 0.001;
-  double max_omega = ts.t_max() * 10;
+  double max_omega = ts->t_max() * 10;
   int n_omegas = int(max_omega/delta_omega+0.5);
   std::vector<double> omegas(n_omegas);
   for(int o=1; o <= n_omegas; o++){ omegas[o-1] = delta_omega * o; }
 
   /* Calculate the gap */
-  double delta = solve_self_consistent_eq_square( L, t, mu, U );
+  double delta = solve_self_consistent_eq_square( L, *ts, mu, U );
   std::cout << "delta = " << delta << std::endl;
 
   /* Output */
@@ -58,14 +60,14 @@ void calc_spectrum_square(double U, int L, double eta){
 
       /* The (S^+ S^-) response function, or the retarded Green's function */
       double factor_dsf = 2.;
-      cx_double chi_xy = calc_intensity_square( L, ts, mu, U, delta, qx, qy, cx_omega, false );
+      cx_double chi_xy = calc_intensity_square( L, *ts, mu, U, delta, qx, qy, cx_omega, false );
       double spec_xy = factor_dsf * std::imag(chi_xy);
       
       /* Output */
       out_xy << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_xy << std::setw( prec ) << U << std::endl;
 
       /* The (S^z S^z) response function, or the retarded Green's function */
-      cx_double chi_z = calc_intensity_square( L, ts, mu, U, delta, qx, qy, cx_omega, true );
+      cx_double chi_z = calc_intensity_square( L, *ts, mu, U, delta, qx, qy, cx_omega, true );
       double spec_z = factor_dsf * std::imag(chi_z);
       
       /* Output */

@@ -14,18 +14,6 @@
 
 /* Member functions of hoppings */
 
-double hoppings::ek1(double kx, double ky, double kz) const {
-  return - 2. * ( t * cos(kx) + t * cos(ky) + 0.5 * tz * cos(kz) );
-}
-
-double hoppings::ek2(double kx, double ky, double kz) const {
-  return - 2. * ( t_bar * cos(kx) + t_bar * cos(ky) + 0.5 * tz_bar * cos(kz) );
-}
-
-double hoppings::ek3(double kx, double ky, double kz) const {
-  return - 2. * tp * (cos(kx+ky) + cos(kx-ky)) - 2. * tpp * (cos(2*kx) + cos(2*ky)) - 2. * tzp * cos(kz) * (cos(kx) + cos(ky));
-}
-
 double hoppings::t_max() const {
   double tmax = 0;
   tmax = std::max( tmax, sqrt(t*t + t_bar*t_bar) );
@@ -37,9 +25,9 @@ double hoppings::t_max() const {
 }
 
 
-/* Member functions of hoppings_simple */
+/* Member functions of hoppings_square */
 
-hoppings_simple::hoppings_simple(double v){
+hoppings_square::hoppings_square(double v){
   t = v;
   t_bar = 0;
   tp = 0;
@@ -49,8 +37,66 @@ hoppings_simple::hoppings_simple(double v){
   tzp = 0;
 }
 
+double hoppings_square::ek1(double kx, double ky, double kz) const {
+  return - 2. * ( t * cos(kx) + t * cos(ky) );
+}
 
-/* Member functions of hoppings_simple */
+double hoppings_square::ek2(double kx, double ky, double kz) const {
+  return - 2. * ( t_bar * cos(kx) + t_bar * cos(ky) );
+}
+
+double hoppings_square::ek3(double kx, double ky, double kz) const {
+  return - 2. * tp * (cos(kx+ky) + cos(kx-ky)) - 2. * tpp * (cos(2*kx) + cos(2*ky));
+}
+
+std::unique_ptr<hoppings_square> hoppings_square::mk_square(double v){
+  return std::make_unique<hoppings_square>(v);
+}
+
+/* Member functions of hoppings_cubic */
+
+hoppings_cubic::hoppings_cubic(double v){
+  t = v;
+  t_bar = 0;
+  tp = 0;
+  tpp = 0;
+  tz = v;
+  tz_bar = 0;
+  tzp = 0;
+}
+
+double hoppings_cubic::ek1(double kx, double ky, double kz) const {
+  return - 2. * ( t * cos(kx) + t * cos(ky) + tz * cos(kz) );
+}
+
+double hoppings_cubic::ek2(double kx, double ky, double kz) const {
+  return - 2. * ( t_bar * cos(kx) + t_bar * cos(ky) + tz_bar * cos(kz) );
+}
+
+double hoppings_cubic::ek3(double kx, double ky, double kz) const {
+  return - 2. * tp * (cos(kx+ky) + cos(kx-ky)) - 2. * tpp * (cos(2*kx) + cos(2*ky)) - 2. * tzp * (cos(kx+kz) + cos(kx-kz) + cos(ky+kz) + cos(ky-kz));
+}
+
+std::unique_ptr<hoppings_cubic> hoppings_cubic::mk_cubic(double v){
+  return std::make_unique<hoppings_cubic>(v);
+}
+
+
+/* Member functions of hoppings_bilayer */
+
+double hoppings_bilayer::ek1(double kx, double ky, double kz) const {
+  return - 2. * ( t * cos(kx) + t * cos(ky) + 0.5 * tz * cos(kz) );
+}
+
+double hoppings_bilayer::ek2(double kx, double ky, double kz) const {
+  return - 2. * ( t_bar * cos(kx) + t_bar * cos(ky) + 0.5 * tz_bar * cos(kz) );
+}
+
+double hoppings_bilayer::ek3(double kx, double ky, double kz) const {
+  return - 2. * tp * (cos(kx+ky) + cos(kx-ky)) - 2. * tpp * (cos(2*kx) + cos(2*ky)) - 2. * tzp * cos(kz) * (cos(kx) + cos(ky));
+}
+
+/* Member functions of hoppings_Sr3Ir2O7 */
 
 hoppings_Sr3Ir2O7::hoppings_Sr3Ir2O7(double theta, double phi, double t_third){
   double ct = cos(theta);
@@ -71,4 +117,8 @@ hoppings_Sr3Ir2O7::hoppings_Sr3Ir2O7(double theta, double phi, double t_third){
   
   // for check
   std::cerr << t << "  " << t_bar << "  " << tp << "  " << tpp << "  " << tz << "  " << tz_bar << "  " << tzp << std::endl;
+}
+
+std::unique_ptr<hoppings_Sr3Ir2O7> hoppings_Sr3Ir2O7::mk_Sr3Ir2O7(double theta, double phi, double t3){
+  return std::make_unique<hoppings_Sr3Ir2O7>(theta, phi, t3);
 }
