@@ -27,9 +27,9 @@ double hoppings::t_max() const {
 
 /* Member functions of hoppings_square */
 
-hoppings_square::hoppings_square(double v){
+hoppings_square::hoppings_square(double v, double v_bar){
   t = v;
-  t_bar = 0;
+  t_bar = v_bar;
   tp = 0;
   tpp = 0;
   tz = 0;
@@ -49,8 +49,8 @@ double hoppings_square::ek3(double kx, double ky, double kz) const {
   return - 2. * tp * (cos(kx+ky) + cos(kx-ky)) - 2. * tpp * (cos(2*kx) + cos(2*ky));
 }
 
-std::unique_ptr<hoppings_square> hoppings_square::mk_square(double v){
-  return std::make_unique<hoppings_square>(v);
+std::unique_ptr<hoppings_square> hoppings_square::mk_square(double v, double v_bar){
+  return std::make_unique<hoppings_square>(v, v_bar);
 }
 
 /* Member functions of hoppings_cubic */

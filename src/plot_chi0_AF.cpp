@@ -14,11 +14,15 @@
 void plot_chi0_AF(double U){
   /* Calculating chi0 with respect to the AF ground state as a function of omega */
   double t = 1.;
+  double t_bar = 0;
   double mu = 0;
   int L = 48;
   double k1 = 2. * M_PI / L;
+
+  std::unique_ptr<hoppings_square> ts;
+  ts = hoppings_square::mk_square(t, t_bar);
   
-  double delta = solve_self_consistent_eq_square( L, t, mu, U );
+  double delta = solve_self_consistent_eq_square( L, *ts, mu, U );
   std::cout << "delta = " << delta << std::endl;
   
   std::ofstream out;

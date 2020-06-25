@@ -15,11 +15,15 @@ void plot_self_consistent_eq_square(double U){
   std::cout << "U=" << U << std::endl;
   
   double t = 1.;
+  double t_bar = 0;
   double mu = 0;
   int L = 256;
+
+  std::unique_ptr<hoppings_square> ts;
+  ts = hoppings_square::mk_square(t, t_bar);
   
   using std::placeholders::_1;
-  auto scc = std::bind( self_consistent_eq_square, L, t, mu, _1 );
+  auto scc = std::bind( self_consistent_eq_square, L, *ts, mu, _1 );
 
   std::ofstream out;
   out.open("sceq-delta.text");
@@ -32,7 +36,7 @@ void plot_self_consistent_eq_square(double U){
     double val = scc( delta );
     out << delta << std::setw( prec ) << val << std::endl;
   }
-  double delta0 = solve_self_consistent_eq_square( L, t, mu, U );
+  double delta0 = solve_self_consistent_eq_square( L, *ts, mu, U );
   std::cout << "delta = " << delta0 << std::endl;
 
   out.close();

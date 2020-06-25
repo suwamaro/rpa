@@ -14,11 +14,12 @@
 void calc_spectrum_square(double U, int L, double eta){
   /* Parameters */  
   double t = 1.;
+  double t_bar = 0.;  
   double mu = 0;
   double k1 = 2. * M_PI / (double)L;
   
   std::unique_ptr<hoppings_square> ts;
-  ts = hoppings_square::mk_square(t);
+  ts = hoppings_square::mk_square(t, t_bar);
   
   int prec = 15;
   

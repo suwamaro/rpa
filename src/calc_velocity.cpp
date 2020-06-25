@@ -14,12 +14,16 @@
 void calc_velocity_square() {  
   /* Calculating the velocity */
   double t = 1.;
+  double t_bar = 0;
   double mu = 0;
   int L = 256;
   double k1 = 2. * M_PI / (double)L;
   double qx = M_PI;
   double qy = M_PI - k1;
   int prec = 15;
+
+  std::unique_ptr<hoppings_square> ts;
+  ts = hoppings_square::mk_square(t, t_bar);
   
   std::ofstream out;
   out.open("velocity.text");
@@ -28,7 +32,7 @@ void calc_velocity_square() {
   double U_min = 0.8;
   double U_max = 15.0;
   for(double U = U_min; U <= U_max; U += U_delta){
-    double delta = solve_self_consistent_eq_square( L, t, mu, U );
+    double delta = solve_self_consistent_eq_square( L, *ts, mu, U );
     std::cout << "delta = " << delta << std::endl;
     double E1 = calc_gap_square( L, t, mu, U, delta, qx, qy );
     // double J = 4. * t * t / U;
@@ -48,6 +52,9 @@ void calc_velocity_cubic() {
   double qy = M_PI;
   double qz = M_PI - k1;
   int prec = 15;
+
+  std::unique_ptr<hoppings_cubic> ts;
+  ts = hoppings_cubic::mk_cubic(t);
   
   std::ofstream out;
   out.open("velocity.text");
@@ -56,7 +63,7 @@ void calc_velocity_cubic() {
   double U_min = 1.;
   double U_max = 2000.0;
   for(double U = U_min; U <= U_max; U += U_delta){
-    double delta = solve_self_consistent_eq_cubic( L, t, mu, U );
+    double delta = solve_self_consistent_eq_cubic( L, *ts, mu, U );
     std::cout << "delta = " << delta << std::endl;
     double E1 = calc_gap_cubic( L, t, mu, U, delta, qx, qy, qz );
     // double J = 4. * t * t / U;

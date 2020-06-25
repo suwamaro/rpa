@@ -32,10 +32,10 @@ public:
   double ek1(double kx, double ky, double kz = 0) const;
   double ek2(double kx, double ky, double kz = 0) const;
   double ek3(double kx, double ky, double kz = 0) const;
-  hoppings_square(double t);
+  hoppings_square(double v, double v_bar);
 
   // instantiations
-  static std::unique_ptr<hoppings_square> mk_square(double v);
+  static std::unique_ptr<hoppings_square> mk_square(double v, double v_bar);
 };
 
 class hoppings_cubic : public hoppings {
