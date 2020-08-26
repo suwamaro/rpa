@@ -48,9 +48,9 @@ cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U,
   arma::cx_mat denom = arma::eye<arma::cx_mat>(2,2) - factor_channel * U * chi0_mat;
   arma::cx_mat chi_mat = chi0_mat * arma::inv(denom);
   
-  // Double counting from A and B
-  double factor_sublattice = 0.5;  
-  cx_double chi = factor_sublattice * factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );  
+  // sigma-to-spin factor
+  double factor_operator = 0.5;  
+  cx_double chi = factor_operator * factor_operator * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );  
   
   return chi;  
 }

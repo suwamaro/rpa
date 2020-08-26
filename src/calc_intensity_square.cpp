@@ -46,10 +46,10 @@ cx_double calc_intensity_square(int L, hoppings const& ts, double mu, double U, 
 
   // // for check
   // chi_mat = chi0_mat;
-  
-  // Double counting from A and B
-  double factor_sublattice = 0.5;  
-  cx_double chi = factor_sublattice * factor_sublattice * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );  
+
+  // sigma-to-spin factor
+  double factor_operator = 0.5;  
+  cx_double chi = factor_operator * factor_operator * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );
   
   return chi;  
 }
