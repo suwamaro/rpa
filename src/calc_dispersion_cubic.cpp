@@ -17,7 +17,10 @@ void calc_dispersion_cubic(double U, int L){
   double mu = 0;
   double k1 = 2. * M_PI / (double)L;
 
-  double delta = solve_self_consistent_eq_cubic( L, t, mu, U );
+  std::unique_ptr<hoppings_cubic> ts;
+  ts = hoppings_cubic::mk_cubic(t);
+  
+  double delta = solve_self_consistent_eq_cubic( L, *ts, mu, U );
   std::cout << "delta = " << delta << std::endl;
   
   std::ofstream out;

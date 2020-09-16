@@ -24,6 +24,18 @@ double hoppings::t_max() const {
   return tmax;
 }
 
+/* Member functions of hoppings2 */
+
+double hoppings2::t_max() const {
+  double tmax = 0;
+  tmax = std::max( tmax, std::abs(t) );
+  tmax = std::max( tmax, std::abs(tp) );
+  tmax = std::max( tmax, std::abs(tpp) );
+  tmax = std::max( tmax, std::abs(tz) );
+  tmax = std::max( tmax, std::abs(tzp) );
+  return tmax;
+}
+
 
 /* Member functions of hoppings_square */
 
@@ -37,15 +49,15 @@ hoppings_square::hoppings_square(double v, double v_bar){
   tzp = 0;
 }
 
-double hoppings_square::ek1(double kx, double ky, double kz) const {
+double hoppings_square::ek1(double kx, double ky, double) const {
   return - 2. * ( t * cos(kx) + t * cos(ky) );
 }
 
-double hoppings_square::ek2(double kx, double ky, double kz) const {
+double hoppings_square::ek2(double kx, double ky, double) const {
   return - 2. * ( t_bar * cos(kx) + t_bar * cos(ky) );
 }
 
-double hoppings_square::ek3(double kx, double ky, double kz) const {
+double hoppings_square::ek3(double kx, double ky, double) const {
   return - 2. * tp * (cos(kx+ky) + cos(kx-ky)) - 2. * tpp * (cos(2*kx) + cos(2*ky));
 }
 
@@ -84,6 +96,19 @@ std::unique_ptr<hoppings_cubic> hoppings_cubic::mk_cubic(double v){
 
 /* Member functions of hoppings_bilayer */
 
+hoppings_bilayer::hoppings_bilayer(double v, double v_bar, double vp, double vpp, double vz, double vz_bar, double vzp){
+  t = v;
+  t_bar = v_bar;
+  tp = vp;
+  tpp = vpp;
+  tz = vz;
+  tz_bar = vz_bar;
+  tzp = vzp;
+  
+  // for check
+  std::cerr << t << "  " << t_bar << "  " << tp << "  " << tpp << "  " << tz << "  " << tz_bar << "  " << tzp << std::endl;
+}
+
 double hoppings_bilayer::ek1(double kx, double ky, double kz) const {
   return - 2. * ( t * cos(kx) + t * cos(ky) + 0.5 * tz * cos(kz) );
 }
@@ -94,6 +119,39 @@ double hoppings_bilayer::ek2(double kx, double ky, double kz) const {
 
 double hoppings_bilayer::ek3(double kx, double ky, double kz) const {
   return - 2. * tp * (cos(kx+ky) + cos(kx-ky)) - 2. * tpp * (cos(2*kx) + cos(2*ky)) - 2. * tzp * cos(kz) * (cos(kx) + cos(ky));
+}
+
+std::unique_ptr<hoppings_bilayer> hoppings_bilayer::mk_bilayer(double v, double v_bar, double vp, double vpp, double vz, double vz_bar, double vzp){
+return std::make_unique<hoppings_bilayer>(v,v_bar,vp,vpp,vz,vz_bar,vzp);
+}
+
+/* Member functions of hoppings_bilayer2 */
+
+hoppings_bilayer2::hoppings_bilayer2(cx_double v, cx_double vp, cx_double vpp, cx_double vz, cx_double vzp){
+  t = v;
+  tp = vp;
+  tpp = vpp;
+  tz = vz;
+  tzp = vzp;
+
+  // for check
+  std::cerr << t << "  " << tp << "  " << tpp << "  " << tz << "  " << tzp << std::endl;  
+}
+
+cx_double hoppings_bilayer2::ek1(double kx, double ky, double) const {
+  return - 2. * t * ( cos(kx) + cos(ky) );
+}
+
+cx_double hoppings_bilayer2::ek23(double kx, double ky, double) const {
+  return - 2. * tp * (cos(kx+ky) + cos(kx-ky)) - 2. * tpp * (cos(2*kx) + cos(2*ky));
+}
+
+cx_double hoppings_bilayer2::ekz(double kx, double ky, double kz) const {
+  return - 2. * tzp * ( cos(kx) + cos(ky) ) * cos(kz);
+}
+
+std::unique_ptr<hoppings_bilayer2> hoppings_bilayer2::mk_bilayer2(cx_double v, cx_double vp, cx_double vpp, cx_double vz, cx_double vzp){
+  return std::make_unique<hoppings_bilayer2>(v,vp,vpp,vz,vzp);
 }
 
 /* Member functions of hoppings_Sr3Ir2O7 */

@@ -33,6 +33,14 @@ endif()
 
 # -- DEPENDENCIES -------------------------------------------
 
+# OpenMP
+find_package(OpenMP)
+if (OPENMP_FOUND)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")    
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")  
+  add_definitions(-DWITH_OpenMP)
+endif()
+
 # Boost
 find_package(Boost 1.55.0 REQUIRED COMPONENTS filesystem system)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
@@ -45,11 +53,18 @@ find_package(Armadillo REQUIRED CONFIG
 include_directories(SYSTEM ${ARMADILLO_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${ARMADILLO_LIBRARIES})
 
+# Cuba
+if(DEFINED CUBA_DIR)
+  set(LIBS ${LIBS} cuba)
+  include_directories(SYSTEM ${CUBA_DIR})
+  set(LIBDIR ${LIBDIR} ${CUBA_DIR})
+endif()
+
 # -- BUILD -------------------------------------------
 
+link_directories(${LIBDIR})
 include_directories(src)
 add_subdirectory(src)
-
 
 # -- REPORT -------------------------------------------
 
@@ -61,5 +76,6 @@ message("C++ compiler flags  : ${CMAKE_CXX_FLAGS}")
 
 get_property(INC_DIRS DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
 message("LIBS:     ${LIBS}")
+message("LIBDIR:     ${LIBDIR}")
 message("INCLUDES: ${INC_DIRS}")
 message("")

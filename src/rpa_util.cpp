@@ -99,6 +99,33 @@ double eigenenergy_HF_plus(double ek1, double ek2, double ek3, double delta){
   return ek3 + sqrt(delta*delta + ek1*ek1 + ek2*ek2);
 }
 
+cx_double bk(int spin, cx_double ek1, cx_double tz, double kz){
+  if (spin == 1) {
+    return ek1 - tz * cos(kz);
+  } else {
+    return ek1 - std::conj(tz) * cos(kz);
+  }
+}
+
+double zk(int spin, cx_double ek1, cx_double tz, double kz, double delta){
+  return delta / sqrt( delta*delta + std::norm(bk(spin,ek1,tz,kz)));
+}
+
+double zk(cx_double ek1, cx_double tz, double kz, double delta){
+  int spin = 1; /* Does not matter. */
+  return zk(spin, ek1, tz, kz, delta);
+}
+
+cx_double xk(int spin, cx_double ek1, cx_double tz, double kz, double delta){
+  cx_double bki = bk(spin, ek1, tz, kz);
+  return bki / std::abs(bki);
+}
+
+double eigenenergy_HF(double sign, cx_double ek1, cx_double ek23, cx_double ekz, cx_double tz, double kz, double delta){
+  int spin = 1; /* The energy does not depend on the spin. */
+  return std::real(ek23) + std::real(ekz) + sign * sqrt(delta*delta + std::norm(bk(spin,ek1,tz,kz)));
+}
+
 double fermi_density(double x, double kT, double mu) {
   double alpha = (x-mu) / std::abs(kT);
   if (kT < 1e-15 || std::abs(alpha) > 20) {

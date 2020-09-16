@@ -30,7 +30,7 @@ void calc_spectrum_cubic(double U, int L, double eta){
   for(int o=1; o <= n_omegas; o++){ omegas[o-1] = delta_omega * o; }
 
   /* Calculate the gap */
-  double delta = solve_self_consistent_eq_cubic( L, t, mu, U );
+  double delta = solve_self_consistent_eq_cubic( L, *ts, mu, U );
   std::cout << "delta = " << delta << std::endl;
 
   /* Output */

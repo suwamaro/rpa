@@ -9,11 +9,12 @@
 
 #include "rpa.h"
 
-/* For a square lattice */
+/* For square lattices */
 void calc_spectrum_square(double U, int L, double eta);
 
-/* For a square lattice */
+/* For bilayer lattices */
 void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L, double eta);
+void calc_spectrum_bilayer2(rpa::parameters const& pr);
 
-/* For a simple cubic lattice */
+/* For simple cubic lattices */
 void calc_spectrum_cubic(double U, int L, double eta);

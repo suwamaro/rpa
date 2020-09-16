@@ -16,8 +16,17 @@
 #include <cmath>
 #include <boost/filesystem.hpp>
 //#include <boost/lexical_cast.hpp>
-#include "hoppings.h"
+#include <armadillo>
 
 typedef std::complex<double> cx_double;
+typedef arma::vec vec;
+typedef arma::cx_vec cx_vec;
+typedef arma::mat mat;
+typedef arma::cx_mat cx_mat;
+
+#include "parameters.h"
+#include "hoppings.h"
+
+constexpr int NSUBL = 2;  // Number of sublattices
 
 #endif // __RPA__

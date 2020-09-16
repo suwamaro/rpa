@@ -224,3 +224,279 @@ void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, 
     D += factor * ( std::norm(bk_down) * std::norm(bk_qp_up) / diff_E1p + std::norm(bk_up) * std::norm(bk_qm_down) / diff_E2m );    
   }
 }
+
+inline int up() { return 1; }
+inline int down() { return -1; }
+
+cx_vec gs_HF1(int spin, int sign, cx_double ek1, cx_double tz, double kz, double delta){
+  /* In the case where the Hamiltonian is block-diagonalized for each spin. */
+  cx_double xki = xk(spin, ek1, tz, kz, delta);
+  double zki = zk(ek1, tz, kz, delta);
+  cx_double coef1 = xki*sqrt(0.5*(1+sign*spin*zki));
+  cx_double coef2 = sign*sqrt(0.5*(1-sign*spin*zki));  
+  cx_vec gs_HF(NSUBL*NSUBL, arma::fill::zeros);
+  if ( spin == up() ) {
+    gs_HF(0) = coef1;
+    gs_HF(2) = coef2;    
+  } else {
+    gs_HF(1) = coef1;
+    gs_HF(3) = coef2;
+  }
+  return gs_HF;
+}
+
+/* Operators */
+struct OperatorK {
+  OperatorK():Gamma_1plus(NSUBL*NSUBL,NSUBL*NSUBL),Gamma_1z(NSUBL*NSUBL,NSUBL*NSUBL),Gamma_2plus(NSUBL*NSUBL,NSUBL*NSUBL),Gamma_2z(NSUBL*NSUBL,NSUBL*NSUBL){
+    Gamma_1plus(0,1) = 1.;
+    Gamma_1z(0,0) = 1.;
+    Gamma_1z(1,1) = -1.;
+    Gamma_2plus(2,3) = 1.;
+    Gamma_2z(2,2) = 1.;
+    Gamma_2z(3,3) = -1.;
+  }
+  arma::sp_mat Gamma_1plus;
+  // arma::sp_mat Gamma_1minus;
+  arma::sp_mat Gamma_1z;
+  arma::sp_mat Gamma_2plus;
+  // arma::sp_mat Gamma_2minus;
+  arma::sp_mat Gamma_2z;
+};
+
+/* Instantiation */
+OperatorK opek;
+
+/* Member functions of Polarization */
+Polarization::Polarization(int Lx, int Ly, int Lz, int nsub){
+  is_table_set_ = false;
+  Lx_ = Lx;
+  Ly_ = Ly;
+  Lz_ = Lz;
+  nsub_ = nsub;
+}
+
+void Polarization::set_q(double qx, double qy, double qz){
+  qx_ = qx;
+  qy_ = qy;
+  qz_ = qz;
+}
+
+void Polarization::set_table(hoppings2 const& ts, double delta){
+  Ppm_ = new cx_double[table_size()];
+  Pzz_ = new cx_double[table_size()];  
+  build_table(ts, delta);
+  is_table_set_ = true;
+}
+
+long unsigned int Polarization::table_size() const { return Lx()*Ly()*Lz()*nbands()*nbands()*nsub()*nsub(); }
+  
+/* Assume that k = 2pi / L * m, where m is an integer. */
+int Polarization::pullback(double k, int L) const {
+  int l = rint(k * L / (2.*M_PI));
+  while ( l < 0 ) l += L;
+  while ( l >= L ) l -= L;
+  return l;
+}
+  
+int Polarization::xyz_to_index(int x, int y, int z) const {
+    return z * Lx() * Ly() + y * Lx() + x;
+  }
+  
+int Polarization::k_to_index(double kx, double ky, double kz) const {    
+    int lx = pullback(kx, Lx());
+    int ly = pullback(ky, Ly());
+    int lz = pullback(kz, Lz());    
+    return xyz_to_index(lx, ly, lz);
+  }
+
+void Polarization::calc_polarization(hoppings2 const& ts, double delta, double kx, double ky, double kz, int sg1, int sg2, cx_double* ppm, cx_double* pzz) const {
+  /* Adding the results */
+  cx_double ek1 = ts.ek1(kx, ky, kz);
+  double kx2 = kx + qx();
+  double ky2 = ky + qy();
+  double kz2 = kz + qz();
+  cx_double ek_q1 = ts.ek1( kx2, ky2, kz2 );
+
+  cx_double tz = ts.tz;  
+  cx_vec X1up = gs_HF1(1, sg1, ek1, tz, kz, delta);
+  // cx_vec X1down = gs_HF1(sg1, -1, ek1, tz, kz, delta);
+  cx_vec X2up = gs_HF1(1, sg2, ek_q1, tz, kz2, delta);
+  cx_vec X2down = gs_HF1(-1, sg2, ek_q1, tz, kz2, delta);
+    
+  cx_double F_zu_g1 = arma::cdot(X1up, opek.Gamma_1z * X2up);
+  cx_double F_zu_gm1 = arma::cdot(X1up, opek.Gamma_2z * X2up);
+	    
+  /* Assume the number of sublattices is 2. */
+  pzz[ 0 ] = std::norm(F_zu_g1);      
+  pzz[ 1 ] = F_zu_g1 * std::conj(F_zu_gm1);
+  pzz[ 2 ] = F_zu_gm1 * std::conj(F_zu_g1);
+  pzz[ 3 ] = std::norm(F_zu_gm1);      
+  
+  cx_double F_p_g1 = arma::cdot(X1up, opek.Gamma_1plus * X2down);
+  cx_double F_p_gm1 = arma::cdot(X1up, opek.Gamma_2plus * X2down);
+  ppm[ 0 ] = std::norm(F_p_g1);      
+  ppm[ 1 ] = F_p_g1 * std::conj(F_p_gm1);
+  ppm[ 2 ] = F_p_gm1 * std::conj(F_p_g1);
+  ppm[ 3 ] = std::norm(F_p_gm1);
+}
+
+void Polarization::build_table(hoppings2 const& ts, double delta){
+  cx_double ppm[nsub()*nsub()];
+  cx_double pzz[nsub()*nsub()];
+  for(int x=0; x < Lx(); x++){    
+    double kx = 2. * M_PI / Lx() * x;
+    for(int y=0; y < Ly(); y++){    
+      double ky = 2. * M_PI / Ly() * y;
+      for(int z=0; z < Lz(); z++){    
+	double kz = 2. * M_PI / Lz() * z;
+	int xyz_idx = xyz_to_index(x,y,z) * nbands() * nbands() * nsub() * nsub();
+	
+	for(int sg1=-1; sg1<=1; sg1+=2){
+	  int sg2 = - sg1; /* Opposite sign */
+	  calc_polarization(ts, delta, kx, ky, kz, sg1, sg2, ppm, pzz);
+	  
+	  int sg1i = (sg1+1) >> 1;
+	  int sg2i = (sg2+1) >> 1;
+	  int bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+	  int xyz_bands_idx = xyz_idx + bands_idx;	  	
+	  memcpy(Ppm_ + xyz_bands_idx, ppm, sizeof(cx_double)*nsub()*nsub() );
+	  memcpy(Pzz_ + xyz_bands_idx, pzz, sizeof(cx_double)*nsub()*nsub() );
+	}
+      }
+    }
+  }
+}
+
+void Polarization::get_Ppm(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Ppmk) const {
+  int xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
+  int bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+  int xyz_bands_idx = xyz_idx + bands_idx;    
+  memcpy( Ppmk, Ppm_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
+}
+  
+void Polarization::get_Pzz(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Pzzk) const {    
+  int xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
+  int bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+  int xyz_bands_idx = xyz_idx + bands_idx;    
+  memcpy( Pzzk, Pzz_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
+}
+  
+Polarization::~Polarization(){
+  if ( Ppm_ != nullptr ) {
+    delete[] Ppm_;
+  }
+
+  if ( Pzz_ != nullptr ) {
+    delete[] Pzz_;
+  }
+}
+
+void add_to_sus_mat3(hoppings2 const& ts, double mu, arma::cx_mat& chi, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega, bool zz){
+  double eps = 1e-12;
+  
+  cx_double ek1 = ts.ek1(kx, ky, kz);
+  cx_double ek23 = ts.ek23(kx, ky, kz);
+  cx_double ekz = ts.ekz(kx, ky, kz);
+  cx_double tz = ts.tz;
+  
+  /* Checking if the eigenenergy is below the chemical potential. */
+  double mu_free = 0;  /* Assume at half filling */
+  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc: t=1 */
+  double factor = 0.0;
+  if ( e_free > mu_free + eps ) { return; }
+  else if ( std::abs(e_free - mu_free) < eps ) { factor = 0.5; } /* On the zone boundary */
+  else { factor = 1.; }
+  
+  double kx2 = wave_vector_in_BZ( kx + qx );
+  double ky2 = wave_vector_in_BZ( ky + qy );
+  double kz2 = wave_vector_in_BZ( kz + qz );
+  
+  cx_double ek_q1 = ts.ek1( kx2, ky2, kz2 );
+  cx_double ek_q23 = ts.ek23( kx2, ky2, kz2 );
+  cx_double ek_qz = ts.ekz( kx2, ky2, kz2 );  
+      
+  for(int sg1=-1; sg1<=1; sg1+=2){
+    int sg2 = - sg1; /* Opposite sign */
+    /* Electron density at zero temperature */
+    int n1 = ( ( sg1 + 1 ) >> 1 ) ^ 1;  /* -1 -> 1, 1 -> 0 */
+    int n2 = n1 ^ 1;
+    double n_diff = (double)(n2 - n1);
+    double Ek = eigenenergy_HF(sg1, ek1, ek23, ekz, tz, kz, delta);
+    double Ek_q = eigenenergy_HF(sg2, ek_q1, ek_q23, ek_qz, tz, kz2, delta);
+    cx_double diff_E = omega - (Ek_q - Ek);    
+    cx_double prefactor = factor * n_diff / diff_E;
+    cx_vec X1up = gs_HF1(1, sg1, ek1, tz, kz, delta);
+    // cx_vec X1down = gs_HF1(sg1, -1, ek1, tz, kz, delta);
+    cx_vec X2up = gs_HF1(1, sg2, ek_q1, tz, kz2, delta);
+    cx_vec X2down = gs_HF1(-1, sg2, ek_q1, tz, kz2, delta);
+    
+    if ( zz ) {
+      cx_double F_zu_g1 = arma::cdot(X1up, opek.Gamma_1z * X2up);
+      cx_double F_zu_gm1 = arma::cdot(X1up, opek.Gamma_2z * X2up);
+      chi(0,0) += prefactor * std::norm(F_zu_g1);      
+      chi(0,1) += prefactor * F_zu_g1 * std::conj(F_zu_gm1);
+      chi(1,0) += prefactor * F_zu_gm1 * std::conj(F_zu_g1);
+      chi(1,1) += prefactor * std::norm(F_zu_gm1);      
+    } else {
+      cx_double F_p_g1 = arma::cdot(X1up, opek.Gamma_1plus * X2down);
+      cx_double F_p_gm1 = arma::cdot(X1up, opek.Gamma_2plus * X2down);
+      chi(0,0) += prefactor * std::norm(F_p_g1);      
+      chi(0,1) += prefactor * F_p_g1 * std::conj(F_p_gm1);
+      chi(1,0) += prefactor * F_p_gm1 * std::conj(F_p_g1);
+      chi(1,1) += prefactor * std::norm(F_p_gm1);      
+    }
+  }
+}
+
+void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz_u, double qx, double qy, double qz, double kx, double ky, double kz, Polarization const& pz, double delta, cx_double omega){
+  double eps = 1e-12;
+  
+  cx_double ek1 = ts.ek1(kx, ky, kz);
+  cx_double ek23 = ts.ek23(kx, ky, kz);
+  cx_double ekz = ts.ekz(kx, ky, kz);
+  cx_double tz = ts.tz;
+  
+  /* Checking if the eigenenergy is below the chemical potential. */
+  double mu_free = 0;  /* Assume at half filling */
+  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc: t=1 */
+  double factor = 0.0;
+  if ( e_free > mu_free + eps ) { return; }
+  else if ( std::abs(e_free - mu_free) < eps ) { factor = 0.5; } /* On the zone boundary */
+  else { factor = 1.; }
+  
+  double kx2 = wave_vector_in_BZ( kx + qx );
+  double ky2 = wave_vector_in_BZ( ky + qy );
+  double kz2 = wave_vector_in_BZ( kz + qz );
+  
+  cx_double ek_q1 = ts.ek1( kx2, ky2, kz2 );
+  cx_double ek_q23 = ts.ek23( kx2, ky2, kz2 );
+  cx_double ek_qz = ts.ekz( kx2, ky2, kz2 );  
+      
+  for(int sg1=-1; sg1<=1; sg1+=2){
+    int sg2 = - sg1; /* Opposite sign */
+    int sg1i = (sg1+1) >> 1;    
+    int sg2i = (sg2+1) >> 1;
+    
+    /* Electron density at zero temperature */
+    int n1 = ( ( sg1 + 1 ) >> 1 ) ^ 1;  /* -1 -> 1, 1 -> 0 */
+    int n2 = n1 ^ 1;
+    double n_diff = (double)(n2 - n1);
+    double Ek = eigenenergy_HF(sg1, ek1, ek23, ekz, tz, kz, delta);
+    double Ek_q = eigenenergy_HF(sg2, ek_q1, ek_q23, ek_qz, tz, kz2, delta);
+    cx_double diff_E = omega - (Ek_q - Ek);    
+    cx_double prefactor = factor * n_diff / diff_E;
+
+    cx_double Pzk[NSUBL*NSUBL];
+    pz.get_Ppm(kx, ky, kz, sg1i, sg2i, Pzk);
+    chi_pm(0,0) += prefactor * Pzk[0];
+    chi_pm(0,1) += prefactor * Pzk[1];
+    chi_pm(1,0) += prefactor * Pzk[2];
+    chi_pm(1,1) += prefactor * Pzk[3];
+    
+    pz.get_Pzz(kx, ky, kz, sg1i, sg2i, Pzk);
+    chi_zz_u(0,0) += prefactor * Pzk[0];
+    chi_zz_u(0,1) += prefactor * Pzk[1];
+    chi_zz_u(1,0) += prefactor * Pzk[2];
+    chi_zz_u(1,1) += prefactor * Pzk[3];
+  }
+}

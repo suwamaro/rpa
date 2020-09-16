@@ -7,6 +7,8 @@
 *
 *****************************************************************************/
 
+#include <complex>
+#include <omp.h>
 #include "calc_spectrum.h"
 #include "self_consistent_eq.h"
 #include "calc_gap.h"
@@ -18,6 +20,16 @@ std::tuple<double, double> calc_single_particle_energy(hoppings const& ts, doubl
   double ek3 = ts.ek3(kx, ky, kz);
   double Em = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
   double Ep = eigenenergy_HF_plus(ek1, ek2, ek3, delta);
+  return std::make_tuple(Em, Ep);
+}
+
+std::tuple<double, double> calc_single_particle_energy2(hoppings2 const& ts, double kx, double ky, double kz, double delta){
+  cx_double ek1 = ts.ek1(kx, ky, kz);
+  cx_double ek23 = ts.ek23(kx, ky, kz);
+  cx_double ekz = ts.ekz(kx, ky, kz);
+  cx_double tz = ts.tz;
+  double Em = eigenenergy_HF(-1, ek1, ek23, ekz, tz, kz, delta);
+  double Ep = eigenenergy_HF(1, ek1, ek23, ekz, tz, kz, delta);
   return std::make_tuple(Em, Ep);
 }
 
@@ -82,26 +94,90 @@ void calc_single_particle_energy_bilayer(hoppings const& ts, int L, double delta
   out_e.close();
 }
 
+void calc_single_particle_energy_bilayer2(hoppings2 const& ts, int L, double delta){
+  /* Output */
+  std::ofstream out_e;
+  out_e.open("single_particle_energy.text");
+  
+  /* Wavenumbers */
+  double qx = 0;
+  double qy = 0;
+  double qz = 0;
+  int q_idx = 0;
+
+  int prec = 15;
+  double k1 = 2. * M_PI / (double)L;
+  
+  auto output_energy = [&](){
+    auto [Em, Ep] = calc_single_particle_energy2( ts, qx, qy, qz, delta );
+    out_e << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << Em << std::setw( prec ) << Ep << std::endl;
+  };
+  
+  for(int z=0; z < 2; z++){
+    qz = M_PI * z;
+    
+    for(int x=0; x < L/4; x++){
+      qx = M_PI - k1 * x;
+      qy = k1 * x;
+      output_energy();
+      ++q_idx;
+    }
+    
+    for(int x=0; x < L/4; x++){
+      qx = 0.5 * M_PI - k1 * x;
+      qy = 0.5 * M_PI - k1 * x;
+      output_energy();
+      ++q_idx;
+    }
+    
+    for(int x=0; x < L/2; x++){
+      qx = k1 * x;
+      qy = 0;
+      output_energy();
+      ++q_idx;
+    }
+    
+    for(int y=0; y < L/2; y++){
+      qx = M_PI;
+      qy = k1 * y;
+      output_energy();
+      ++q_idx;
+    }
+    
+    for(int x=0; x <= L/4; x++){
+      qx = M_PI - k1 * x;
+      qy = M_PI - k1 * x;
+      output_energy();
+      ++q_idx;
+    }
+  }
+
+  out_e.close();
+}
+
 void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L, double eta){
-  std::unique_ptr<hoppings_bilayer> ts;
-  ts = hoppings_Sr3Ir2O7::mk_Sr3Ir2O7(theta, phi, t3);
+  std::unique_ptr<hoppings_bilayer> ts;  
+  ts = hoppings_Sr3Ir2O7::mk_Sr3Ir2O7(theta, phi, t3);  
+  
   double k1 = 2. * M_PI / (double)L;
   int prec = 15;
   
   /* Omegas */
+  // double delta_omega = 0.1;  
+  // double max_omega = 0.1 + 1e-10;
+
   double delta_omega = 0.001;  
   double max_omega = ts->t_max() * 10;
+  
+  
   int n_omegas = int(max_omega/delta_omega+0.5);
   std::vector<double> omegas(n_omegas);
   for(int o=1; o <= n_omegas; o++){ omegas[o-1] = delta_omega * o; }
 
   /* Calculate the chemical potential and the charge gap. */
-  std::cout << "Setting delta = 0." << std::endl;  /* Gap parameter */
-  double delta = 0;  /* to get the Fermi energy */
-  double mu = calc_chemical_potential_bilayer( L, *ts, delta );  
-  delta = solve_self_consistent_eq_bilayer( L, *ts, mu, U );
+  double delta = solve_self_consistent_eq_bilayer( L, *ts, U );
   std::cout << "delta = " << delta << std::endl;
-  mu = calc_chemical_potential_bilayer( L, *ts, delta );  /* Updated */
+  double mu = calc_chemical_potential_bilayer( L, *ts, delta );  /* Updated */
 
   /* Single particle energy */
   calc_single_particle_energy_bilayer( *ts, L, delta );
@@ -133,6 +209,7 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
       /* The (S^+ S^-) response function, or the retarded Green's function */
       double factor_dsf = 2.;
       cx_double chi_xy = calc_intensity_bilayer( L, *ts, mu, U, delta, qx, qy, qz, cx_omega, false );
+      
       double spec_xy = factor_dsf * std::imag(chi_xy);
       
       /* Output */
@@ -140,44 +217,51 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
 
       /* The (S^z S^z) response function, or the retarded Green's function */
       cx_double chi_z = calc_intensity_bilayer( L, *ts, mu, U, delta, qx, qy, qz, cx_omega, true );
+      
       double spec_z = factor_dsf * std::imag(chi_z);
       
       /* Output */
       out_z << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_z << std::setw( prec ) << U << std::endl;      
     }
   };
-      
+
+  // qx = M_PI;
+  // qy = M_PI - 2 * k1;
+  // qz = M_PI;
+  // output_spectrum();
+  // ++q_idx;
+  
   for(int z=0; z < 2; z++){
     qz = M_PI * z;
-    
+  
     for(int x=0; x < L/4; x++){
       qx = M_PI - k1 * x;
       qy = k1 * x;
       output_spectrum();
       ++q_idx;
     }
-    
+  
     for(int x=0; x < L/4; x++){
       qx = 0.5 * M_PI - k1 * x;
       qy = 0.5 * M_PI - k1 * x;
       output_spectrum();
       ++q_idx;
     }
-    
+  
     for(int x=0; x < L/2; x++){
       qx = k1 * x;
       qy = 0;
       output_spectrum();
       ++q_idx;
     }
-    
+  
     for(int y=0; y < L/2; y++){
       qx = M_PI;
       qy = k1 * y;
       output_spectrum();
       ++q_idx;
     }
-    
+  
     for(int x=0; x <= L/4; x++){
       qx = M_PI - k1 * x;
       qy = M_PI - k1 * x;
@@ -185,6 +269,206 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
       ++q_idx;
     }
   }
+
+  out_xy.close();
+  out_z.close();
+}
+
+void calc_spectrum_bilayer2(rpa::parameters const& pr){
+  /* Getting parameters */
+  int L = pr.L;
+  int Lk = pr.Lk;
+  double eta = pr.eta;
+  double U = pr.U;
+  bool continuous_k = pr.continuous_k;
+  
+  CubaParam cbp;  // Parameters for Cuba
+
+  /* Hopping parameters */
+  double t1 = pr.t1;
+  double t2 = pr.t2;
+  double t3 = pr.t3;
+  double tz = pr.t4;
+  double phasez = pr.phase2;
+
+  using namespace std::complex_literals;
+  std::unique_ptr<hoppings_bilayer2> ts;
+  ts = hoppings_bilayer2::mk_bilayer2(t1, 0, 0, tz*exp(1i*phasez*0.5), 0);
+  
+  double k1 = 2. * M_PI / (double)Lk;
+  int prec = 15;
+  
+  /* Omegas */
+  // double delta_omega = 0.01;  
+  // double max_omega = 0.3 + 1e-10;
+  
+  double delta_omega = 0.001;
+  double min_omega = 0;
+  double max_omega = 0.25+1e-8;
+  // double max_omega = ts->t_max() * 10;
+  
+  int n_omegas = int((max_omega-min_omega)/delta_omega+0.5);
+  std::vector<double> omegas(n_omegas);
+  for(int o=1; o <= n_omegas; o++){ omegas[o-1] = min_omega + delta_omega * o; }
+
+  /* Calculate the chemical potential and the charge gap. */
+  /* Assume that mu does not depend on L for integral over continuous k. */
+  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, cbp, continuous_k );  
+  std::cout << "delta = " << delta << std::endl;
+  double mu = calc_chemical_potential_bilayer2( L, *ts, delta );  /* Finite size */
+
+  /* Single particle energy */
+  calc_single_particle_energy_bilayer2( *ts, L, delta );
+  
+  /* Output */
+  std::ofstream out_xy, out_z;
+  out_xy.open("spectrum-xy.text");
+  out_z.open("spectrum-z.text");
+
+  /* Wavenumbers */
+  double qx = 0;
+  double qy = 0;
+  double qz = 0;
+  int q_idx = 0;
+  
+  /* 2-layer Square lattice */
+  /* X -> Sigma -> Gamma -> X -> M -> Sigma */
+  /* Gamma = ( 0, 0 )               */
+  /* X = ( pi, 0 )                  */
+  /* Sigma = ( pi/2, pi/2 )         */
+  /* M = ( pi, pi )                 */
+
+  /* Results */
+  double *spec_xy = new double[n_omegas];
+  double *spec_z = new double[n_omegas];
+    
+  /* From the response function to the dynamic structure factor */  
+  auto output_spectrum = [&](){
+    std::cout << "( qidx, qx, qy, qz ) = ( " << q_idx << ", " << qx << ", " << qy << ", " << qz << " )" << std::endl;    
+  
+    /* Polarization */
+    Polarization Pz( L, L, 2, NSUBL );
+    Pz.set_q( qx, qy, qz );
+
+    /* A factor from the response function to the dynamical structure factor */
+    double factor_dsf = 2.;
+
+    if ( continuous_k ) {
+      /* Single thread */
+      for(int o=0; o < n_omegas; o++){
+	/* Calculating the response (Green's) functions */
+	cx_double chi_xy, chi_z;	
+	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, delta, cbp, qx, qy, qz, Pz, omegas[o]+1i*eta, continuous_k);
+	spec_xy[o] = factor_dsf * std::imag(chi_xy);
+	spec_z[o] = factor_dsf * std::imag(chi_z);	
+      }
+    } else {
+      /* The polarizations are calculated in advance. */
+      Pz.set_table( *ts, delta );
+    
+#ifdef WITH_OpenMP
+#pragma omp parallel
+    {
+      /* Assignment for each thread */
+      int n_threads = omp_get_num_threads();
+      int nt = n_omegas / n_threads;
+      int rem = n_omegas % n_threads;      
+      int thread_id = omp_get_thread_num();
+      int oi, of;
+      if ( thread_id < rem ) { nt += 1; }
+
+      /* Results for each thread */
+      double *spec_xy_thread = new double[nt];
+      double *spec_z_thread = new double[nt];
+      
+      for(int oidx=0; oidx < nt; oidx++){
+      	int o = thread_id + oidx * n_threads; // stride: n_threads
+#else
+      for(int o=0; o < n_omegas; o++){
+#endif
+	/* Calculating the response (Green's) functions */
+	cx_double chi_xy, chi_z;	
+	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, delta, cbp, qx, qy, qz, Pz, omegas[o]+1i*eta, continuous_k);
+	
+#ifdef WITH_OpenMP
+	spec_xy_thread[oidx] = factor_dsf * std::imag(chi_xy);
+	spec_z_thread[oidx] = factor_dsf * std::imag(chi_z);
+#else
+	spec_xy[o] = factor_dsf * std::imag(chi_xy);
+	spec_z[o] = factor_dsf * std::imag(chi_z);
+#endif
+      }
+	
+#ifdef WITH_OpenMP
+      /* Extracting the results */
+      for(int oidx=0; oidx < nt; oidx++){
+      	int o = thread_id + oidx * n_threads;	
+      	spec_xy[o] = spec_xy_thread[oidx];
+      	spec_z[o] = spec_z_thread[oidx];	
+      }
+	
+      delete[] spec_xy_thread;
+      delete[] spec_z_thread;
+      }
+#endif
+    }
+    
+    /* Output */
+    for(int o=0; o < n_omegas; o++){
+      out_xy << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_xy[o] << std::setw( prec ) << U << std::endl;
+      out_z << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_z[o] << std::setw( prec ) << U << std::endl;
+    }
+  };
+	
+  qx = M_PI;
+  qy = M_PI - M_PI / 20.;
+  // qy = M_PI - 2 * k1;
+  
+  qz = M_PI;
+  output_spectrum();
+  ++q_idx;
+	
+  // for(int z=0; z < 2; z++){
+  //   qz = M_PI * z;
+  
+  //   for(int x=0; x < L/4; x++){
+  //     qx = M_PI - k1 * x;
+  //     qy = k1 * x;
+  //     output_spectrum();
+  //     ++q_idx;
+  //   }
+  
+  //   for(int x=0; x < L/4; x++){
+  //     qx = 0.5 * M_PI - k1 * x;
+  //     qy = 0.5 * M_PI - k1 * x;
+  //     output_spectrum();
+  //     ++q_idx;
+  //   }
+  
+  //   for(int x=0; x < L/2; x++){
+  //     qx = k1 * x;
+  //     qy = 0;
+  //     output_spectrum();
+  //     ++q_idx;
+  //   }
+  
+  //   for(int y=0; y < L/2; y++){
+  //     qx = M_PI;
+  //     qy = k1 * y;
+  //     output_spectrum();
+  //     ++q_idx;
+  //   }
+  
+  //   for(int x=0; x <= L/4; x++){
+  //     qx = M_PI - k1 * x;
+  //     qy = M_PI - k1 * x;
+  //     output_spectrum();
+  //     ++q_idx;
+  //   }
+  // }
+
+  delete[] spec_xy;
+  delete[] spec_z;
 
   out_xy.close();
   out_z.close();

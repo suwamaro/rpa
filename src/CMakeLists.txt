@@ -1,7 +1,9 @@
 add_library(rpa_base OBJECT
+parameters.cpp
 rpa_util.cpp
 plot_chi0.cpp
 plot_chi0_AF.cpp
+self_consistent_eq.cpp
 self_consistent_eq_square.cpp
 self_consistent_eq_bilayer.cpp
 self_consistent_eq_cubic.cpp
