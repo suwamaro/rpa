@@ -23,7 +23,7 @@ int main(){
   rpa::parameters p("config.toml");
 
   /* Calculating the spectrum */
-  calc_spectrum_bilayer2(p);  
+  calc_spectrum_bilayer2(p);
   
   return 0;
 }

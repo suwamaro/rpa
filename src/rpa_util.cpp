@@ -31,42 +31,6 @@ double calc_tk3(hoppings const& ts, double kx, double ky, double kz){
     + ts.tzp * cos(kz) * (cos(kx) + cos(ky));
 }
 
-// double energy_free_electron_bilayer(hoppings const& ts, double mu, double kx, double ky, double kz){
-//   // 0.5 for z direction
-
-
-
-//   double sign = - 1.;
-//   if ( std::abs(kz) < 1e-10 ) {
-//     // if ( std::abs(kx) + std::abs(ky) <= M_PI + 1e-10 ) {
-//     if ( std::abs(kx) + std::abs(ky) < M_PI ) {
-      
-//       sign = 1.;
-//       // sign = - 1.;
-      
-//     } else {
-//       sign = - 1.;
-//       // sign = 1.;
-      
-//     }
-//   } else if ( std::abs(kz + M_PI) < 1e-10 ) {
-//     // if ( std::abs(kx) + std::abs(ky) < M_PI ) {
-//     if ( std::abs(kx) + std::abs(ky) <= M_PI + 1e-10 ) {
-      
-//       sign = 1.;
-//       // sign = - 1.;
-      
-//     } else {
-//       sign = - 1.;
-//       // sign = 1.;
-      
-//     }
-//   } else { /* Not being considered for the moment. */ }
-//   double tk = tk3 + sign * sqrt(tk1*tk1 + tk2*tk2);  
-//   // return - 2. * tk - mu;
-//   return - 2. * tk1 - mu;
-// }
-
 double energy_free_electron_bilayer1(hoppings const& ts, double mu, double kx, double ky, double kz){
   double tk1 = calc_tk1( ts, kx, ky, kz );
   double tk2 = calc_tk2( ts, kx, ky, kz );
@@ -100,10 +64,11 @@ double eigenenergy_HF_plus(double ek1, double ek2, double ek3, double delta){
 }
 
 cx_double bk(int spin, cx_double ek1, cx_double tz, double kz){
-  if (spin == 1) {
-    return ek1 - tz * cos(kz);
+  cx_double bk0 = ek1 - tz * cos(kz);
+  if (spin == up()) {
+    return bk0;
   } else {
-    return ek1 - std::conj(tz) * cos(kz);
+    return std::conj(bk0);
   }
 }
 
@@ -112,7 +77,7 @@ double zk(int spin, cx_double ek1, cx_double tz, double kz, double delta){
 }
 
 double zk(cx_double ek1, cx_double tz, double kz, double delta){
-  int spin = 1; /* Does not matter. */
+  int spin = up(); /* Does not matter. */
   return zk(spin, ek1, tz, kz, delta);
 }
 
@@ -122,7 +87,7 @@ cx_double xk(int spin, cx_double ek1, cx_double tz, double kz, double delta){
 }
 
 double eigenenergy_HF(double sign, cx_double ek1, cx_double ek23, cx_double ekz, cx_double tz, double kz, double delta){
-  int spin = 1; /* The energy does not depend on the spin. */
+  int spin = up(); /* The energy does not depend on the spin. */
   return std::real(ek23) + std::real(ekz) + sign * sqrt(delta*delta + std::norm(bk(spin,ek1,tz,kz)));
 }
 

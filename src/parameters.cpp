@@ -36,6 +36,15 @@ namespace rpa {
 
     /* Hopping phases */
     phase1 = config->get_as<double>("phase1").value_or(0);
-    phase2 = config->get_as<double>("phase2").value_or(0);    
+    phase2 = config->get_as<double>("phase2").value_or(0);
+    phase3 = config->get_as<double>("phase3").value_or(0);
+    phase4 = config->get_as<double>("phase4").value_or(0);
+    phase5 = config->get_as<double>("phase5").value_or(0);
+    phase6 = config->get_as<double>("phase6").value_or(0);
+
+    /* Energy scale of the spectrum */
+    omega_min = config->get_as<double>("omega_min").value_or(0);
+    omega_max = config->get_as<double>("omega_max").value_or(1.);
+    omega_delta = config->get_as<double>("omega_delta").value_or(0.01);    
   }
 }

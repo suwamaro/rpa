@@ -54,9 +54,9 @@ cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U,
   double factor_operator = 0.5;  
   cx_double chi = factor_operator * factor_operator * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );  
 
-  // // for check
-  // std::cout << chi0_mat << std::endl;
-  // std::cout << chi_mat << std::endl;
+  // for check
+  std::cout << chi0_mat << std::endl;
+  std::cout << chi_mat << std::endl;
   
   return chi;  
 }
@@ -211,7 +211,7 @@ std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer
 	double kx = k1 * x;
 	for(int y=-L/2; y < L/2; y++){
 	  double ky = k1 * y;
-	  add_to_sus_mat4( ts, mu, chi0_pm, chi0_zz_u, qx, qy, qz, kx, ky, kz, Pz, delta, omega );
+	  add_to_sus_mat4( ts, mu, chi0_pm, chi0_zz_u, qx, qy, qz, kx, ky, kz, Pz, delta, omega );	  
 	}
       }
     }
@@ -238,8 +238,8 @@ std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer
   /* Note that 2 < \sigma^- \sigma^+ > = < \sigma^z \sigma^z > (U -> 0 for the SU(2) case) */  
   arma::cx_mat denom_pm = arma::eye<arma::cx_mat>(NSUBL,NSUBL) - U * chi0_pm;
   arma::cx_mat denom_zz = arma::eye<arma::cx_mat>(NSUBL,NSUBL) - 0.5 * U * chi0_zz;  
-  arma::cx_mat chi_pm = chi0_pm * arma::inv(denom_pm);
-  arma::cx_mat chi_zz = chi0_zz * arma::inv(denom_zz);  
+  arma::cx_mat chi_pm = arma::inv(denom_pm) * chi0_pm;
+  arma::cx_mat chi_zz = arma::inv(denom_zz) * chi0_zz;
   
   // sigma-to-spin factor
   cx_double chi_xy = 0.25 * arma::accu(chi_pm);

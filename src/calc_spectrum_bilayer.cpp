@@ -156,18 +156,18 @@ void calc_single_particle_energy_bilayer2(hoppings2 const& ts, int L, double del
 }
 
 void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L, double eta){
-  std::unique_ptr<hoppings_bilayer> ts;  
+  std::unique_ptr<hoppings_bilayer> ts;
   ts = hoppings_Sr3Ir2O7::mk_Sr3Ir2O7(theta, phi, t3);  
   
   double k1 = 2. * M_PI / (double)L;
   int prec = 15;
   
   /* Omegas */
-  // double delta_omega = 0.1;  
-  // double max_omega = 0.1 + 1e-10;
+  double delta_omega = 0.092;  
+  double max_omega = 0.092 + 1e-10;
 
-  double delta_omega = 0.001;  
-  double max_omega = ts->t_max() * 10;
+  // double delta_omega = 0.001;  
+  // double max_omega = ts->t_max() * 10;
   
   
   int n_omegas = int(max_omega/delta_omega+0.5);
@@ -225,12 +225,7 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
     }
   };
 
-  // qx = M_PI;
-  // qy = M_PI - 2 * k1;
-  // qz = M_PI;
-  // output_spectrum();
-  // ++q_idx;
-  
+  /* Through symmetric points */
   for(int z=0; z < 2; z++){
     qz = M_PI * z;
   
@@ -282,39 +277,38 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
   double U = pr.U;
   bool continuous_k = pr.continuous_k;
   
-  CubaParam cbp;  // Parameters for Cuba
-
   /* Hopping parameters */
   double t1 = pr.t1;
   double t2 = pr.t2;
   double t3 = pr.t3;
   double tz = pr.t4;
-  double phasez = pr.phase2;
-
-  using namespace std::complex_literals;
-  std::unique_ptr<hoppings_bilayer2> ts;
-  ts = hoppings_bilayer2::mk_bilayer2(t1, 0, 0, tz*exp(1i*phasez*0.5), 0);
+  double phase1 = pr.phase1;
+  double phasez = pr.phase4;
   
-  double k1 = 2. * M_PI / (double)Lk;
-  int prec = 15;
+  using namespace std::complex_literals;  
+  cx_double t1_cx = t1*exp(1i*phase1*0.5);
+  cx_double tz_cx = tz*exp(1i*phasez*0.5);
+
+  /* Hopping class */
+  std::unique_ptr<hoppings_bilayer2> ts;
+  ts = hoppings_bilayer2::mk_bilayer2(t1_cx, t2, t3, tz_cx, 0);
   
   /* Omegas */
-  // double delta_omega = 0.01;  
-  // double max_omega = 0.3 + 1e-10;
+  double omega_min = pr.omega_min;
+  double omega_max = pr.omega_max;
+  double omega_delta = pr.omega_delta;  
   
-  double delta_omega = 0.001;
-  double min_omega = 0;
-  double max_omega = 0.25+1e-8;
-  // double max_omega = ts->t_max() * 10;
-  
-  int n_omegas = int((max_omega-min_omega)/delta_omega+0.5);
+  int n_omegas = int((omega_max - omega_min)/omega_delta+0.5);
   std::vector<double> omegas(n_omegas);
-  for(int o=1; o <= n_omegas; o++){ omegas[o-1] = min_omega + delta_omega * o; }
+  for(int o=1; o <= n_omegas; o++){ omegas[o-1] = omega_min + omega_delta * o; }
 
+  /* Parameters for Cuba */
+  CubaParam cbp;
+  
   /* Calculate the chemical potential and the charge gap. */
-  /* Assume that mu does not depend on L for integral over continuous k. */
   double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, cbp, continuous_k );  
-  std::cout << "delta = " << delta << std::endl;
+  std::cout << "delta = " << delta << std::endl;  
+  /* Assume that mu does not depend on L for integral over continuous k. */  
   double mu = calc_chemical_potential_bilayer2( L, *ts, delta );  /* Finite size */
 
   /* Single particle energy */
@@ -325,6 +319,9 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
   out_xy.open("spectrum-xy.text");
   out_z.open("spectrum-z.text");
 
+  /* Precision */
+  int prec = 15;
+  
   /* Wavenumbers */
   double qx = 0;
   double qy = 0;
@@ -419,53 +416,49 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
       out_z << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_z[o] << std::setw( prec ) << U << std::endl;
     }
   };
-	
-  qx = M_PI;
-  qy = M_PI - M_PI / 20.;
-  // qy = M_PI - 2 * k1;
+
+  /* Delta k */
+  double k1 = 2. * M_PI / (double)Lk;
   
-  qz = M_PI;
-  output_spectrum();
-  ++q_idx;
-	
-  // for(int z=0; z < 2; z++){
-  //   qz = M_PI * z;
+  /* Through symmetric points */  
+  for(int z=0; z < 2; z++){
+    qz = M_PI * z;
   
-  //   for(int x=0; x < L/4; x++){
-  //     qx = M_PI - k1 * x;
-  //     qy = k1 * x;
-  //     output_spectrum();
-  //     ++q_idx;
-  //   }
+    for(int x=0; x < L/4; x++){
+      qx = M_PI - k1 * x;
+      qy = k1 * x;
+      output_spectrum();
+      ++q_idx;
+    }
   
-  //   for(int x=0; x < L/4; x++){
-  //     qx = 0.5 * M_PI - k1 * x;
-  //     qy = 0.5 * M_PI - k1 * x;
-  //     output_spectrum();
-  //     ++q_idx;
-  //   }
+    for(int x=0; x < L/4; x++){
+      qx = 0.5 * M_PI - k1 * x;
+      qy = 0.5 * M_PI - k1 * x;
+      output_spectrum();
+      ++q_idx;
+    }
   
-  //   for(int x=0; x < L/2; x++){
-  //     qx = k1 * x;
-  //     qy = 0;
-  //     output_spectrum();
-  //     ++q_idx;
-  //   }
+    for(int x=0; x < L/2; x++){
+      qx = k1 * x;
+      qy = 0;
+      output_spectrum();
+      ++q_idx;
+    }
   
-  //   for(int y=0; y < L/2; y++){
-  //     qx = M_PI;
-  //     qy = k1 * y;
-  //     output_spectrum();
-  //     ++q_idx;
-  //   }
+    for(int y=0; y < L/2; y++){
+      qx = M_PI;
+      qy = k1 * y;
+      output_spectrum();
+      ++q_idx;
+    }
   
-  //   for(int x=0; x <= L/4; x++){
-  //     qx = M_PI - k1 * x;
-  //     qy = M_PI - k1 * x;
-  //     output_spectrum();
-  //     ++q_idx;
-  //   }
-  // }
+    for(int x=0; x <= L/4; x++){
+      qx = M_PI - k1 * x;
+      qy = M_PI - k1 * x;
+      output_spectrum();
+      ++q_idx;
+    }
+  }
 
   delete[] spec_xy;
   delete[] spec_z;

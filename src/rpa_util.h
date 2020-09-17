@@ -9,6 +9,8 @@
 
 #include "rpa.h"
 
+inline int up() { return 1; }
+inline int down() { return -1; }
 double energy_free_electron(double t, double mu, double kx, double ky, double kz);
 double energy_free_electron(double t, double mu, double kx, double ky);
 // double energy_free_electron_bilayer(hoppings const& ts, double mu, double kx, double ky, double kz);

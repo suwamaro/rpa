@@ -225,15 +225,13 @@ void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, 
   }
 }
 
-inline int up() { return 1; }
-inline int down() { return -1; }
-
 cx_vec gs_HF1(int spin, int sign, cx_double ek1, cx_double tz, double kz, double delta){
-  /* In the case where the Hamiltonian is block-diagonalized for each spin. */
+  /* In the case where the Hamiltonian is block-diagonalized for each spin in the presence of the U(1) symmetry. */
   cx_double xki = xk(spin, ek1, tz, kz, delta);
   double zki = zk(ek1, tz, kz, delta);
   cx_double coef1 = xki*sqrt(0.5*(1+sign*spin*zki));
   cx_double coef2 = sign*sqrt(0.5*(1-sign*spin*zki));  
+  
   cx_vec gs_HF(NSUBL*NSUBL, arma::fill::zeros);
   if ( spin == up() ) {
     gs_HF(0) = coef1;
@@ -247,19 +245,26 @@ cx_vec gs_HF1(int spin, int sign, cx_double ek1, cx_double tz, double kz, double
 
 /* Operators */
 struct OperatorK {
-  OperatorK():Gamma_1plus(NSUBL*NSUBL,NSUBL*NSUBL),Gamma_1z(NSUBL*NSUBL,NSUBL*NSUBL),Gamma_2plus(NSUBL*NSUBL,NSUBL*NSUBL),Gamma_2z(NSUBL*NSUBL,NSUBL*NSUBL){
+  OperatorK():Gamma_1plus(NSUBL*NSUBL, NSUBL*NSUBL),
+	      Gamma_1minus(NSUBL*NSUBL, NSUBL*NSUBL),	      
+	      Gamma_1z(NSUBL*NSUBL, NSUBL*NSUBL),
+	      Gamma_2plus(NSUBL*NSUBL, NSUBL*NSUBL),
+	      Gamma_2minus(NSUBL*NSUBL, NSUBL*NSUBL),
+	      Gamma_2z(NSUBL*NSUBL, NSUBL*NSUBL){
     Gamma_1plus(0,1) = 1.;
+    Gamma_1minus(1,0) = 1.;
     Gamma_1z(0,0) = 1.;
     Gamma_1z(1,1) = -1.;
     Gamma_2plus(2,3) = 1.;
+    Gamma_2minus(3,2) = 1.;    
     Gamma_2z(2,2) = 1.;
     Gamma_2z(3,3) = -1.;
   }
   arma::sp_mat Gamma_1plus;
-  // arma::sp_mat Gamma_1minus;
+  arma::sp_mat Gamma_1minus;
   arma::sp_mat Gamma_1z;
   arma::sp_mat Gamma_2plus;
-  // arma::sp_mat Gamma_2minus;
+  arma::sp_mat Gamma_2minus;
   arma::sp_mat Gamma_2z;
 };
 
@@ -295,6 +300,7 @@ int Polarization::pullback(double k, int L) const {
   int l = rint(k * L / (2.*M_PI));
   while ( l < 0 ) l += L;
   while ( l >= L ) l -= L;
+  /* Return 0 <= l < L */
   return l;
 }
   
@@ -318,10 +324,10 @@ void Polarization::calc_polarization(hoppings2 const& ts, double delta, double k
   cx_double ek_q1 = ts.ek1( kx2, ky2, kz2 );
 
   cx_double tz = ts.tz;  
-  cx_vec X1up = gs_HF1(1, sg1, ek1, tz, kz, delta);
-  // cx_vec X1down = gs_HF1(sg1, -1, ek1, tz, kz, delta);
-  cx_vec X2up = gs_HF1(1, sg2, ek_q1, tz, kz2, delta);
-  cx_vec X2down = gs_HF1(-1, sg2, ek_q1, tz, kz2, delta);
+  cx_vec X1up = gs_HF1(up(), sg1, ek1, tz, kz, delta);
+  // cx_vec X1down = gs_HF1(down(), sg1, ek1, tz, kz, delta);
+  cx_vec X2up = gs_HF1(up(), sg2, ek_q1, tz, kz2, delta);
+  cx_vec X2down = gs_HF1(down(), sg2, ek_q1, tz, kz2, delta);
     
   cx_double F_zu_g1 = arma::cdot(X1up, opek.Gamma_1z * X2up);
   cx_double F_zu_gm1 = arma::cdot(X1up, opek.Gamma_2z * X2up);
@@ -331,12 +337,20 @@ void Polarization::calc_polarization(hoppings2 const& ts, double delta, double k
   pzz[ 1 ] = F_zu_g1 * std::conj(F_zu_gm1);
   pzz[ 2 ] = F_zu_gm1 * std::conj(F_zu_g1);
   pzz[ 3 ] = std::norm(F_zu_gm1);      
+
+  /* <sigma_minus sigma_plus> */  
+  // cx_double F_m_g1 = arma::cdot(X1down, opek.Gamma_1minus * X2up);  
+  // cx_double F_m_gm1 = arma::cdot(X1down, opek.Gamma_2minus * X2up);
+  // ppm[ 0 ] = std::norm(F_m_g1);  
+  // ppm[ 1 ] = F_m_g1 * std::conj(F_m_gm1);
+  // ppm[ 2 ] = std::conj(ppm[1]);
+  // ppm[ 3 ] = std::norm(F_m_gm1);
   
   cx_double F_p_g1 = arma::cdot(X1up, opek.Gamma_1plus * X2down);
-  cx_double F_p_gm1 = arma::cdot(X1up, opek.Gamma_2plus * X2down);
+  cx_double F_p_gm1 = arma::cdot(X1up, opek.Gamma_2plus * X2down);    
   ppm[ 0 ] = std::norm(F_p_g1);      
   ppm[ 1 ] = F_p_g1 * std::conj(F_p_gm1);
-  ppm[ 2 ] = F_p_gm1 * std::conj(F_p_g1);
+  ppm[ 2 ] = F_p_gm1 * std::conj(F_p_g1);  
   ppm[ 3 ] = std::norm(F_p_gm1);
 }
 
@@ -349,7 +363,7 @@ void Polarization::build_table(hoppings2 const& ts, double delta){
       double ky = 2. * M_PI / Ly() * y;
       for(int z=0; z < Lz(); z++){    
 	double kz = 2. * M_PI / Lz() * z;
-	int xyz_idx = xyz_to_index(x,y,z) * nbands() * nbands() * nsub() * nsub();
+	long int xyz_idx = xyz_to_index(x,y,z) * nbands() * nbands() * nsub() * nsub();
 	
 	for(int sg1=-1; sg1<=1; sg1+=2){
 	  int sg2 = - sg1; /* Opposite sign */
@@ -357,8 +371,8 @@ void Polarization::build_table(hoppings2 const& ts, double delta){
 	  
 	  int sg1i = (sg1+1) >> 1;
 	  int sg2i = (sg2+1) >> 1;
-	  int bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
-	  int xyz_bands_idx = xyz_idx + bands_idx;	  	
+	  long int bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+	  long int xyz_bands_idx = xyz_idx + bands_idx;	  	
 	  memcpy(Ppm_ + xyz_bands_idx, ppm, sizeof(cx_double)*nsub()*nsub() );
 	  memcpy(Pzz_ + xyz_bands_idx, pzz, sizeof(cx_double)*nsub()*nsub() );
 	}
@@ -368,16 +382,16 @@ void Polarization::build_table(hoppings2 const& ts, double delta){
 }
 
 void Polarization::get_Ppm(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Ppmk) const {
-  int xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
-  int bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
-  int xyz_bands_idx = xyz_idx + bands_idx;    
+  long int xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
+  long int bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+  long int xyz_bands_idx = xyz_idx + bands_idx;    
   memcpy( Ppmk, Ppm_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
 }
   
 void Polarization::get_Pzz(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Pzzk) const {    
-  int xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
-  int bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
-  int xyz_bands_idx = xyz_idx + bands_idx;    
+  long int xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
+  long int bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+  long int xyz_bands_idx = xyz_idx + bands_idx;    
   memcpy( Pzzk, Pzz_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
 }
   
@@ -464,14 +478,14 @@ void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma:
   else if ( std::abs(e_free - mu_free) < eps ) { factor = 0.5; } /* On the zone boundary */
   else { factor = 1.; }
   
-  double kx2 = wave_vector_in_BZ( kx + qx );
-  double ky2 = wave_vector_in_BZ( ky + qy );
-  double kz2 = wave_vector_in_BZ( kz + qz );
+  double kx2 = kx + qx;
+  double ky2 = ky + qy;
+  double kz2 = kz + qz;
   
   cx_double ek_q1 = ts.ek1( kx2, ky2, kz2 );
   cx_double ek_q23 = ts.ek23( kx2, ky2, kz2 );
   cx_double ek_qz = ts.ekz( kx2, ky2, kz2 );  
-      
+
   for(int sg1=-1; sg1<=1; sg1+=2){
     int sg2 = - sg1; /* Opposite sign */
     int sg1i = (sg1+1) >> 1;    

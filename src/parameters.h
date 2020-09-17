@@ -24,7 +24,7 @@ namespace rpa {
     double U;  // Onsite Coulomb interaction
 
     /* Hopping amplitudes */
-    double t1, t1_bar;    
+    double t1, t1_bar;  // t*_bar is the imaginary part.
     double t2, t2_bar;
     double t3, t3_bar;
     double t4, t4_bar;
@@ -34,6 +34,15 @@ namespace rpa {
     /* Hopping phases */    
     double phase1;
     double phase2;
+    double phase3;
+    double phase4;
+    double phase5;
+    double phase6;
+
+    /* Energy scale of the spectrum */
+    double omega_min;
+    double omega_max;
+    double omega_delta;
   };
 }
 
