@@ -14,7 +14,7 @@ namespace rpa {
   parameters::parameters(const char* ifn){
     auto config = cpptoml::parse_file(ifn);
 
-    L = config->get_as<int64_t>("L").value_or(100);
+    L = config->get_as<int64_t>("L").value_or(16);
     Lk = config->get_as<int64_t>("Lk").value_or(L);
     continuous_k = config->get_as<bool>("continuous_k").value_or(false);
     eta = config->get_as<double>("eta").value_or(0.001);

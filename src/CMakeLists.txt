@@ -2,6 +2,7 @@ add_library(rpa_base OBJECT
 parameters.cpp
 rpa_util.cpp
 cuba_helper.cpp
+find_critical_U_bilayer.cpp
 plot_chi0.cpp
 plot_chi0_AF.cpp
 self_consistent_eq.cpp
