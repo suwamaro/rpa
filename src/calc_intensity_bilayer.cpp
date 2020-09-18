@@ -54,9 +54,9 @@ cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U,
   double factor_operator = 0.5;  
   cx_double chi = factor_operator * factor_operator * ( chi_mat(0,0) - chi_mat(1,0) - chi_mat(0,1) + chi_mat(1,1) );  
 
-  // for check
-  std::cout << chi0_mat << std::endl;
-  std::cout << chi_mat << std::endl;
+  // // for check
+  // std::cout << chi0_mat << std::endl;
+  // std::cout << chi_mat << std::endl;
   
   return chi;  
 }
@@ -245,11 +245,11 @@ std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer
   cx_double chi_xy = 0.25 * arma::accu(chi_pm);
   cx_double chi_z = 0.25 * arma::accu(chi_zz);  
 
-  // for check
-  std::cout << chi0_pm << std::endl;
-  std::cout << chi_pm << std::endl;  
-  std::cout << chi0_zz << std::endl;
-  std::cout << chi_zz << std::endl;
+  // // for check
+  // std::cout << chi0_pm << std::endl;
+  // std::cout << chi_pm << std::endl;  
+  // std::cout << chi0_zz << std::endl;
+  // std::cout << chi_zz << std::endl;
   
   return std::make_tuple(chi_xy, chi_z);
 }

@@ -163,12 +163,8 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
   int prec = 15;
   
   /* Omegas */
-  double delta_omega = 0.092;  
-  double max_omega = 0.092 + 1e-10;
-
-  // double delta_omega = 0.001;  
-  // double max_omega = ts->t_max() * 10;
-  
+  double delta_omega = 0.001;  
+  double max_omega = ts->t_max() * 10;
   
   int n_omegas = int(max_omega/delta_omega+0.5);
   std::vector<double> omegas(n_omegas);
@@ -286,10 +282,10 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
   double phasez = pr.phase4;
   
   using namespace std::complex_literals;  
-  cx_double t1_cx( pr.t1, pr.t1_bar );
-  cx_double tz_cx( pr.t4, pr.t4_bar );
-  // cx_double t1_cx = t1*exp(1i*phase1*0.5);
-  // cx_double tz_cx = tz*exp(1i*phasez*0.5);
+  // cx_double t1_cx( pr.t1, pr.t1_bar );
+  // cx_double tz_cx( pr.t4, pr.t4_bar );
+  cx_double t1_cx = t1*exp(1i*phase1*0.5);
+  cx_double tz_cx = tz*exp(1i*phasez*0.5);
   
 
   /* Hopping class */
@@ -423,19 +419,6 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
   /* Delta k */
   double k1 = 2. * M_PI / (double)Lk;
 
-  // for check
-  qz = M_PI;
-  qx = M_PI;
-  qy = M_PI - M_PI / 20;
-  output_spectrum();
-  ++q_idx;
-  
-  delete[] spec_xy;
-  delete[] spec_z;
-  out_xy.close();
-  out_z.close();  
-  return;
-      
   /* Through symmetric points */  
   for(int z=0; z < 2; z++){
     qz = M_PI * z;
