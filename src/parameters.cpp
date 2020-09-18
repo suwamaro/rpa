@@ -16,6 +16,7 @@ namespace rpa {
 
     L = config->get_as<int64_t>("L").value_or(16);
     Lk = config->get_as<int64_t>("Lk").value_or(L);
+    q_idx = config->get_as<int64_t>("q_idx").value_or(0);
     continuous_k = config->get_as<bool>("continuous_k").value_or(false);
     eta = config->get_as<double>("eta").value_or(0.001);
     U = config->get_as<double>("U").value_or(1.0);

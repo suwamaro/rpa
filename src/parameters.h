@@ -16,7 +16,8 @@ namespace rpa {
     explicit parameters(const char* ifn);
     int L;  // System size
     int Lk;  // Delta q = 2pi / Lk for plot
-
+    int q_idx;  // Index for q
+    
     /* If continous_k == true, L should not matter to the result. */
     bool continuous_k;  // true: Integral over continous k; L = \infty.    
     

@@ -325,7 +325,7 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
   double qx = 0;
   double qy = 0;
   double qz = 0;
-  int q_idx = 0;
+  int q_idx = pr.q_idx;
   
   /* 2-layer Square lattice */
   /* X -> Sigma -> Gamma -> X -> M -> Sigma */
