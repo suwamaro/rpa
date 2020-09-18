@@ -15,6 +15,7 @@
 /* Parameters for Cuba */
 struct CubaParam {
   CubaParam(){};
+  explicit CubaParam(rpa::parameters const& pr);
   ~CubaParam(){};
 
   const int NOPE = 2;  // +- and zz    

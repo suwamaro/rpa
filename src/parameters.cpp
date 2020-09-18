@@ -45,6 +45,13 @@ namespace rpa {
     /* Energy scale of the spectrum */
     omega_min = config->get_as<double>("omega_min").value_or(0);
     omega_max = config->get_as<double>("omega_max").value_or(1.);
-    omega_delta = config->get_as<double>("omega_delta").value_or(0.01);    
+    omega_delta = config->get_as<double>("omega_delta").value_or(0.01);
+
+    /* Parameters for Cuba */
+    epsrel = config->get_as<double>("epsrel").value_or(1e-3);
+    epsabs = config->get_as<double>("epsabs").value_or(1e-10);
+    flags = config->get_as<int64_t>("flags").value_or(0);
+    maxeval = config->get_as<int64_t>("maxeval").value_or(1<<25);
+    key = config->get_as<int64_t>("key").value_or(0);        
   }
 }

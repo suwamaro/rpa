@@ -286,8 +286,11 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
   double phasez = pr.phase4;
   
   using namespace std::complex_literals;  
-  cx_double t1_cx = t1*exp(1i*phase1*0.5);
-  cx_double tz_cx = tz*exp(1i*phasez*0.5);
+  cx_double t1_cx( pr.t1, pr.t1_bar );
+  cx_double tz_cx( pr.t4, pr.t4_bar );
+  // cx_double t1_cx = t1*exp(1i*phase1*0.5);
+  // cx_double tz_cx = tz*exp(1i*phasez*0.5);
+  
 
   /* Hopping class */
   std::unique_ptr<hoppings_bilayer2> ts;
@@ -303,7 +306,7 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
   for(int o=1; o <= n_omegas; o++){ omegas[o-1] = omega_min + omega_delta * o; }
 
   /* Parameters for Cuba */
-  CubaParam cbp;
+  CubaParam cbp(pr);
   
   /* Calculate the chemical potential and the charge gap. */
   double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, cbp, continuous_k );  
@@ -419,40 +422,53 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
 
   /* Delta k */
   double k1 = 2. * M_PI / (double)Lk;
+
+  // for check
+  qz = M_PI;
+  qx = M_PI;
+  qy = M_PI - M_PI / 20;
+  output_spectrum();
+  ++q_idx;
   
+  delete[] spec_xy;
+  delete[] spec_z;
+  out_xy.close();
+  out_z.close();  
+  return;
+      
   /* Through symmetric points */  
   for(int z=0; z < 2; z++){
     qz = M_PI * z;
   
-    for(int x=0; x < L/4; x++){
+    for(int x=0; x < Lk/4; x++){
       qx = M_PI - k1 * x;
       qy = k1 * x;
       output_spectrum();
       ++q_idx;
     }
   
-    for(int x=0; x < L/4; x++){
+    for(int x=0; x < Lk/4; x++){
       qx = 0.5 * M_PI - k1 * x;
       qy = 0.5 * M_PI - k1 * x;
       output_spectrum();
       ++q_idx;
     }
   
-    for(int x=0; x < L/2; x++){
+    for(int x=0; x < Lk/2; x++){
       qx = k1 * x;
       qy = 0;
       output_spectrum();
       ++q_idx;
     }
   
-    for(int y=0; y < L/2; y++){
+    for(int y=0; y < Lk/2; y++){
       qx = M_PI;
       qy = k1 * y;
       output_spectrum();
       ++q_idx;
     }
   
-    for(int x=0; x <= L/4; x++){
+    for(int x=0; x <= Lk/4; x++){
       qx = M_PI - k1 * x;
       qy = M_PI - k1 * x;
       output_spectrum();

@@ -43,6 +43,13 @@ namespace rpa {
     double omega_min;
     double omega_max;
     double omega_delta;
+
+    /* Parameters for Cuba */
+    double epsrel;
+    double epsabs;
+    int flags;
+    int maxeval;
+    int key;
   };
 }
 
