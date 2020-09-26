@@ -462,7 +462,7 @@ void add_to_sus_mat3(hoppings2 const& ts, double mu, arma::cx_mat& chi, double q
   }
 }
 
-void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz_u, double qx, double qy, double qz, double kx, double ky, double kz, Polarization const& pz, double delta, cx_double omega){
+void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz_u, double kx, double ky, double kz, Polarization const& Pz, double delta, cx_double omega){
   double eps = 1e-12;
   
   cx_double ek1 = ts.ek1(kx, ky, kz);
@@ -478,9 +478,9 @@ void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma:
   else if ( std::abs(e_free - mu_free) < eps ) { factor = 0.5; } /* On the zone boundary */
   else { factor = 1.; }
   
-  double kx2 = kx + qx;
-  double ky2 = ky + qy;
-  double kz2 = kz + qz;
+  double kx2 = kx + Pz.qx();
+  double ky2 = ky + Pz.qy();
+  double kz2 = kz + Pz.qz();
   
   cx_double ek_q1 = ts.ek1( kx2, ky2, kz2 );
   cx_double ek_q23 = ts.ek23( kx2, ky2, kz2 );
@@ -501,13 +501,13 @@ void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma:
     cx_double prefactor = factor * n_diff / diff_E;
 
     cx_double Pzk[NSUBL*NSUBL];
-    pz.get_Ppm(kx, ky, kz, sg1i, sg2i, Pzk);
+    Pz.get_Ppm(kx, ky, kz, sg1i, sg2i, Pzk);
     chi_pm(0,0) += prefactor * Pzk[0];
     chi_pm(0,1) += prefactor * Pzk[1];
     chi_pm(1,0) += prefactor * Pzk[2];
     chi_pm(1,1) += prefactor * Pzk[3];
     
-    pz.get_Pzz(kx, ky, kz, sg1i, sg2i, Pzk);
+    Pz.get_Pzz(kx, ky, kz, sg1i, sg2i, Pzk);
     chi_zz_u(0,0) += prefactor * Pzk[0];
     chi_zz_u(0,1) += prefactor * Pzk[1];
     chi_zz_u(1,0) += prefactor * Pzk[2];

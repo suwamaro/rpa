@@ -16,7 +16,6 @@ namespace rpa {
     explicit parameters(const char* ifn);
     int L;  // System size
     int Lk;  // Delta q = 2pi / Lk for plot
-    int q_idx;  // Index for q
     
     /* If continous_k == true, L should not matter to the result. */
     bool continuous_k;  // true: Integral over continous k; L = \infty.    
@@ -45,6 +44,10 @@ namespace rpa {
     double omega_max;
     double omega_delta;
 
+    /* Wavevector index: from qi to qf */
+    int qi;
+    int qf;
+    
     /* Parameters for Cuba */
     double epsrel;
     double epsabs;

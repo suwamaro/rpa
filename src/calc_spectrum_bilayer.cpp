@@ -265,6 +265,106 @@ void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L,
   out_z.close();
 }
 
+class WaveVector {
+public:
+  explicit WaveVector(std::string const& _q_type, int _qi, int _qf, int _L){
+    q_type_ = _q_type;
+    L_ = _L;
+    make_q_table();
+    
+    qi_ = _qi;
+    qf_ = _qf < 0 || _qf >= qx_.size() ? qx_.size() - 1 : _qf;
+    q_idx_ = qi_;
+  }
+  std::string q_type() const { return q_type_; }
+  int q_idx() const { return q_idx_; }
+  int qf() const { return qf_; }
+  void increment_index() { ++q_idx_; }
+  bool is_done() { return q_idx() > qf() ? true : false; }
+  int L() const { return L_; }
+  double qx(int i) const { return qx_[i]; }
+  double qy(int i) const { return qy_[i]; }
+  double qz(int i) const { return qz_[i]; }
+  double qx() const { return qx(q_idx()); }
+  double qy() const { return qy(q_idx()); }
+  double qz() const { return qz(q_idx()); }
+  void push_back_qs(double qx, double qy, double qz);
+  void make_q_table();
+    
+private:
+  std::string q_type_;
+  int q_idx_;
+  int qi_;
+  int qf_;
+  int L_;
+  std::vector<double> qx_;
+  std::vector<double> qy_;
+  std::vector<double> qz_;
+};
+
+void WaveVector::push_back_qs(double qx, double qy, double qz){
+  qx_.push_back(qx);
+  qy_.push_back(qy);
+  qz_.push_back(qz);
+}
+
+void WaveVector::make_q_table(){
+  /* 2-layer Square lattice */
+  /* X -> Sigma -> Gamma -> X -> M -> Sigma */
+  /* Gamma = ( 0, 0 )               */
+  /* X = ( pi, 0 )                  */
+  /* Sigma = ( pi/2, pi/2 )         */
+  /* M = ( pi, pi )                 */
+  
+  double qx, qy, qz;
+  qx_.clear();
+  qy_.clear();
+  qz_.clear();
+  
+  if ( q_type() == "bilayer" ) {
+    /* Delta k */
+    double k1 = 2. * M_PI / (double)L();
+
+    /* Through symmetric points */  
+    for(int z=0; z < 2; z++){
+      qz = M_PI * z;
+    
+      for(int x=0; x < L()/4; x++){
+	qx = M_PI - k1 * x;
+	qy = k1 * x;
+	push_back_qs(qx, qy, qz);
+      }
+  
+      for(int x=0; x < L()/4; x++){
+	qx = 0.5 * M_PI - k1 * x;
+	qy = 0.5 * M_PI - k1 * x;
+	push_back_qs(qx, qy, qz);
+      }
+  
+      for(int x=0; x < L()/2; x++){
+	qx = k1 * x;
+	qy = 0;
+	push_back_qs(qx, qy, qz);
+      }
+  
+      for(int y=0; y < L()/2; y++){
+	qx = M_PI;
+	qy = k1 * y;
+	push_back_qs(qx, qy, qz);      
+      }
+  
+      for(int x=0; x <= L()/4; x++){
+	qx = M_PI - k1 * x;
+	qy = M_PI - k1 * x;
+	push_back_qs(qx, qy, qz);      
+      }
+    }
+  } else {
+    std::cerr << "\"q_type\" == " << q_type() << " is not supported.\n";
+    std::exit(EXIT_FAILURE);
+  }
+}
+
 void calc_spectrum_bilayer2(rpa::parameters const& pr){
   /* Getting parameters */
   int L = pr.L;
@@ -272,6 +372,9 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
   double eta = pr.eta;
   double U = pr.U;
   bool continuous_k = pr.continuous_k;
+
+  /* Wavevectors */
+  WaveVector wv("bilayer", pr.qi, pr.qf, pr.Lk);
   
   /* Hopping parameters */
   double t1 = pr.t1;
@@ -320,41 +423,37 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
 
   /* Precision */
   int prec = 15;
-  
-  /* Wavenumbers */
-  double qx = 0;
-  double qy = 0;
-  double qz = 0;
-  int q_idx = pr.q_idx;
-  
-  /* 2-layer Square lattice */
-  /* X -> Sigma -> Gamma -> X -> M -> Sigma */
-  /* Gamma = ( 0, 0 )               */
-  /* X = ( pi, 0 )                  */
-  /* Sigma = ( pi/2, pi/2 )         */
-  /* M = ( pi, pi )                 */
 
+  /* Polarization */
+  Polarization Pz( L, L, 2, NSUBL );
+    
   /* Results */
   double *spec_xy = new double[n_omegas];
   double *spec_z = new double[n_omegas];
-    
-  /* From the response function to the dynamic structure factor */  
-  auto output_spectrum = [&](){
+
+  while( !wv.is_done() ){
+    /* Extracting the wavevector */
+    int q_idx = wv.q_idx();
+    double qx = wv.qx();
+    double qy = wv.qy();
+    double qz = wv.qz();
+    wv.increment_index();
+
+    /* Output */
     std::cout << "( qidx, qx, qy, qz ) = ( " << q_idx << ", " << qx << ", " << qy << ", " << qz << " )" << std::endl;    
   
-    /* Polarization */
-    Polarization Pz( L, L, 2, NSUBL );
+    /* Setting wavenumbers */
     Pz.set_q( qx, qy, qz );
 
     /* A factor from the response function to the dynamical structure factor */
     double factor_dsf = 2.;
 
     if ( continuous_k ) {
-      /* Single thread */
+      /* Single thread here, but Cuba functions will run in parallel automatically. */
       for(int o=0; o < n_omegas; o++){
 	/* Calculating the response (Green's) functions */
 	cx_double chi_xy, chi_z;	
-	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, delta, cbp, qx, qy, qz, Pz, omegas[o]+1i*eta, continuous_k);
+	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, delta, cbp, Pz, omegas[o]+1i*eta, continuous_k);
 	spec_xy[o] = factor_dsf * std::imag(chi_xy);
 	spec_z[o] = factor_dsf * std::imag(chi_z);	
       }
@@ -384,7 +483,7 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
 #endif
 	/* Calculating the response (Green's) functions */
 	cx_double chi_xy, chi_z;	
-	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, delta, cbp, qx, qy, qz, Pz, omegas[o]+1i*eta, continuous_k);
+	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, delta, cbp, Pz, omegas[o]+1i*eta, continuous_k);
 	
 #ifdef WITH_OpenMP
 	spec_xy_thread[oidx] = factor_dsf * std::imag(chi_xy);
@@ -415,49 +514,6 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
       out_z << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_z[o] << std::setw( prec ) << U << std::endl;
     }
   };
-
-  /* Delta k */
-  double k1 = 2. * M_PI / (double)Lk;
-
-  /* Through symmetric points */  
-  for(int z=0; z < 2; z++){
-    qz = M_PI * z;
-  
-    for(int x=0; x < Lk/4; x++){
-      qx = M_PI - k1 * x;
-      qy = k1 * x;
-      output_spectrum();
-      ++q_idx;
-    }
-  
-    for(int x=0; x < Lk/4; x++){
-      qx = 0.5 * M_PI - k1 * x;
-      qy = 0.5 * M_PI - k1 * x;
-      output_spectrum();
-      ++q_idx;
-    }
-  
-    for(int x=0; x < Lk/2; x++){
-      qx = k1 * x;
-      qy = 0;
-      output_spectrum();
-      ++q_idx;
-    }
-  
-    for(int y=0; y < Lk/2; y++){
-      qx = M_PI;
-      qy = k1 * y;
-      output_spectrum();
-      ++q_idx;
-    }
-  
-    for(int x=0; x <= Lk/4; x++){
-      qx = M_PI - k1 * x;
-      qy = M_PI - k1 * x;
-      output_spectrum();
-      ++q_idx;
-    }
-  }
 
   delete[] spec_xy;
   delete[] spec_z;

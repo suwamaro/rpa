@@ -16,7 +16,6 @@ namespace rpa {
 
     L = config->get_as<int64_t>("L").value_or(16);
     Lk = config->get_as<int64_t>("Lk").value_or(L);
-    q_idx = config->get_as<int64_t>("q_idx").value_or(0);
     continuous_k = config->get_as<bool>("continuous_k").value_or(false);
     eta = config->get_as<double>("eta").value_or(0.001);
     U = config->get_as<double>("U").value_or(1.0);
@@ -48,6 +47,10 @@ namespace rpa {
     omega_max = config->get_as<double>("omega_max").value_or(1.);
     omega_delta = config->get_as<double>("omega_delta").value_or(0.01);
 
+    /* Wavevector index: from qi to qf */
+    qi = config->get_as<int64_t>("qi").value_or(0);
+    qf = config->get_as<int64_t>("qf").value_or(-1);
+    
     /* Parameters for Cuba */
     epsrel = config->get_as<double>("epsrel").value_or(1e-3);
     epsabs = config->get_as<double>("epsabs").value_or(1e-10);

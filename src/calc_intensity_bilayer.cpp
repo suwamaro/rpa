@@ -159,7 +159,7 @@ int integrand_wrapper(const int *ndim, const cubareal xx[], const int *ncomp, cu
   return rfib.calc(ndim, xx, ncomp, ff, userdata);
 }
 
-std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer2& ts, double mu, double U, double delta, CubaParam const& cbp, double qx, double qy, double qz, Polarization& Pz, cx_double omega, bool continuous_k){
+std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer2& ts, double mu, double U, double delta, CubaParam const& cbp, Polarization& Pz, cx_double omega, bool continuous_k){
   arma::cx_mat chi0_pm(NSUBL,NSUBL,arma::fill::zeros);
   arma::cx_mat chi0_zz_u(NSUBL,NSUBL,arma::fill::zeros);      
   
@@ -204,7 +204,7 @@ std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer
 	double kx = k1 * x;
 	for(int y=-L/2; y < L/2; y++){
 	  double ky = k1 * y;
-	  add_to_sus_mat4( ts, mu, chi0_pm, chi0_zz_u, qx, qy, qz, kx, ky, kz, Pz, delta, omega );	  
+	  add_to_sus_mat4( ts, mu, chi0_pm, chi0_zz_u, kx, ky, kz, Pz, delta, omega );	  
 	}
       }
     }

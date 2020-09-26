@@ -65,7 +65,7 @@ struct Polarization {
   double qz_;
 };
 
-void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz, double qx, double qy, double qz, double kx, double ky, double kz, Polarization const& pz, double delta, cx_double omega);
+void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz, double kx, double ky, double kz, Polarization const& pz, double delta, cx_double omega);
 
 /* For a square lattice */
 double calc_eigval_square(int L, double t, double mu, double U, double delta, double qx, double qy, double omega);
@@ -74,7 +74,7 @@ cx_double calc_intensity_square(int L, hoppings const& ts, double mu, double U, 
 
 /* For a bilayer lattice */
 cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, bool zz);
-std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer2& ts, double mu, double U, double delta, CubaParam const& cbp, double qx, double qy, double qz, Polarization& pz, cx_double omega, bool continuous_k);
+std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer2& ts, double mu, double U, double delta, CubaParam const& cbp, Polarization& pz, cx_double omega, bool continuous_k);
 
 /* For a simple cubic lattice */
 cx_double calc_intensity_cubic(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, bool zz);
