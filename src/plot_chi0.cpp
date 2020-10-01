@@ -61,7 +61,7 @@ cx_double RPA_calc(cx_double chi0, double U){
   return chi0 / ( 1. - U * chi0 );
 }
 
-void out_calc(boost::filesystem::ofstream& out, int& idx, int L, double t, double U, double mu, double kT, double eta, double E_max, double delta_E, double qx, double qy){
+void out_calc(std::ofstream& out, int& idx, int L, double t, double U, double mu, double kT, double eta, double E_max, double delta_E, double qx, double qy){
   for(double E = delta_E; E <= E_max; E += delta_E){
     cx_double chi0 = calc_chi0( L, t, mu, kT, eta, E, qx, qy );
     double chi = std::imag( RPA_calc( chi0, U ) );
@@ -72,7 +72,7 @@ void out_calc(boost::filesystem::ofstream& out, int& idx, int L, double t, doubl
   ++idx;
 }
 
-void out_calc(boost::filesystem::ofstream& out, int& idx, int L, double t, double U, double mu, double kT, double eta, double E_max, double delta_E, double qx, double qy, double qz){
+void out_calc(std::ofstream& out, int& idx, int L, double t, double U, double mu, double kT, double eta, double E_max, double delta_E, double qx, double qy, double qz){
   for(double E = delta_E; E <= E_max; E += delta_E){
     cx_double chi0 = calc_chi0( L, t, mu, kT, eta, E, qx, qy, qz );
     double chi = std::imag( RPA_calc( chi0, U ) );
@@ -96,7 +96,7 @@ void calc_chi(){
   double E_max = 13.0;
   double delta_E = 0.01;
   
-  boost::filesystem::ofstream out;
+  std::ofstream out;
   out.open("dssf-rpa.text");
   
   double qx = 0.;
@@ -144,7 +144,7 @@ void calc_size_dependence(){
   double kT = 1e-4 * t;
   double E = 0.08;
   
-  boost::filesystem::ofstream out;
+  std::ofstream out;
   out.open("chi0-L.text");
   
   double qx = 0;
@@ -181,7 +181,7 @@ void plot_chi0(){
   double mu = 0;
   double kT = 1e-4 * t; // kT needs to be set small enough
   
-  boost::filesystem::ofstream out;
+  std::ofstream out;
   out.open("chi0-E.text");
   
   double qx = 0;
@@ -240,7 +240,7 @@ void plot_chi0(int L, double eta){
   std::vector<double> omegas(n_omegas);
   for(int o=0; o < n_omegas; o++){ omegas[o] = delta_omega * o; }
  
-  boost::filesystem::ofstream out;
+  std::ofstream out;
   out.open("chi0-E.text");
 
   double qx = 0;

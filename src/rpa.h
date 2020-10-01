@@ -14,8 +14,6 @@
 #include <iomanip>
 #include <complex>
 #include <cmath>
-#include <boost/filesystem.hpp>
-//#include <boost/lexical_cast.hpp>
 #include <armadillo>
 
 typedef std::complex<double> cx_double;

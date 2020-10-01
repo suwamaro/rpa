@@ -42,9 +42,9 @@ if (OPENMP_FOUND)
 endif()
 
 # Boost
-find_package(Boost 1.55.0 REQUIRED COMPONENTS filesystem system)
-include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${Boost_LIBRARIES})
+#find_package(Boost 1.55.0 REQUIRED COMPONENTS filesystem system)
+#include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+#set(LIBS ${LIBS} ${Boost_LIBRARIES})
 
 # Armadillo
 find_package(Armadillo REQUIRED CONFIG
