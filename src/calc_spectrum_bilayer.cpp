@@ -48,7 +48,8 @@ void calc_single_particle_energy_bilayer(hoppings const& ts, int L, double delta
   double k1 = 2. * M_PI / (double)L;
   
   auto output_energy = [&](){
-    auto [Em, Ep] = calc_single_particle_energy( ts, qx, qy, qz, delta );
+    double Em, Ep;
+    std::tie(Em, Ep) = calc_single_particle_energy( ts, qx, qy, qz, delta );
     out_e << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << Em << std::setw( prec ) << Ep << std::endl;
   };
   
@@ -109,7 +110,8 @@ void calc_single_particle_energy_bilayer2(hoppings2 const& ts, int L, double del
   double k1 = 2. * M_PI / (double)L;
   
   auto output_energy = [&](){
-    auto [Em, Ep] = calc_single_particle_energy2( ts, qx, qy, qz, delta );
+    double Em, Ep;
+    std::tie(Em, Ep) = calc_single_particle_energy2( ts, qx, qy, qz, delta );
     out_e << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << Em << std::setw( prec ) << Ep << std::endl;
   };
   
