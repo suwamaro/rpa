@@ -14,7 +14,7 @@ void calc_spectrum_square(double U, int L, double eta);
 
 /* For bilayer lattices */
 void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L, double eta);
-void calc_spectrum_bilayer2(rpa::parameters const& pr);
+void calc_spectrum_bilayer2(std::filesystem::path& base_dir, rpa::parameters const& pr);
 
 /* For simple cubic lattices */
 void calc_spectrum_cubic(double U, int L, double eta);

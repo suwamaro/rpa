@@ -8,7 +8,9 @@
 *****************************************************************************/
 
 #include <complex>
+#ifdef WITH_OpenMP
 #include <omp.h>
+#endif
 #include "calc_spectrum.h"
 #include "self_consistent_eq.h"
 #include "calc_gap.h"
@@ -95,10 +97,10 @@ void calc_single_particle_energy_bilayer(hoppings const& ts, int L, double delta
   out_e.close();
 }
 
-void calc_single_particle_energy_bilayer2(hoppings2 const& ts, int L, double delta){
+void calc_single_particle_energy_bilayer2(std::filesystem::path& base_dir, hoppings2 const& ts, int L, double delta){
   /* Output */
   std::ofstream out_e;
-  out_e.open("single_particle_energy.text");
+  out_e.open(base_dir / "single_particle_energy.text");
   
   /* Wavenumbers */
   double qx = 0;
@@ -367,7 +369,7 @@ void WaveVector::make_q_table(){
   }
 }
 
-void calc_spectrum_bilayer2(rpa::parameters const& pr){
+void calc_spectrum_bilayer2(std::filesystem::path& base_dir, rpa::parameters const& pr){
   /* Getting parameters */
   int L = pr.L;
   int Lk = pr.Lk;
@@ -416,12 +418,12 @@ void calc_spectrum_bilayer2(rpa::parameters const& pr){
   double mu = calc_chemical_potential_bilayer2( L, *ts, delta );  /* Finite size */
 
   /* Single particle energy */
-  calc_single_particle_energy_bilayer2( *ts, L, delta );
+  calc_single_particle_energy_bilayer2( base_dir, *ts, L, delta );
   
   /* Output */
   std::ofstream out_xy, out_z;
-  out_xy.open("spectrum-xy.text");
-  out_z.open("spectrum-z.text");
+  out_xy.open(base_dir / "spectrum-xy.text");
+  out_z.open(base_dir / "spectrum-z.text");
 
   /* Precision */
   int prec = 15;

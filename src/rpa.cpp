@@ -19,15 +19,19 @@
 #include "find_critical_U.h"
 #include "calc_spectrum.h"
 
-int main(){
-  /* Input parameters */
-  rpa::parameters p("config.toml");
+int main(int argc, char **argv){
+  /* Simulation directory */
+  std::filesystem::path base_dir(argv[1]);
+  
+  /* Input parameters */  
+  auto input_file = base_dir / "config.toml";
+  rpa::parameters p(input_file.string());
 
   /* Finding the critical U */
-  find_critical_U_bilayer(p);
+  find_critical_U_bilayer(base_dir, p);
   
   /* Calculating the spectrum */
-  calc_spectrum_bilayer2(p);
+  calc_spectrum_bilayer2(base_dir, p);
   
   return 0;
 }

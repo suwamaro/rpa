@@ -10,10 +10,12 @@
 #ifndef __parameters__
 #define __parameters__
 
+#include <string>
+
 namespace rpa {
   class parameters {
   public:
-    explicit parameters(const char* ifn);
+    explicit parameters(std::string const& ifn);
     int L;  // System size
     int Lk;  // Delta q = 2pi / Lk for plot
     
