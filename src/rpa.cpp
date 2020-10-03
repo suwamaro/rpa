@@ -21,7 +21,7 @@
 
 int main(int argc, char **argv){
   /* Simulation directory */
-  std::filesystem::path base_dir(argv[1]);
+  path base_dir(argv[1]);
   
   /* Input parameters */  
   auto input_file = base_dir / "config.toml";

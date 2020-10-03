@@ -10,10 +10,6 @@
 #include "parameters.h"
 #include "cpptoml.h"
 
-// for check
-#include <iostream>
-#include <filesystem>
-
 namespace rpa {
   parameters::parameters(std::string const& ifn){
     auto config = cpptoml::parse_file(ifn);

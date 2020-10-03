@@ -45,7 +45,7 @@ int FindUcIntegrandBilayer::calc(const int *ndim, const cubareal xx[], const int
   return 0;   
 }
 
-void find_critical_U_bilayer(std::filesystem::path& base_dir, rpa::parameters const& pr){
+void find_critical_U_bilayer(path& base_dir, rpa::parameters const& pr){
   std::cout << "Finding the critical U..." << std::endl;
   
   /* Getting parameters */
@@ -140,7 +140,7 @@ void find_critical_U_bilayer(std::filesystem::path& base_dir, rpa::parameters co
   /* Output */
   std::cout << "Uc = " << Uc << std::endl;
   
-  std::ofstream out_Uc;
+  ofstream out_Uc;
   out_Uc.open( base_dir / "critical-U.text");
   out_Uc << "Uc = " << std::setw( prec ) << Uc << std::endl;
   out_Uc.close();  
