@@ -55,6 +55,10 @@ namespace rpa {
     epsabs = config->get_as<double>("epsabs").value_or(1e-10);
     flags = config->get_as<int64_t>("flags").value_or(0);
     maxeval = config->get_as<int64_t>("maxeval").value_or(1<<25);
-    key = config->get_as<int64_t>("key").value_or(0);        
+    key = config->get_as<int64_t>("key").value_or(0);
+
+    /* Parameters for the calculation of the wavefunction */
+    largeUlimit = config->get_as<bool>("largeUlimit").value_or(false);
+    largeU_scaling_prefactor = config->get_as<double>("largeU_scaling_prefactor").value_or(0.);
   }
 }

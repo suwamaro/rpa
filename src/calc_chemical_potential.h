@@ -13,6 +13,7 @@
 #include "rpa_util.h"
 
 double calc_chemical_potential_bilayer(int L, hoppings const& ts, double delta);
-double calc_chemical_potential_bilayer2(int L, hoppings2 const& ts, double delta);
+double calc_chemical_potential_bilayer2(path& base_dir, int L, hoppings2 const& ts, double delta);
+std::tuple<double, double> calc_charge_gap_bilayer(int L, hoppings2 const& ts, double delta);
 
 #endif // __CALC_CHEMICAL_POTENTIAL__

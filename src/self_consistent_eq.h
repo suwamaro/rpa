@@ -14,21 +14,24 @@
 /* Integrand */
 class SelfConsistentIntegrand {
 public:
-  SelfConsistentIntegrand(){}
-  void set_parameters(hoppings2 *ts, double delta);
+  explicit SelfConsistentIntegrand(hoppings2 *ts):ts_(ts){}
   virtual int calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const = 0;
   hoppings2 *ts() const { return ts_; }
-  double delta() const { return delta_; }
   
 private:  
   hoppings2 *ts_;
-  double delta_;
 };
 
 class SelfConsistentIntegrandBilayer : public SelfConsistentIntegrand {
 public:
-  SelfConsistentIntegrandBilayer():SelfConsistentIntegrand(){}  
+  SelfConsistentIntegrandBilayer():SelfConsistentIntegrand(&hb_){}
+  void set_parameters(hoppings_bilayer2 const& ts, double delta);  
   int calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const;
+  double delta() const { return delta_; }
+  
+private:
+  hoppings_bilayer2 hb_;
+  double delta_;  
 };
 
 /* For a square lattice */

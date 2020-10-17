@@ -58,7 +58,7 @@ double solve_self_consistent_eq_square(int L, hoppings_square const& ts, double 
   double delta = 0.45 * U;
 
   using std::placeholders::_1;
-  auto scc = std::bind( self_consistent_eq_square, L, ts, mu, _1 );
+  auto scc = std::bind( self_consistent_eq_square, L, std::ref(ts), mu, _1 );
 
   BinarySearch bs;
   bs.find_solution( delta, target, scc );

@@ -1,6 +1,6 @@
 /*****************************************************************************
 *
-* Functions for calculating the spectrum
+* Functions for calculating the critical U.
 *
 * Copyright (C) 2018 by Hidemaro Suwa
 * e-mail:suwamaro@phys.s.u-tokyo.ac.jp
@@ -142,6 +142,6 @@ void find_critical_U_bilayer(path& base_dir, rpa::parameters const& pr){
   
   ofstream out_Uc;
   out_Uc.open( base_dir / "critical-U.text");
-  out_Uc << "Uc = " << std::setw( prec ) << Uc << std::endl;
+  out_Uc << "Uc = " << std::setprecision(prec) << std::setw( prec ) << Uc << std::endl;
   out_Uc.close();  
 }

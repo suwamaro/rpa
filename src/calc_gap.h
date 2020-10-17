@@ -15,6 +15,9 @@
 #include "parameters.h"
 #include "cuba_helper.h"
 
+/* For the bare response function */
+cx_double calc_prefactor_bare_res_func_bilayer(int sg1, int sg2, hoppings2 const& ts, double kx, double ky, double kz, double qx, double qy, double qz, cx_double omega, double delta);
+
 /* Coefficients */
 cx_double calc_ak_up_in_minus(double ek1, double ek2, double ek3, double delta);
 cx_double calc_ak_down_in_minus(double ek1, double ek2, double ek3, double delta);
@@ -74,7 +77,7 @@ cx_double calc_intensity_square(int L, hoppings const& ts, double mu, double U, 
 
 /* For a bilayer lattice */
 cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, bool zz);
-std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer2& ts, double mu, double U, double delta, CubaParam const& cbp, Polarization& pz, cx_double omega, bool continuous_k);
+std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer2& ts, double mu, double U, double delta, CubaParam const& cbp, Polarization const& pz, cx_double omega, bool continuous_k);
 
 /* For a simple cubic lattice */
 cx_double calc_intensity_cubic(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, bool zz);

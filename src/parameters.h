@@ -56,6 +56,10 @@ namespace rpa {
     int flags;
     int maxeval;
     int key;
+
+    /* Parameters for the calculation of the wavefunction */
+    bool largeUlimit;
+    double largeU_scaling_prefactor;
   };
 }
 

@@ -415,7 +415,7 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
   double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, cbp, continuous_k );  
   std::cout << "delta = " << delta << std::endl;  
   /* Assume that mu does not depend on L for integral over continuous k. */  
-  double mu = calc_chemical_potential_bilayer2( L, *ts, delta );  /* Finite size */
+  double mu = calc_chemical_potential_bilayer2( base_dir, L, *ts, delta );  /* Finite size */
 
   /* Single particle energy */
   calc_single_particle_energy_bilayer2( base_dir, *ts, L, delta );

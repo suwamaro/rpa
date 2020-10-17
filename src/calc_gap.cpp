@@ -462,55 +462,68 @@ void add_to_sus_mat3(hoppings2 const& ts, double mu, arma::cx_mat& chi, double q
   }
 }
 
-void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz_u, double kx, double ky, double kz, Polarization const& Pz, double delta, cx_double omega){
-  double eps = 1e-12;
-  
+cx_double calc_prefactor_bare_res_func_bilayer(int sg1, int sg2, hoppings2 const& ts, double kx, double ky, double kz, double qx, double qy, double qz, cx_double omega, double delta){
+  /* k */
   cx_double ek1 = ts.ek1(kx, ky, kz);
   cx_double ek23 = ts.ek23(kx, ky, kz);
-  cx_double ekz = ts.ekz(kx, ky, kz);
-  cx_double tz = ts.tz;
-  
-  /* Checking if the eigenenergy is below the chemical potential. */
-  double mu_free = 0;  /* Assume at half filling */
-  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc: t=1 */
-  double factor = 0.0;
-  if ( e_free > mu_free + eps ) { return; }
-  else if ( std::abs(e_free - mu_free) < eps ) { factor = 0.5; } /* On the zone boundary */
-  else { factor = 1.; }
-  
-  double kx2 = kx + Pz.qx();
-  double ky2 = ky + Pz.qy();
-  double kz2 = kz + Pz.qz();
-  
+  cx_double ekz = ts.ekz(kx, ky, kz);  
+  double Ek = eigenenergy_HF(sg1, ek1, ek23, ekz, ts.tz, kz, delta);
+
+  /* k + q */  
+  double kx2 = kx + qx;
+  double ky2 = ky + qy;
+  double kz2 = kz + qz;
   cx_double ek_q1 = ts.ek1( kx2, ky2, kz2 );
   cx_double ek_q23 = ts.ek23( kx2, ky2, kz2 );
   cx_double ek_qz = ts.ekz( kx2, ky2, kz2 );  
+  double Ek_q = eigenenergy_HF(sg2, ek_q1, ek_q23, ek_qz, ts.tz, kz2, delta);
 
+  /* Denominator */
+  cx_double diff_E = omega - (Ek_q - Ek);
+  
+  /* Electron density at zero temperature */  
+  int n1 = ( ( sg1 + 1 ) >> 1 ) ^ 1;  /* -1 -> 1, 1 -> 0 */
+  int n2 = n1 ^ 1;
+  double n_diff = (double)(n2 - n1);
+  
+  cx_double prefactor = n_diff / diff_E;
+  return prefactor;
+}
+
+void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz_u, double kx, double ky, double kz, Polarization const& Pz, double delta, cx_double omega){  
+  /* Checking if the wavevector is inside the BZ. */
+  double mu_free = 0;  /* Assume at half filling */
+  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc: t=1 */
+  double factor = 0.0;
+  double eps = 1e-12;  
+  if ( e_free > mu_free + eps ) { return; }
+  else if ( std::abs(e_free - mu_free) < eps ) { factor = 0.5; } /* On the zone boundary */
+  else { factor = 1.; }
+      
   for(int sg1=-1; sg1<=1; sg1+=2){
     int sg2 = - sg1; /* Opposite sign */
+    cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, ts, kx, ky, kz, Pz.qx(), Pz.qy(), Pz.qz(), omega, delta);
+    prefactor *= factor;
     int sg1i = (sg1+1) >> 1;    
-    int sg2i = (sg2+1) >> 1;
-    
-    /* Electron density at zero temperature */
-    int n1 = ( ( sg1 + 1 ) >> 1 ) ^ 1;  /* -1 -> 1, 1 -> 0 */
-    int n2 = n1 ^ 1;
-    double n_diff = (double)(n2 - n1);
-    double Ek = eigenenergy_HF(sg1, ek1, ek23, ekz, tz, kz, delta);
-    double Ek_q = eigenenergy_HF(sg2, ek_q1, ek_q23, ek_qz, tz, kz2, delta);
-    cx_double diff_E = omega - (Ek_q - Ek);    
-    cx_double prefactor = factor * n_diff / diff_E;
+    int sg2i = (sg2+1) >> 1;    
+    cx_double Ppm[NSUBL*NSUBL];
+    cx_double Pzz[NSUBL*NSUBL];    
 
-    cx_double Pzk[NSUBL*NSUBL];
-    Pz.get_Ppm(kx, ky, kz, sg1i, sg2i, Pzk);
-    chi_pm(0,0) += prefactor * Pzk[0];
-    chi_pm(0,1) += prefactor * Pzk[1];
-    chi_pm(1,0) += prefactor * Pzk[2];
-    chi_pm(1,1) += prefactor * Pzk[3];
+    if ( Pz.is_table_set() ) {
+      Pz.get_Ppm(kx, ky, kz, sg1i, sg2i, Ppm);
+      Pz.get_Pzz(kx, ky, kz, sg1i, sg2i, Pzz);
+    } else {
+      Pz.calc_polarization(ts, delta, kx, ky, kz, sg1, sg2, Ppm, Pzz);
+    }
+
+    chi_pm(0,0) += prefactor * Ppm[0];
+    chi_pm(0,1) += prefactor * Ppm[1];
+    chi_pm(1,0) += prefactor * Ppm[2];
+    chi_pm(1,1) += prefactor * Ppm[3];
     
-    Pz.get_Pzz(kx, ky, kz, sg1i, sg2i, Pzk);
-    chi_zz_u(0,0) += prefactor * Pzk[0];
-    chi_zz_u(0,1) += prefactor * Pzk[1];
-    chi_zz_u(1,0) += prefactor * Pzk[2];
-    chi_zz_u(1,1) += prefactor * Pzk[3];
+    chi_zz_u(0,0) += prefactor * Pzz[0];
+    chi_zz_u(0,1) += prefactor * Pzz[1];
+    chi_zz_u(1,0) += prefactor * Pzz[2];
+    chi_zz_u(1,1) += prefactor * Pzz[3];
   }
 }

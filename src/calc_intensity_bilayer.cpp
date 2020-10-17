@@ -26,7 +26,8 @@ std::tuple<int, int> comp_to_ope_elem(int comp, int nelem){
 void ResponseFuncIntegrand::update_parameters(double delta, cx_double omega, Polarization const& Pz){
   delta_ = delta;
   omega_ = omega;
-  Pz_ = Pz;
+  Pz_ = Pz;  // without copying the tables
+  Pz_.is_table_set_ = false;
 };
 
 /* Member functions of ResponseFuncIntegrandBilayer */
@@ -45,8 +46,6 @@ int ResponseFuncIntegrandBilayer::calc(const int *ndim, const cubareal xx[], con
    
    double kx = 0.5 * (k2 + k1);
    double ky = 0.5 * (k2 - k1);
-   double kx2 = kx + Pz()->qx();
-   double ky2 = ky + Pz()->qy();
 
    /* Polarizaiton */
    cx_double Ppmk[NSUBL*NSUBL];
@@ -55,33 +54,12 @@ int ResponseFuncIntegrandBilayer::calc(const int *ndim, const cubareal xx[], con
    /* Sum over kz */
    for(int z=0; z < 2; z++){       
      double kz = M_PI * z;	  
-     double kz2 = kz + Pz()->qz();
-   
-     /* Energies */
-     cx_double ek1 = ts()->ek1(kx, ky, kz);
-     cx_double ek23 = ts()->ek23(kx, ky, kz);
-     cx_double ekz = ts()->ekz(kx, ky, kz);
-     cx_double ek_q1 = ts()->ek1( kx2, ky2, kz2 );
-     cx_double ek_q23 = ts()->ek23( kx2, ky2, kz2 );
-     cx_double ek_qz = ts()->ekz( kx2, ky2, kz2 );  
 
      /* Sum over bands (signs) */
      for(int sg1=-1; sg1<=1; sg1+=2){
        int sg2 = - sg1; /* Opposite sign */
-       int sg1i = (sg1+1) >> 1;    
-       int sg2i = (sg2+1) >> 1;
-   
-       /* Electron density at zero temperature */
-       int n1 = ( ( sg1 + 1 ) >> 1 ) ^ 1;  /* -1 -> 1, 1 -> 0 */
-       int n2 = n1 ^ 1;
-       double n_diff = (double)(n2 - n1);
-
-       /* Prefactor */
-       double Ek = eigenenergy_HF(sg1, ek1, ek23, ekz, ts()->tz, kz, delta());
-       double Ek_q = eigenenergy_HF(sg2, ek_q1, ek_q23, ek_qz, ts()->tz, kz2, delta());
-       cx_double diff_E = omega() - (Ek_q - Ek);    
-       cx_double prefactor = n_diff / diff_E;
-       
+       cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, *ts(), kx, ky, kz, Pz()->qx(), Pz()->qy(), Pz()->qz(), omega(), delta());
+    
        /* Getting the polarization */
        Pz()->calc_polarization(hb_, delta(), kx, ky, kz, sg1, sg2, Ppmk, Pzzk);
 
@@ -159,9 +137,9 @@ int integrand_wrapper(const int *ndim, const cubareal xx[], const int *ncomp, cu
   return rfib.calc(ndim, xx, ncomp, ff, userdata);
 }
 
-std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer2& ts, double mu, double U, double delta, CubaParam const& cbp, Polarization& Pz, cx_double omega, bool continuous_k){
+std::tuple<arma::cx_mat, arma::cx_mat> calc_bare_response_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double delta, CubaParam const& cbp, Polarization const& Pz, cx_double omega, bool continuous_k){
   arma::cx_mat chi0_pm(NSUBL,NSUBL,arma::fill::zeros);
-  arma::cx_mat chi0_zz_u(NSUBL,NSUBL,arma::fill::zeros);      
+  arma::cx_mat chi0_zz_u(NSUBL,NSUBL,arma::fill::zeros);
   
   if ( continuous_k ) {
     /* Changing the parameters */
@@ -208,7 +186,7 @@ std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer
 	}
       }
     }
-
+    
     int n_units = L * L;  // Number of unit cells
     chi0_pm /= (double)(n_units);
     chi0_zz_u /= (double)(n_units);
@@ -225,6 +203,15 @@ std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer
     std::exit(EXIT_FAILURE);
   }
   arma::cx_mat chi0_zz = chi0_zz_u + chi0_zz_d;
+  return std::make_tuple(chi0_pm, chi0_zz);
+}
+
+std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer2& ts, double mu, double U, double delta, CubaParam const& cbp, Polarization const& Pz, cx_double omega, bool continuous_k){
+  arma::cx_mat chi0_pm(NSUBL,NSUBL,arma::fill::zeros);
+  arma::cx_mat chi0_zz(NSUBL,NSUBL,arma::fill::zeros);
+
+  /* Calculating the bare response functions */
+  std::tie(chi0_pm, chi0_zz) = calc_bare_response_bilayer(L, ts, mu, U, delta, cbp, Pz, omega, continuous_k);
   
   /* RPA */
   /* Transverse = < \sigma^- \sigma^+ >; Longitudinal (zz) = < \sigma^z \sigma^z > */

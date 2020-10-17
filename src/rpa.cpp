@@ -18,6 +18,8 @@
 #include "plot_chi0_AF.h"
 #include "find_critical_U.h"
 #include "calc_spectrum.h"
+#include "calc_wave_func.h"
+#include "calc_binding_energy.h"
 
 int main(int argc, char **argv){
   /* Simulation directory */
@@ -25,6 +27,10 @@ int main(int argc, char **argv){
   
   /* Input parameters */  
   auto input_file = base_dir / "config.toml";
+  if ( !exists(input_file) ) {
+    std::cerr << "Required input file " << input_file << " does not exist.\n";
+    std::exit(EXIT_FAILURE);
+  }  
   rpa::parameters p(input_file.string());
 
   /* Finding the critical U */
@@ -32,6 +38,12 @@ int main(int argc, char **argv){
   
   /* Calculating the spectrum */
   calc_spectrum_bilayer2(base_dir, p);
+
+  /* Calculating the exciton wave function */
+  calc_wave_func_bilayer(base_dir, p);
+
+  /* Calculating the exciton binding energy */
+  calc_binding_energy_bilayer(base_dir, p);  
   
   return 0;
 }

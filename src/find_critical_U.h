@@ -1,6 +1,6 @@
 /*****************************************************************************
 *
-* Functions for calculating the dispersion
+* Functions for calculating the critical U.
 *
 * Copyright (C) 2018 by Hidemaro Suwa
 * e-mail:suwamaro@phys.s.u-tokyo.ac.jp

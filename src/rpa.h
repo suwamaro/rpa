@@ -26,8 +26,12 @@ typedef arma::cx_mat cx_mat;
 // #include <boost/filesystem.hpp>
 // typedef boost::filesystem::path path;
 // typedef boost::filesystem::ofstream ofstream;
+// using boost::filesystem::exists;
+
+// /* Using std::filesystem */
 typedef std::filesystem::path path;
 typedef std::ofstream ofstream;
+using std::filesystem::exists;
 
 #include "parameters.h"
 #include "hoppings.h"

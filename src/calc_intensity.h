@@ -10,6 +10,7 @@
 #include <cuba.h>
 #include "rpa.h"
 #include "cuba_helper.h"
+#include "calc_gap.h"
 
 class ResponseFuncIntegrand {
 public:
@@ -38,3 +39,5 @@ public:
 private:
   hoppings_bilayer2 hb_;
 };
+
+std::tuple<arma::cx_mat, arma::cx_mat> calc_bare_response_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double delta, CubaParam const& cbp, Polarization const& Pz, cx_double omega, bool continuous_k);

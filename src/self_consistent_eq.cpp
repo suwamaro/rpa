@@ -10,13 +10,12 @@
 #include "self_consistent_eq.h"
 #include "rpa_util.h"
 
-/* Member functions of SelfConsistentIntegrand */
-void SelfConsistentIntegrand::set_parameters(hoppings2 *ts, double delta){
-  ts_ = ts;
+/* Member functions of SelfConsistentIntegrandBilayer */
+void SelfConsistentIntegrandBilayer::set_parameters(hoppings_bilayer2 const& hb, double delta){
+  hb_ = hb;
   delta_ = delta;
 }
 
-/* Member functions of SelfConsistentIntegrandBilayer */
 int SelfConsistentIntegrandBilayer::calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const {
   /* Reset */
   ff[0] = 0;

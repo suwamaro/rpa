@@ -73,20 +73,20 @@ double solve_self_consistent_eq_bilayer(int L, hoppings_bilayer const& ts, doubl
   double delta = 0.45 * U;
 
   using std::placeholders::_1;
-  auto scc = std::bind( self_consistent_eq_bilayer, L, ts, _1 );
+  auto scc = std::bind( self_consistent_eq_bilayer, L, std::ref(ts), _1 );
 
   BinarySearch bs;
   bs.find_solution( delta, target, scc );
   return delta;
 }
 
-double self_consistent_eq_bilayer2(int L, hoppings_bilayer2& ts, double delta, CubaParam const& cbp, bool continuous_k){  
+double self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double delta, CubaParam const& cbp, bool continuous_k){  
   /* Monotonically decreasing as a function of delta */
   double sum = 0;
   
   if ( continuous_k ) {
     /* Changing the parameters */
-    scib.set_parameters(&ts, delta);
+    scib.set_parameters(ts, delta);
 
     /* For Cuba */
     double epsrel = 1e-8;
@@ -153,7 +153,7 @@ double solve_self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, dou
   double delta = 0.45 * U;
 
   using std::placeholders::_1;
-  auto scc = std::bind( self_consistent_eq_bilayer2, L, ts, _1, cbp, continuous_k );
+  auto scc = std::bind( self_consistent_eq_bilayer2, L, std::ref(ts), _1, std::ref(cbp), continuous_k );
 
   BinarySearch bs;
   bs.find_solution( delta, target, scc );

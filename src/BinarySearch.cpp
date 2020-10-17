@@ -2,7 +2,9 @@
 #include "BinarySearch.h"
 
 void BinarySearch::find_solution(double& x, double target, std::function<double(double x)> const& f, bool additive, double x_delta, double x_MIN, double x_MAX, bool debug){
-  /* Checking whether x and x/2 are within the range */
+  if ( debug && !std::isnan(x_MIN) && !std::isnan(x_MAX) ) { std::cout << "Finding the solution between " << x_MIN << " and " << x_MAX << std::endl; }
+  
+  /* Checking whether x is within the range */
   if ( ( !std::isnan( x_MIN ) && x < x_MIN ) || ( !std::isnan( x_MAX ) && x > x_MAX ) ) {
     std::cerr << "x is out of the range.\n";
     std::exit(EXIT_FAILURE);
@@ -28,15 +30,15 @@ void BinarySearch::find_solution(double& x, double target, std::function<double(
   else { factor = ( diff > 0 ? 2. : 0.5 ); }
 
   /* Initialization */
-  fx2 = fx;
+  // fx2 = fx;
   unsigned int n_iter = 0;
   
   /* Finding f(x) < target < f(x2) or f(x2) < target < f(x) */
-  while( ( fx - target ) * ( fx2 - target ) > eps_fx * eps_fx ) {
+  do {
     ++n_iter;
 
     if ( debug ) {
-      std::cout << n_iter << "   " << x << "   " << fx << "   " << fx2 << "   " << target << std::endl;
+      std::cout << n_iter << "   " << x << "   " << fx << "   " << x2 << "  " << fx2 << "   " << target << std::endl;
     }
     
     if ( !additive && n_iter == max_iter ) {
@@ -44,6 +46,10 @@ void BinarySearch::find_solution(double& x, double target, std::function<double(
       return;
     }
 
+    /* Storing the previous value */
+    x2 = x;
+    fx2 = fx;
+    
     /* Updating x */
     if ( additive ) {
       if ( factor > 1. ) { x += x_delta; }
@@ -53,16 +59,14 @@ void BinarySearch::find_solution(double& x, double target, std::function<double(
     }
     if ( !std::isnan( x_MIN ) && x < x_MIN ) { x = x_MIN; }
     if ( !std::isnan( x_MAX ) && x > x_MAX ) { x = x_MAX; }
-
-    /* Storing the previous value */
-    fx2 = fx;
-
+    
     /* Updating the value */
     fx = f(x);
-    
-  } /* end for while */
+
+  } while( ( fx - target ) * ( fx2 - target ) > eps_fx * eps_fx );
 
   /* Binary search */
+  if ( debug ) { std::cout << "Binary search between " << x << " and " << x2 << std::endl; }
   double dx = 0;
   if ( additive ) {
     if ( factor > 1. ) { dx = - 0.5 * x_delta; }
