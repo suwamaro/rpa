@@ -299,7 +299,7 @@ double calc_min_bk_sq_bilayer(int L, hoppings2 const& ts){
   return min_bk_sq;
 }
  
-double calc_probability_distribution_bilayer(int L, hoppings_bilayer2 const& ts, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, int *diff_r){    
+double calc_weight_distribution_bilayer(int L, hoppings_bilayer2 const& ts, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, int *diff_r){    
   cx_double wavefunc = 0;  
   if ( continuous_k ) {
     /* For Cuba */
@@ -447,13 +447,13 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
 
   /* Output */
   ofstream out_prob;
-  out_prob.open(base_dir / "probability-distribution.text");
+  out_prob.open(base_dir / "weight-distribution.text");
   out_prob << "# x    y    z    P(r)" << std::endl;
 
   /* Calculating the minimum bk square */
   double min_bk_sq = calc_min_bk_sq_bilayer(L, *ts);
   
-  /* Calculating the probability distribution of the exciton eigenstate */
+  /* Calculating the weight distribution of the exciton eigenstate */
   int spin = -1; // down electron and down hole
   int dL = 10;
   for(int dx=-dL; dx <= dL; dx++){
@@ -465,8 +465,8 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
 	/* Setting the parameters */	  
 	wfib.set_parameters(*ts, pr.largeUlimit, pr.largeU_scaling_prefactor, spin, omega_L, Psider, delta, diff_r, sublattice, min_bk_sq);
 
-	/* Calculating the probability distribution */
-	double prob = calc_probability_distribution_bilayer(L, *ts, cbp, Pz, continuous_k, diff_r);
+	/* Calculating the weight distribution */
+	double prob = calc_weight_distribution_bilayer(L, *ts, cbp, Pz, continuous_k, diff_r);
 
 	/* Output */
 	out_prob << dx << std::setw(10) << dy << std::setw(10) << dz << std::setw(20) << prob << std::endl;
