@@ -24,9 +24,16 @@ PhiDerIntegrandBilayer pdib;
 WaveFuncIntegrandBilayer wfib;
 
 /* Member functions of PhiDerIntegrand */
-double PhiDerIntegrand::integrand(double omega, double delta, double zk){
-  /* For U > Uc */
-  return std::pow(zk,3) * (1. - zk*zk) / std::pow(1 - std::pow(omega*zk/(2.*delta), 2), 2);
+double PhiDerIntegrand::integrand(double omega, double delta, double zk, cx_double bk){
+  if ( delta == 0 ) {
+    /* For U <= Uc */
+    double b = std::abs(bk);
+    double g2 = std::pow(omega / (2.*b), 2);
+    return 1. / ( std::pow(b,3) * std::pow( 1. - g2, 2) );
+  } else {
+    /* For U > Uc */
+    return std::pow(zk,3) * (1. - zk*zk) / std::pow(1 - std::pow(omega*zk/(2.*delta), 2), 2);
+  }
 }
 
 /* Member functions of PhiDerIntegrandBilayer */
@@ -54,7 +61,8 @@ int PhiDerIntegrandBilayer::calc(const int *ndim, const cubareal xx[], const int
     
     cx_double ek1 = ts()->ek1(kx, ky, kz);
     double zki = zk(ek1, ts()->tz, kz, delta());
-    ff[0] += integrand(omega(), delta(), zki);
+    cx_double bki = bk(up(), ek1, ts()->tz, kz);  // spin does not matter.
+    ff[0] += integrand(omega(), delta(), zki, bki);
   }
   
   return 0;   
@@ -235,7 +243,11 @@ double calc_Psider(int L, hoppings_bilayer2 const& ts, double mu, double omega, 
     //   printf("CUHRE RESULT:\t%.8f +- %.8f\tp = %.3f\n",
     // 	     (double)integral[comp], (double)error[comp], (double)prob[comp]);
 
-    Psider = integral[0] * omega / std::pow(2*delta, 3);
+    if ( delta == 0 ) {
+      Psider = integral[0] * omega / std::pow(2, 3);
+    } else {
+      Psider = integral[0] * omega / std::pow(2*delta, 3);
+    }
   } else {
     double eps = 1e-12;
     double k1 = 2. * M_PI / (double)L;
@@ -263,8 +275,8 @@ double calc_Psider(int L, hoppings_bilayer2 const& ts, double mu, double omega, 
 	  /* Sum of the Fourier transformed hoppings */
 	  cx_double ek1 = ts.ek1(kx, ky, kz);
 	  double zki = zk(ek1, ts.tz, kz, delta);
-
-	  Psider += factor * PhiDerIntegrand::integrand(omega, delta, zki);
+	  cx_double bki = bk(up(), ek1, ts.tz, kz);  // spin does not matter.
+	  Psider += factor * PhiDerIntegrand::integrand(omega, delta, zki, bki);
 	} /* end for y */
       } /* end for x */
     } /* end for z */
@@ -272,7 +284,11 @@ double calc_Psider(int L, hoppings_bilayer2 const& ts, double mu, double omega, 
     int n_sites = L * L * 2;
     int n_unit_cell = n_sites / 2;
 
-    Psider *=  2. * omega / std::pow(2*delta, 3) / (double)n_unit_cell;
+    if ( delta == 0 ) {
+      Psider *=  2. * omega / std::pow(2., 3) / (double)n_unit_cell;
+    } else {
+      Psider *=  2. * omega / std::pow(2*delta, 3) / (double)n_unit_cell;
+    }
   }
   
   return Psider;
@@ -438,12 +454,11 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
   out_gap << "omega_L = " << omega_L << std::endl;
   out_gap << "omega_ph = " << omega_ph << std::endl;
   
-  /* Calculating Psi'*/  
-  double Psider = 1.0;  // unused
-  // Psider = calc_Psider(L, *ts, mu, omega_L, delta, cbp, continuous_k);  // for U > Uc
+  /* Calculating Psi'*/
+  double Psider = calc_Psider(L, *ts, mu, omega_L, delta, cbp, continuous_k);
 
-  // /* Output */
-  // out_gap << "Psider = " << Psider << std::endl;
+  /* Output */
+  out_gap << "Psider = " << Psider << std::endl;
 
   /* Output */
   ofstream out_prob;

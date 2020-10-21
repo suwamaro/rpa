@@ -16,7 +16,7 @@ class PhiDerIntegrand {
 public:
   explicit PhiDerIntegrand(hoppings2 *ts):ts_(ts){}
   virtual int calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const = 0;
-  static double integrand(double omega, double delta, double zk);
+  static double integrand(double omega, double delta, double zk, cx_double bk);
   hoppings2 *ts() const { return ts_; }
   virtual ~PhiDerIntegrand(){}
   
