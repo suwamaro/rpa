@@ -41,7 +41,7 @@ double solve_self_consistent_eq_square(int L, hoppings_square const& ts, double 
 /* For a bilayer lattice */
 double self_consistent_eq_bilayer(int L, hoppings_bilayer const& ts, double delta);
 double solve_self_consistent_eq_bilayer(int L, hoppings_bilayer const& ts, double U);
-double solve_self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double U, CubaParam const& cbp, bool continuous_k);
+double solve_self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double U, double T, CubaParam const& cbp, bool continuous_k);
 
 /* For a simple cubic lattice */
 double self_consistent_eq_cubic(int L, hoppings_cubic const& ts, double mu, double delta);

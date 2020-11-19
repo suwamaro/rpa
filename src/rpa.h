@@ -36,6 +36,11 @@ using std::filesystem::exists;
 #include "parameters.h"
 #include "hoppings.h"
 
+constexpr int up_spin = 1;
+constexpr int down_spin = -1;
+
 constexpr int NSUBL = 2;  // Number of sublattices
+
+constexpr double kB = 8.617333262145e-5; // = 1380649. / 16021766340;
 
 #endif // __RPA__

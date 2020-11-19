@@ -77,7 +77,7 @@ cx_double calc_intensity_square(int L, hoppings const& ts, double mu, double U, 
 
 /* For a bilayer lattice */
 cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, bool zz);
-std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer2& ts, double mu, double U, double delta, CubaParam const& cbp, Polarization const& pz, cx_double omega, bool continuous_k);
+std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer2& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& pz, cx_double omega, bool continuous_k);
 
 /* For a simple cubic lattice */
 cx_double calc_intensity_cubic(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, bool zz);

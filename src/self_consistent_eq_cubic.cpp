@@ -66,7 +66,11 @@ double solve_self_consistent_eq_cubic(int L, hoppings_cubic const& ts, double mu
   auto scc = std::bind( self_consistent_eq_cubic, L, ts, mu, _1 );
 
   BinarySearch bs;
-  bs.find_solution( delta, target, scc );
-  return delta;
+  bool sol_found = bs.find_solution( delta, target, scc );
+  if ( sol_found ) {
+    return delta;
+  } else {
+    return 0;
+  }    
 }
 

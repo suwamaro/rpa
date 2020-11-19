@@ -1,11 +1,11 @@
 #include <iostream>
 #include "BinarySearch.h"
 
-void BinarySearch::find_solution(double& x, double target, std::function<double(double x)> const& f, bool additive, double x_delta, double x_MIN, double x_MAX, bool debug){
-  if ( debug && !std::isnan(x_MIN) && !std::isnan(x_MAX) ) { std::cout << "Finding the solution between " << x_MIN << " and " << x_MAX << std::endl; }
+bool BinarySearch::find_solution(double& x, double target, std::function<double(double x)> const& f, bool additive, double x_delta, bool debug){
+  if ( debug && !std::isnan(x_MIN_) && !std::isnan(x_MAX_) ) { std::cout << "Finding the solution between " << x_MIN_ << " and " << x_MAX_ << std::endl; }
   
   /* Checking whether x is within the range */
-  if ( ( !std::isnan( x_MIN ) && x < x_MIN ) || ( !std::isnan( x_MAX ) && x > x_MAX ) ) {
+  if ( ( !std::isnan( x_MIN_ ) && x < x_MIN_ ) || ( !std::isnan( x_MAX_ ) && x > x_MAX_ ) ) {
     std::cerr << "x is out of the range.\n";
     std::exit(EXIT_FAILURE);
   }
@@ -13,7 +13,7 @@ void BinarySearch::find_solution(double& x, double target, std::function<double(
   double x2 = 0;
   if ( additive ) { x2 = x + x_delta; }
   else { x2 = 1.1 * x; }
-  if ( ( !std::isnan( x_MIN ) && x2 < x_MIN ) || ( !std::isnan( x_MAX ) && x2 > x_MAX ) ) {
+  if ( ( !std::isnan( x_MIN_ ) && x2 < x_MIN_ ) || ( !std::isnan( x_MAX_ ) && x2 > x_MAX_ ) ) {
     std::cerr << "x2 is out of the range.\n";
     std::exit(EXIT_FAILURE);
   }
@@ -43,7 +43,7 @@ void BinarySearch::find_solution(double& x, double target, std::function<double(
     
     if ( !additive && n_iter == max_iter ) {
       std::cerr << "Cannot find an optimal x.\n";
-      return;
+      return false;
     }
 
     /* Storing the previous value */
@@ -57,8 +57,8 @@ void BinarySearch::find_solution(double& x, double target, std::function<double(
     } else {
       x *= factor;
     }
-    if ( !std::isnan( x_MIN ) && x < x_MIN ) { x = x_MIN; }
-    if ( !std::isnan( x_MAX ) && x > x_MAX ) { x = x_MAX; }
+    if ( !std::isnan( x_MIN_ ) && x < x_MIN_ ) { x = x_MIN_; }
+    if ( !std::isnan( x_MAX_ ) && x > x_MAX_ ) { x = x_MAX_; }
     
     /* Updating the value */
     fx = f(x);
@@ -85,7 +85,7 @@ void BinarySearch::find_solution(double& x, double target, std::function<double(
     
     if ( std::abs( dx ) < 1e-24 ) {
       std::cerr << "Cannot find an optimal x.\n";
-      return;
+      return false;
     }
 
     /* Updating x */
@@ -107,4 +107,6 @@ void BinarySearch::find_solution(double& x, double target, std::function<double(
   if ( debug ) {
     std::cout << n_iter << "   " << x << "   " << fx << "   " << target << "   " << diff << std::endl;
   }
+
+  return true;
 }

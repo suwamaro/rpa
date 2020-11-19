@@ -79,8 +79,8 @@ private:
 };
 
 /* For bilayer lattices */
-double pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double omega, double mu, double U, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode);
-double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode, double upper);
-std::tuple<double, double, double> calc_gap_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k);
+double pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double omega, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode);
+double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode, double upper);
+std::tuple<double, double, double> calc_gap_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k);
 
 void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr);

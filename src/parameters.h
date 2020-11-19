@@ -18,6 +18,8 @@ namespace rpa {
     explicit parameters(std::string const& ifn);
     int L;  // System size
     int Lk;  // Delta q = 2pi / Lk for plot
+    double T;  // Temperature (Kelvin)
+    double filling;  // Electron filling
     
     /* If continous_k == true, L should not matter to the result. */
     bool continuous_k;  // true: Integral over continous k; L = \infty.    

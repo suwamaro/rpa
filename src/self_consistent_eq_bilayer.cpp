@@ -10,6 +10,7 @@
 #include "self_consistent_eq.h"
 #include "rpa_util.h"
 #include "calc_gap.h"
+#include "calc_single_particle_energy.h"
 #include "BinarySearch.h"
 
 /* Creating an instance */
@@ -76,11 +77,15 @@ double solve_self_consistent_eq_bilayer(int L, hoppings_bilayer const& ts, doubl
   auto scc = std::bind( self_consistent_eq_bilayer, L, std::ref(ts), _1 );
 
   BinarySearch bs;
-  bs.find_solution( delta, target, scc );
-  return delta;
+  bool sol_found = bs.find_solution( delta, target, scc );
+  if ( sol_found ) {
+    return delta;
+  } else {
+    return 0;
+  }
 }
 
-double self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double delta, CubaParam const& cbp, bool continuous_k){  
+double self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double T, double delta, CubaParam const& cbp, bool continuous_k){  
   /* Monotonically decreasing as a function of delta */
   double sum = 0;
   
@@ -108,7 +113,7 @@ double self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double de
   } else {
     double eps = 1e-12;
     double k1 = 2. * M_PI / (double)L;
-  
+    
     for(int z=0; z < 2; z++){    
       double kz = M_PI * z;
       for(int x=-L/2; x < L/2; x++){
@@ -131,32 +136,57 @@ double self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double de
 
 	  /* Sum of the Fourier transformed hoppings */
 	  cx_double ek1 = ts.ek1(kx, ky, kz);
-	  double zki = zk(ek1, ts.tz, kz, delta);
+	  double zki_over_delta = zk_over_delta(ek1, ts.tz, kz, delta);
+
+	  /* Fermi density */
+	  double n_minus = 1.0;
+	  double n_plus = 0.0;
+	  if ( kB * T < 1e-15 ) {
+	    n_minus = 1.0;
+	    n_plus = 0.0;
+	  } else {
+	    double Em, Ep;
+	    std::tie(Em, Ep) = calc_single_particle_energy2(ts, kx, ky, kz, delta);    
+	    double mu = 0.5 * ( Em + Ep );
+	    n_minus = fermi_density(Em, kB*T, mu);
+	    n_plus = fermi_density(Ep, kB*T, mu);	    
+	  }
+
+	  // // for check
+	  // double zki = zk(ek1, ts.tz, kz, delta);	  
+	  // sum += factor * zki;
 	  
-	  sum += factor * zki;
+	  sum += factor * zki_over_delta * ( n_minus - n_plus );	  
+	  
 	} /* end for y */
       } /* end for x */
     } /* end for z */
 
     int n_sites = L * L * 2;  
-    sum /= (double)( n_sites * delta );    
+    // sum /= (double)( n_sites * delta );
+    sum /= (double)( n_sites );    
   }  
 
   /* The self-consistent condition: sum = 1/U */
   return sum;
 }
 
-double solve_self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double U, CubaParam const& cbp, bool continuous_k){
+double solve_self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double U, double T, CubaParam const& cbp, bool continuous_k){
   
-  std::cout << "Finding a self-consistent solution for U=" << U << std::endl;
+  std::cout << "Finding a self-consistent solution for U = " << U << ", T = " << T << std::endl;
   double target = 1. / U;
   double delta = 0.45 * U;
 
   using std::placeholders::_1;
-  auto scc = std::bind( self_consistent_eq_bilayer2, L, std::ref(ts), _1, std::ref(cbp), continuous_k );
+  auto scc = std::bind( self_consistent_eq_bilayer2, L, std::ref(ts), T, _1, std::ref(cbp), continuous_k );
 
   BinarySearch bs;
-  bs.find_solution( delta, target, scc );
-  return delta;
+  bool sol_found = bs.find_solution( delta, target, scc );
+
+  if ( sol_found ) {
+    return delta;
+  } else {
+    return 0;
+  }  
 }
 

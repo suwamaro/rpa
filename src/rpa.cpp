@@ -17,6 +17,7 @@
 #include "calc_velocity.h"
 #include "plot_chi0_AF.h"
 #include "find_critical_U.h"
+#include "find_critical_T.h"
 #include "calc_spectrum.h"
 #include "calc_wave_func.h"
 #include "calc_binding_energy.h"
@@ -35,15 +36,18 @@ int main(int argc, char **argv){
 
   /* Finding the critical U */
   find_critical_U_bilayer(base_dir, p);
+
+  /* Finding the critical U */
+  find_critical_T_bilayer(base_dir, p);  
   
   /* Calculating the spectrum */
   calc_spectrum_bilayer2(base_dir, p);
 
   /* Calculating the exciton wave function */
-  calc_wave_func_bilayer(base_dir, p);
+  // calc_wave_func_bilayer(base_dir, p);
 
   /* Calculating the exciton binding energy */
-  calc_binding_energy_bilayer(base_dir, p);  
+  // calc_binding_energy_bilayer(base_dir, p);  
   
   return 0;
 }

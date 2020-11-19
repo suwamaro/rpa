@@ -3,6 +3,7 @@ parameters.cpp
 rpa_util.cpp
 cuba_helper.cpp
 find_critical_U_bilayer.cpp
+find_critical_T_bilayer.cpp
 #plot_chi0.cpp
 #plot_chi0_AF.cpp
 self_consistent_eq.cpp
@@ -23,7 +24,9 @@ calc_spectrum_cubic.cpp
 calc_intensity_square.cpp
 calc_intensity_bilayer.cpp
 calc_intensity_cubic.cpp
+calc_chemical_potential.cpp
 calc_chemical_potential_bilayer.cpp
+calc_single_particle_energy.cpp
 hoppings.cpp
 calc_wave_func_bilayer.cpp
 calc_binding_energy_bilayer.cpp

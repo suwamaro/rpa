@@ -61,7 +61,7 @@ int PhiDerIntegrandBilayer::calc(const int *ndim, const cubareal xx[], const int
     
     cx_double ek1 = ts()->ek1(kx, ky, kz);
     double zki = zk(ek1, ts()->tz, kz, delta());
-    cx_double bki = bk(up(), ek1, ts()->tz, kz);  // spin does not matter.
+    cx_double bki = bk(up_spin, ek1, ts()->tz, kz);  // spin does not matter.
     ff[0] += integrand(omega(), delta(), zki, bki);
   }
   
@@ -146,12 +146,12 @@ int wf_integrand_bilayer(const int *ndim, const cubareal xx[], const int *ncomp,
   return wfib.calc(ndim, xx, ncomp, ff, userdata);
 }
 
-double pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double omega, double mu, double U, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode){
+double pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double omega, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode){
   arma::cx_mat chi0_pm(NSUBL,NSUBL,arma::fill::zeros);
   arma::cx_mat chi0_zz(NSUBL,NSUBL,arma::fill::zeros);
 
   /* Calculating the bare response functions */
-  std::tie(chi0_pm, chi0_zz) = calc_bare_response_bilayer(L, ts, mu, U, delta, cbp, Pz, omega, continuous_k);
+  std::tie(chi0_pm, chi0_zz) = calc_bare_response_bilayer(L, ts, mu, U, T, delta, cbp, Pz, omega, continuous_k);
     
   cx_double det = 0;
   if ( mode == "transverse" ) {
@@ -201,23 +201,30 @@ double calc_band_gap_bilayer(int L, hoppings_bilayer2 const& ts, double delta, d
   return E_diff_min;
 }
 
-double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode, double upper){
+double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode, double upper){
   std::cout << "Solving the pole equation for U=" << U << std::endl;
   double target = 0;
   double omega = 0.5 * upper;
 
   using std::placeholders::_1;
-  auto pe = std::bind( pole_eq_bilayer, L, std::ref(ts), _1, mu, U, delta, std::ref(cbp), std::ref(Pz), continuous_k, mode );
+  auto pe = std::bind( pole_eq_bilayer, L, std::ref(ts), _1, mu, U, T, delta, std::ref(cbp), std::ref(Pz), continuous_k, mode );
   BinarySearch bs;
-  // bs.find_solution( omega, target, pe, false, 0, 0, upper - 1e-7, true );  // for very small binding energies
-  bs.find_solution( omega, target, pe, false, 0, 0, upper - 1e-5, true );  
-  return omega;
+  bs.set_x_MIN(0);
+  double omega_eps = 1e-5;
+  // double omega_eps = 1e-7;  
+  bs.set_x_MAX(upper - omega_eps);
+  bool sol_found = bs.find_solution( omega, target, pe, false, 0, true );
+  if ( sol_found ) {
+    return omega;
+  } else {
+    return 0;
+  }
 }
 
-std::tuple<double, double, double> calc_gap_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k){
+std::tuple<double, double, double> calc_gap_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k){
   double upper = calc_band_gap_bilayer(L, ts, delta, Pz.qx(), Pz.qy(), Pz.qz());
-  double omega_T = solve_pole_eq_bilayer(L, ts, mu, U, delta, cbp, Pz, continuous_k, "transverse", upper);
-  double omega_L = solve_pole_eq_bilayer(L, ts, mu, U, delta, cbp, Pz, continuous_k, "longitudinal", upper);
+  double omega_T = solve_pole_eq_bilayer(L, ts, mu, U, T, delta, cbp, Pz, continuous_k, "transverse", upper);
+  double omega_L = solve_pole_eq_bilayer(L, ts, mu, U, T, delta, cbp, Pz, continuous_k, "longitudinal", upper);
   return std::make_tuple(omega_T, omega_L, upper);
 }
 
@@ -275,7 +282,7 @@ double calc_Psider(int L, hoppings_bilayer2 const& ts, double mu, double omega, 
 	  /* Sum of the Fourier transformed hoppings */
 	  cx_double ek1 = ts.ek1(kx, ky, kz);
 	  double zki = zk(ek1, ts.tz, kz, delta);
-	  cx_double bki = bk(up(), ek1, ts.tz, kz);  // spin does not matter.
+	  cx_double bki = bk(up_spin, ek1, ts.tz, kz);  // spin does not matter.
 	  Psider += factor * PhiDerIntegrand::integrand(omega, delta, zki, bki);
 	} /* end for y */
       } /* end for x */
@@ -306,7 +313,7 @@ double calc_min_bk_sq_bilayer(int L, hoppings2 const& ts){
       for(int y=-L/2; y < L/2; y++){
 	double ky = k1 * y;
 	cx_double ek1 = ts.ek1(kx, ky, kz);
-	cx_double bki = bk(up(), ek1, ts.tz, kz);  // spin does not matter.
+	cx_double bki = bk(up_spin, ek1, ts.tz, kz);  // spin does not matter.
 	min_bk_sq = std::min( min_bk_sq, std::norm(bki) );
       } /* end for y */
     } /* end for x */
@@ -394,6 +401,7 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
   int Lk = pr.Lk;
   double eta = pr.eta;
   double U = pr.U;
+  double T = pr.T;
   bool continuous_k = pr.continuous_k;
 
   /* Hopping parameters */
@@ -419,7 +427,7 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
   CubaParam cbp(pr);
   
   /* Calculate the chemical potential and the charge gap. */
-  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, cbp, continuous_k );  
+  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, T, cbp, continuous_k );  
   std::cout << "delta = " << delta << std::endl;  
   /* Assume that mu does not depend on L for integral over continuous k. */
   double ch_gap, mu;
@@ -447,7 +455,7 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
 
   /* Calculating gaps */
   double omega_T = 0, omega_L = 0, omega_ph = 0;
-  std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, mu, U, delta, cbp, Pz, continuous_k);
+  std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, mu, U, T, delta, cbp, Pz, continuous_k);
 
   /* Output */
   out_gap << "omega_T = " << omega_T << std::endl;

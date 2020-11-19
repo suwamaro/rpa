@@ -15,25 +15,7 @@
 #include "self_consistent_eq.h"
 #include "calc_gap.h"
 #include "calc_chemical_potential.h"
-
-std::tuple<double, double> calc_single_particle_energy(hoppings const& ts, double kx, double ky, double kz, double delta){
-  double ek1 = ts.ek1(kx, ky, kz);
-  double ek2 = ts.ek2(kx, ky, kz);
-  double ek3 = ts.ek3(kx, ky, kz);
-  double Em = eigenenergy_HF_minus(ek1, ek2, ek3, delta);
-  double Ep = eigenenergy_HF_plus(ek1, ek2, ek3, delta);
-  return std::make_tuple(Em, Ep);
-}
-
-std::tuple<double, double> calc_single_particle_energy2(hoppings2 const& ts, double kx, double ky, double kz, double delta){
-  cx_double ek1 = ts.ek1(kx, ky, kz);
-  cx_double ek23 = ts.ek23(kx, ky, kz);
-  cx_double ekz = ts.ekz(kx, ky, kz);
-  cx_double tz = ts.tz;
-  double Em = eigenenergy_HF(-1, ek1, ek23, ekz, tz, kz, delta);
-  double Ep = eigenenergy_HF(1, ek1, ek23, ekz, tz, kz, delta);
-  return std::make_tuple(Em, Ep);
-}
+#include "calc_single_particle_energy.h"
 
 void calc_single_particle_energy_bilayer(hoppings const& ts, int L, double delta){
   /* Output */
@@ -375,6 +357,8 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
   int Lk = pr.Lk;
   double eta = pr.eta;
   double U = pr.U;
+  double T = pr.T;
+  double filling = pr.filling;
   bool continuous_k = pr.continuous_k;
 
   /* Wavevectors */
@@ -412,11 +396,14 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
   CubaParam cbp(pr);
   
   /* Calculate the chemical potential and the charge gap. */
-  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, cbp, continuous_k );  
+  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, T, cbp, continuous_k );  
   std::cout << "delta = " << delta << std::endl;  
   /* Assume that mu does not depend on L for integral over continuous k. */  
-  double mu = calc_chemical_potential_bilayer2( base_dir, L, *ts, delta );  /* Finite size */
+  double mu = calc_chemical_potential_bilayer3( base_dir, L, *ts, filling, T, delta, cbp, continuous_k );  /* Finite size */
 
+  // for check
+  return;
+  
   /* Single particle energy */
   calc_single_particle_energy_bilayer2( base_dir, *ts, L, delta );
   
@@ -457,7 +444,7 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
       for(int o=0; o < n_omegas; o++){
 	/* Calculating the response (Green's) functions */
 	cx_double chi_xy, chi_z;	
-	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, delta, cbp, Pz, omegas[o]+1i*eta, continuous_k);
+	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, T, delta, cbp, Pz, omegas[o]+1i*eta, continuous_k);
 	spec_xy[o] = factor_dsf * std::imag(chi_xy);
 	spec_z[o] = factor_dsf * std::imag(chi_z);	
       }
@@ -487,7 +474,7 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
 #endif
 	/* Calculating the response (Green's) functions */
 	cx_double chi_xy, chi_z;	
-	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, delta, cbp, Pz, omegas[o]+1i*eta, continuous_k);
+	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, T, delta, cbp, Pz, omegas[o]+1i*eta, continuous_k);
 	
 #ifdef WITH_OpenMP
 	spec_xy_thread[oidx] = factor_dsf * std::imag(chi_xy);
@@ -514,8 +501,8 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
     
     /* Output */
     for(int o=0; o < n_omegas; o++){
-      out_xy << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_xy[o] << std::setw( prec ) << U << std::endl;
-      out_z << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_z[o] << std::setw( prec ) << U << std::endl;
+      out_xy << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_xy[o] << std::setw( prec ) << U << std::setw( prec ) << T << std::endl;
+      out_z << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_z[o] << std::setw( prec ) << U << std::setw( prec ) << T << std::endl;
     }
   };
 

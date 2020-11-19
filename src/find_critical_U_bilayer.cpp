@@ -39,7 +39,7 @@ int FindUcIntegrandBilayer::calc(const int *ndim, const cubareal xx[], const int
     double kz = M_PI * z;	  
     
     cx_double ek1 = ts()->ek1(kx, ky, kz);
-    ff[0] += 1. / std::abs(bk(up(), ek1, ts()->tz, kz));  // Spin does not matter.
+    ff[0] += 1. / std::abs(bk(up_spin, ek1, ts()->tz, kz));  // Spin does not matter.
   }
   
   return 0;   
@@ -121,7 +121,7 @@ void find_critical_U_bilayer(path& base_dir, rpa::parameters const& pr){
 	  }
 
 	  cx_double ek1 = ts->ek1(kx, ky, kz);
-	  cx_double bki = bk(up(), ek1, ts->tz, kz);  // Spin does not matter.
+	  cx_double bki = bk(up_spin, ek1, ts->tz, kz);  // Spin does not matter.
 	  sum += factor / std::abs(bki);
 	} /* end for y */
       } /* end for x */

@@ -233,7 +233,7 @@ cx_vec gs_HF1(int spin, int sign, cx_double ek1, cx_double tz, double kz, double
   cx_double coef2 = sign*sqrt(0.5*(1-sign*spin*zki));  
   
   cx_vec gs_HF(NSUBL*NSUBL, arma::fill::zeros);
-  if ( spin == up() ) {
+  if ( spin == up_spin ) {
     gs_HF(0) = coef1;
     gs_HF(2) = coef2;    
   } else {
@@ -324,10 +324,10 @@ void Polarization::calc_polarization(hoppings2 const& ts, double delta, double k
   cx_double ek_q1 = ts.ek1( kx2, ky2, kz2 );
 
   cx_double tz = ts.tz;  
-  cx_vec X1up = gs_HF1(up(), sg1, ek1, tz, kz, delta);
-  // cx_vec X1down = gs_HF1(down(), sg1, ek1, tz, kz, delta);
-  cx_vec X2up = gs_HF1(up(), sg2, ek_q1, tz, kz2, delta);
-  cx_vec X2down = gs_HF1(down(), sg2, ek_q1, tz, kz2, delta);
+  cx_vec X1up = gs_HF1(up_spin, sg1, ek1, tz, kz, delta);
+  // cx_vec X1down = gs_HF1(down_spin, sg1, ek1, tz, kz, delta);
+  cx_vec X2up = gs_HF1(up_spin, sg2, ek_q1, tz, kz2, delta);
+  cx_vec X2down = gs_HF1(down_spin, sg2, ek_q1, tz, kz2, delta);
     
   cx_double F_zu_g1 = arma::cdot(X1up, opek.Gamma_1z * X2up);
   cx_double F_zu_gm1 = arma::cdot(X1up, opek.Gamma_2z * X2up);
@@ -501,6 +501,7 @@ void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma:
   else { factor = 1.; }
       
   for(int sg1=-1; sg1<=1; sg1+=2){
+    // for(int sg2=-1; sg2<=1; sg2+=2){
     int sg2 = - sg1; /* Opposite sign */
     cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, ts, kx, ky, kz, Pz.qx(), Pz.qy(), Pz.qz(), omega, delta);
     prefactor *= factor;
