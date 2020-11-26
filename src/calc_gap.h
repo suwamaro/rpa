@@ -16,7 +16,7 @@
 #include "cuba_helper.h"
 
 /* For the bare response function */
-cx_double calc_prefactor_bare_res_func_bilayer(int sg1, int sg2, hoppings2 const& ts, double kx, double ky, double kz, double qx, double qy, double qz, cx_double omega, double delta);
+cx_double calc_prefactor_bare_res_func_bilayer(int sg1, int sg2, hoppings2 const& ts, double T, double kx, double ky, double kz, double qx, double qy, double qz, cx_double omega, double delta, double mu);
 
 /* Coefficients */
 cx_double calc_ak_up_in_minus(double ek1, double ek2, double ek3, double delta);
@@ -68,7 +68,7 @@ struct Polarization {
   double qz_;
 };
 
-void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz, double kx, double ky, double kz, Polarization const& pz, double delta, cx_double omega);
+void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz, double kx, double ky, double kz, Polarization const& pz, double delta, cx_double omega);
 
 /* For a square lattice */
 double calc_eigval_square(int L, double t, double mu, double U, double delta, double qx, double qy, double omega);

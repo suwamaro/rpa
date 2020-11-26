@@ -16,11 +16,12 @@ class ResponseFuncIntegrand {
 public:
   explicit ResponseFuncIntegrand(hoppings2 *ts):ts_(ts){}
   virtual ~ResponseFuncIntegrand(){}
-  void update_parameters(double T, double delta, cx_double omega, Polarization const& Pz);
+  void update_parameters(double T, double delta, double mu, cx_double omega, Polarization const& Pz);
   virtual int calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const = 0;  
   hoppings2 *ts() const { return ts_; }
   double T() const { return T_; }
   double delta() const { return delta_; }
+  double mu() const { return mu_; }
   cx_double omega() const { return omega_; }  
   const Polarization *Pz() const { return &Pz_; }
   
@@ -28,6 +29,7 @@ private:
   hoppings2 *ts_;
   double T_;
   double delta_;
+  double mu_;
   cx_double omega_;
   Polarization Pz_;  
 };
@@ -35,7 +37,7 @@ private:
 class ResponseFuncIntegrandBilayer : public ResponseFuncIntegrand {
 public:
   ResponseFuncIntegrandBilayer():ResponseFuncIntegrand(&hb_){}
-  void set_parameters(hoppings_bilayer2 const& h, double T, double delta, cx_double omega, Polarization const& Pz);
+  void set_parameters(hoppings_bilayer2 const& h, double T, double delta, double mu, cx_double omega, Polarization const& Pz);
   int calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const;
 
 private:

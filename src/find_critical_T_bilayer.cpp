@@ -8,9 +8,9 @@
 *****************************************************************************/
 
 #include "rpa_util.h"
-#include "calc_single_particle_energy.h"
 #include "find_critical_T.h"
 #include "BinarySearch.h"
+#include "calc_chemical_potential.h"
 
 /* Instantiation */
 FindTcIntegrandBilayer ftib;
@@ -20,54 +20,14 @@ int find_critical_T_bilayer_integrand(const int *ndim, const cubareal xx[], cons
   return ftib.calc(ndim, xx, ncomp, ff, userdata);
 }
 
-/* Member functions of FindTcIntegrandBilayer */
-void FindTcIntegrandBilayer::set_parameters(hoppings_bilayer2 const& h, double T){
-  hb_ = h;
-  set_T(T);
-}
+double self_consistent_eq_T_bilayer2(int L, hoppings_bilayer2 const& ts, double filling, double T, CubaParam const& cbp, bool continuous_k){
+  double sum = 0;
 
-int FindTcIntegrandBilayer::calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const {
-  /* Reset */
-  ff[0] = 0;
-  
-  /* Wavenumbers */
-  double k1 = xx[0] * 2 * M_PI;
-  double k2 = xx[1] * 2 * M_PI;
-  
-  double kx = 0.5 * (k2 + k1);
-  double ky = 0.5 * (k2 - k1);
-  
-  /* Sum over kz */
-  for(int z=0; z < 2; z++){       
-    double kz = M_PI * z;	      
-    cx_double ek1 = ts()->ek1(kx, ky, kz);
-
-    /* Fermi density */
-    double n_minus = 1.0;
-    double n_plus = 0.0;
-    if ( kB * T() < 1e-15 ) {
-      n_minus = 1.0;
-      n_plus = 0.0;
-    } else {
-      double Em, Ep;
-      std::tie(Em, Ep) = calc_single_particle_energy2(*ts(), kx, ky, kz, 0);  // delta == 0
-      double mu = 0.5 * ( Em + Ep );
-      n_minus = fermi_density(Em, kB*T(), mu);
-      n_plus = fermi_density(Ep, kB*T(), mu);	    
-    }
-	  
-    ff[0] += (n_minus - n_plus) / std::abs(bk(up_spin, ek1, ts()->tz, kz));  // Spin does not matter.
-  }
-  
-  return 0;   
-}
-
-double self_consistent_eq_T_bilayer2(int L, hoppings_bilayer2 const& ts, double T, CubaParam const& cbp, bool continuous_k){
-  double sum = 0;  
-  if ( continuous_k ) {
-    /* Changing the parameters */
-    ftib.set_parameters(ts, T);
-  
+  /* Changing the parameters */
+  double mu = calc_chemical_potential_bilayer3(L, ts, filling, T, 0, cbp, continuous_k, false);  
+  ftib.set_parameters(ts, T, mu);
+    
+  if ( continuous_k ) {  
     /* For Cuba */
     double epsrel = 1e-10;
     double epsabs = 1e-10;
@@ -109,24 +69,8 @@ double self_consistent_eq_T_bilayer2(int L, hoppings_bilayer2 const& ts, double 
 	    factor = 0.5;
 	  }
 
-	  cx_double ek1 = ts.ek1(kx, ky, kz);
-	  cx_double bki = bk(up_spin, ek1, ts.tz, kz);  // Spin does not matter.
-
-	  /* Fermi density */
-	  double n_minus = 1.0;
-	  double n_plus = 0.0;
-	  if ( kB * T < 1e-15 ) {
-	    n_minus = 1.0;
-	    n_plus = 0.0;
-	  } else {
-	    double Em, Ep;
-	    std::tie(Em, Ep) = calc_single_particle_energy2(ts, kx, ky, kz, 0);  // delta == 0
-	    double mu = 0.5 * ( Em + Ep );
-	    n_minus = fermi_density(Em, kB*T, mu);
-	    n_plus = fermi_density(Ep, kB*T, mu);	    
-	  }
-	  
-	  sum += factor * (n_minus - n_plus) / std::abs(bki);
+	  double qvec[3] = {kx, ky, kz};
+	  sum += factor * ftib.integrand(qvec);
 	} /* end for y */
       } /* end for x */
     } /* end for z */
@@ -138,12 +82,11 @@ double self_consistent_eq_T_bilayer2(int L, hoppings_bilayer2 const& ts, double 
   return sum;
 }
 
-void find_critical_T_bilayer(path& base_dir, rpa::parameters const& pr){
-  std::cout << "Finding the critical T..." << std::endl;
-  
+double find_critical_T_bilayer(rpa::parameters const& pr){
   /* Getting parameters */  
   int L = pr.L;
   double U = pr.U;
+  double filling = pr.filling;
   bool continuous_k = pr.continuous_k;
   
   /* Hopping parameters */
@@ -170,19 +113,31 @@ void find_critical_T_bilayer(path& base_dir, rpa::parameters const& pr){
   
   std::cout << "Finding a self-consistent solution for U = " << U << std::endl;
   double target = 1. / U;
-  double T = 0.1 * U;
+  double T = 1e-12;
     
   using std::placeholders::_1;
-  auto scc = std::bind( self_consistent_eq_T_bilayer2, L, std::ref(*ts), _1, std::ref(cbp), continuous_k );
+  auto scc = std::bind( self_consistent_eq_T_bilayer2, L, std::ref(*ts), filling, _1, std::ref(cbp), continuous_k );
 
   BinarySearch bs;
   bs.set_x_MIN(0);
-  bool sol_found = bs.find_solution( T, target, scc );
+  double T_delta = 100. * U / kB;
+  bool verbose = false;
+  bool sol_found = bs.find_solution( T, target, scc, true, T_delta, verbose );
 
   double Tc = 0;
   if ( sol_found ) {
     Tc = T;
+  } else {
+    std::cerr << "Not found." << std::endl;
+    Tc = 0;
   }
+  
+  return Tc;
+}
+
+void find_critical_T_bilayer_output(path& base_dir, rpa::parameters const& pr){
+  std::cout << "Finding the critical T..." << std::endl;
+  double Tc = find_critical_T_bilayer(pr);
   
   /* Precision */
   int prec = 12;

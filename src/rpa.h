@@ -33,7 +33,6 @@ typedef std::filesystem::path path;
 typedef std::ofstream ofstream;
 using std::filesystem::exists;
 
-#include "parameters.h"
 #include "hoppings.h"
 
 constexpr int up_spin = 1;

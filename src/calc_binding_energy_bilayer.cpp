@@ -25,6 +25,7 @@ void calc_binding_energy_bilayer(path& base_dir, rpa::parameters const& pr){
   int L = pr.L;
   int Lk = pr.Lk;
   double eta = pr.eta;
+  double filling = pr.filling;
   double T = pr.T;
   bool continuous_k = pr.continuous_k;
 
@@ -65,7 +66,7 @@ void calc_binding_energy_bilayer(path& base_dir, rpa::parameters const& pr){
   
   for(double U = Ui; U <= Uf; U += U_delta){
     /* Calculate the chemical potential and the charge gap. */
-    double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, T, cbp, continuous_k );  
+    double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, filling, T, cbp, continuous_k );  
     std::cout << "delta = " << delta << std::endl;  
     /* Assume that mu does not depend on L for integral over continuous k. */
     double ch_gap, mu;

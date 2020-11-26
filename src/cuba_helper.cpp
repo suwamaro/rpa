@@ -11,6 +11,10 @@
 
 /* Member functions of CubaParam */
 CubaParam::CubaParam(rpa::parameters const& pr){
+  set_parameters(pr);
+}
+
+void CubaParam::set_parameters(rpa::parameters const& pr){
   epsrel = pr.epsrel;
   epsabs = pr.epsabs;
   flags = pr.flags;

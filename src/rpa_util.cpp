@@ -72,12 +72,16 @@ cx_double bk(int spin, cx_double ek1, cx_double tz, double kz){
   }
 }
 
+double bk(cx_double ek1, cx_double tz, double kz){
+  return std::abs(bk(up_spin, ek1, tz, kz));  // Spin does not matter.
+}
+
 double zk(int spin, cx_double ek1, cx_double tz, double kz, double delta){
   return delta / sqrt( delta*delta + std::norm(bk(spin,ek1,tz,kz)));
 }
 
 double zk(cx_double ek1, cx_double tz, double kz, double delta){
-  return zk(up_spin, ek1, tz, kz, delta);
+  return zk(up_spin, ek1, tz, kz, delta);  // Spin does not matter.
 }
 
 double zk_over_delta(int spin, cx_double ek1, cx_double tz, double kz, double delta){
@@ -97,15 +101,28 @@ double eigenenergy_HF(double sign, cx_double ek1, cx_double ek23, cx_double ekz,
   return std::real(ek23) + std::real(ekz) + sign * sqrt(delta*delta + std::norm(bk(up_spin,ek1,tz,kz)));
 }
 
-double fermi_density(double x, double kT, double mu) {
+double fermi_density(double x, double kT, double mu) {    
   double alpha = (x-mu) / std::abs(kT);
-  if (kT < 1e-15 || std::abs(alpha) > 20) {
+  if (kT < 1e-15 || std::abs(alpha) > 40.) {
     return (x < mu) ? 1.0 : 0.0;
   } else {
-    if ( alpha >= 0 ) {
+    if ( alpha > 0 ) {
       return exp(-alpha) / (exp(-alpha) + 1.);
     } else {
       return 1. / (exp(alpha) + 1.);
+    }    
+  }
+}
+
+double compressibility(double x, double kT, double mu) {    
+  double alpha = (x-mu) / std::abs(kT);
+  if (kT < 1e-15 || std::abs(alpha) > 40.) {
+    return 0; /* Not considering the delta peak */
+  } else {
+    if ( alpha > 0 ) {
+      return exp(-alpha) / std::pow(exp(-alpha) + 1., 2) / kT;
+    } else {
+      return exp(alpha) / std::pow(exp(alpha) + 1., 2) / kT;
     }    
   }
 }

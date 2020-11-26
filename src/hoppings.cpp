@@ -106,7 +106,7 @@ hoppings_bilayer::hoppings_bilayer(double v, double v_bar, double vp, double vpp
   tzp = vzp;
   
   // for check
-  std::cerr << t << "  " << t_bar << "  " << tp << "  " << tpp << "  " << tz << "  " << tz_bar << "  " << tzp << std::endl;
+  //  std::cerr << t << "  " << t_bar << "  " << tp << "  " << tpp << "  " << tz << "  " << tz_bar << "  " << tzp << std::endl;
 }
 
 double hoppings_bilayer::ek1(double kx, double ky, double kz) const {
@@ -135,7 +135,7 @@ hoppings_bilayer2::hoppings_bilayer2(cx_double v, cx_double vp, cx_double vpp, c
   tzp = vzp;
 
   // for check
-  std::cerr << t << "  " << tp << "  " << tpp << "  " << tz << "  " << tzp << std::endl;  
+  // std::cerr << t << "  " << tp << "  " << tpp << "  " << tz << "  " << tzp << std::endl;  
 }
 
 cx_double hoppings_bilayer2::ek1(double kx, double ky, double) const {
@@ -174,7 +174,7 @@ hoppings_Sr3Ir2O7::hoppings_Sr3Ir2O7(double theta, double phi, double t_third){
   tzp = t2z * st2 + t6z * ct2 / 2;
   
   // for check
-  std::cerr << t << "  " << t_bar << "  " << tp << "  " << tpp << "  " << tz << "  " << tz_bar << "  " << tzp << std::endl;
+  // std::cerr << t << "  " << t_bar << "  " << tp << "  " << tpp << "  " << tz << "  " << tz_bar << "  " << tzp << std::endl;
 }
 
 std::unique_ptr<hoppings_Sr3Ir2O7> hoppings_Sr3Ir2O7::mk_Sr3Ir2O7(double theta, double phi, double t3){

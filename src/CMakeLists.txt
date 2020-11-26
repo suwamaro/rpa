@@ -2,7 +2,10 @@ add_library(rpa_base OBJECT
 parameters.cpp
 rpa_util.cpp
 cuba_helper.cpp
+find_root.cpp
+find_critical_U.cpp
 find_critical_U_bilayer.cpp
+find_critical_T.cpp
 find_critical_T_bilayer.cpp
 #plot_chi0.cpp
 #plot_chi0_AF.cpp
@@ -32,5 +35,10 @@ calc_wave_func_bilayer.cpp
 calc_binding_energy_bilayer.cpp
 )
 
+# rpa
 add_executable(rpa rpa.cpp $<TARGET_OBJECTS:rpa_base>)
 target_link_libraries(rpa ${LIBS})
+
+# librpa_func
+add_library(rpa_func SHARED $<TARGET_OBJECTS:rpa_base>)
+target_link_libraries(rpa_func ${LIBS})

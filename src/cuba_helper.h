@@ -10,12 +10,13 @@
 #ifndef __CUBA_HELPER__
 #define __CUBA_HELPER__
 
-#include "rpa.h"
+#include "parameters.h"
 
 /* Parameters for Cuba */
 struct CubaParam {
   CubaParam(){};
   explicit CubaParam(rpa::parameters const& pr);
+  void set_parameters(rpa::parameters const& pr);
   ~CubaParam(){};
 
   const int NOPE = 2;  // +- and zz    

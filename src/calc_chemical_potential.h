@@ -44,7 +44,8 @@ private:
 
 double calc_chemical_potential_bilayer(int L, hoppings const& ts, double delta);
 double calc_chemical_potential_bilayer2(path& base_dir, int L, hoppings2 const& ts, double delta);
-double calc_chemical_potential_bilayer3(path& base_dir, int L, hoppings_bilayer2 const& ts, double filling, double T, double delta, CubaParam const& cbp, bool continuous_k);
+double calc_chemical_potential_bilayer3(int L, hoppings_bilayer2 const& ts, double filling, double T, double delta, CubaParam const& cbp, bool continuous_k, bool verbose);
+double calc_chemical_potential_bilayer_output(path& base_dir, int L, hoppings_bilayer2 const& ts, double filling, double T, double delta, CubaParam const& cbp, bool continuous_k);
 std::tuple<double, double> calc_charge_gap_bilayer(int L, hoppings2 const& ts, double delta);
 
 #endif // __CALC_CHEMICAL_POTENTIAL__

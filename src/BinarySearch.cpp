@@ -10,6 +10,16 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
     std::exit(EXIT_FAILURE);
   }
 
+  /* Checking if x is a solution */
+  double fx = f( x );
+  if ( std::abs( fx - target ) < eps_fx ) {
+    if ( debug ) {
+      std::cout << 0 << "   " << x << "   " << fx << "   " << target << "   " << fx - target << std::endl;
+    }
+    return true;
+  }
+
+  /* Another x */
   double x2 = 0;
   if ( additive ) { x2 = x + x_delta; }
   else { x2 = 1.1 * x; }
@@ -19,8 +29,12 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
   }
 
   /* Checking whether f(x) is an increasing or decreasing function of x */
-  double fx = f( x );
   double fx2 = f( x2 );
+  if ( std::abs( fx2 - fx ) < eps_fx ) {
+    std::cerr << "f( " << x << " ) == f( " << x2 << " ) == " << fx << std::endl;
+    std::cerr << "Choose a different initial value of x."  << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
   bool increasing = fx2 > fx;
 
   /* Determining increasing or decreasing x */
@@ -30,7 +44,6 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
   else { factor = ( diff > 0 ? 2. : 0.5 ); }
 
   /* Initialization */
-  // fx2 = fx;
   unsigned int n_iter = 0;
   
   /* Finding f(x) < target < f(x2) or f(x2) < target < f(x) */
@@ -65,6 +78,16 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
 
   } while( ( fx - target ) * ( fx2 - target ) > eps_fx * eps_fx );
 
+  /* Checking if x or x2 is a solution */
+  if ( std::abs( fx - target ) < eps_fx ) {
+    std::cout << n_iter << "   " << x << "   " << fx << "   " << target << "   " << fx - target << std::endl;
+    return true;
+  } else if ( std::abs( fx2 - target ) < eps_fx ) {
+    std::cout << n_iter << "   " << x2 << "   " << fx2 << "   " << target << "   " << fx2 - target << std::endl;
+    x = x2;
+    return true;
+  }
+  
   /* Binary search */
   if ( debug ) { std::cout << "Binary search between " << x << " and " << x2 << std::endl; }
   double dx = 0;

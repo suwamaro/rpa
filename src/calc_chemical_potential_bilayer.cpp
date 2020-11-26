@@ -161,17 +161,10 @@ double elec_filling_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, do
 	  cx_double ek1 = ts.ek1(kx, ky, kz);
 	  
 	  /* Fermi density */
-	  double n_minus = 1.0;
-	  double n_plus = 0.0;
-	  if ( kB * T < 1e-15 ) {
-	    n_minus = 1.0;
-	    n_plus = 0.0;
-	  } else {
-	    double Em, Ep;
-	    std::tie(Em, Ep) = calc_single_particle_energy2(ts, kx, ky, kz, delta);    
-	    n_minus = fermi_density(Em, kB*T, mu);
-	    n_plus = fermi_density(Ep, kB*T, mu);	    
-	  }
+	  double Em, Ep;
+	  std::tie(Em, Ep) = calc_single_particle_energy2(ts, kx, ky, kz, delta);    
+	  double n_minus = fermi_density(Em, kB*T, mu);
+	  double n_plus = fermi_density(Ep, kB*T, mu);	    
 
 	  sum += factor * (n_minus + n_plus);
 	} /* end for y */
@@ -179,27 +172,29 @@ double elec_filling_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, do
     } /* end for z */
 
     int n_sites = L * L * 2;  
-    // sum /= (double)( n_sites * delta );
     sum /= (double)( n_sites );    
   }
 
   return sum;
 }
 
-double calc_chemical_potential_bilayer3(path& base_dir, int L, hoppings_bilayer2 const& ts, double filling, double T, double delta, CubaParam const& cbp, bool continuous_k){  
-  std::cout << "Finding the chemical potential for delta = " << delta << ", T = " << T << std::endl;
-  double target = filling * 2;  // multiplied by 2
+double calc_chemical_potential_bilayer3(int L, hoppings_bilayer2 const& ts, double filling, double T, double delta, CubaParam const& cbp, bool continuous_k, bool verbose){
+  assert(kB*T > 1e-15 || filling == 0.5);  
+  double target = filling;
   double mu = 0.0;
 
   using std::placeholders::_1;
   auto eq = std::bind( elec_filling_eq_bilayer, L, std::ref(ts), _1, T, delta, std::ref(cbp), continuous_k );
 
   BinarySearch bs;
-  // bool sol_found = bs.find_solution( mu, target, eq );
+  double mu_delta = 0.1;
+  bool sol_found = bs.find_solution( mu, target, eq, true, mu_delta, verbose );  
+  return mu;
+}
 
-  // for check
-  bool sol_found = bs.find_solution( mu, target, eq, false, 0.01, true );
-  
+double calc_chemical_potential_bilayer_output(path& base_dir, int L, hoppings_bilayer2 const& ts, double filling, double T, double delta, CubaParam const& cbp, bool continuous_k){  
+  std::cout << "Finding the chemical potential for delta = " << delta << ", T = " << T << std::endl;
+  double mu = calc_chemical_potential_bilayer3(L, ts, filling, T, delta, cbp, continuous_k, true);
 
   /* Output */
   std::cout << "mu = " << mu << std::endl;

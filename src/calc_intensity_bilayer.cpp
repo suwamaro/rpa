@@ -23,18 +23,19 @@ std::tuple<int, int> comp_to_ope_elem(int comp, int nelem){
 }
 
 /* Member functions of ResponseFuncIntegrand */
-void ResponseFuncIntegrand::update_parameters(double _T, double _delta, cx_double _omega, Polarization const& _Pz){
+void ResponseFuncIntegrand::update_parameters(double _T, double _delta, double _mu, cx_double _omega, Polarization const& _Pz){
   T_ = _T;
   delta_ = _delta;
+  mu_ = _mu;
   omega_ = _omega;
   Pz_ = _Pz;  // without copying the tables
   Pz_.is_table_set_ = false;
 };
 
 /* Member functions of ResponseFuncIntegrandBilayer */
-void ResponseFuncIntegrandBilayer::set_parameters(hoppings_bilayer2 const& h, double T, double delta, cx_double omega, Polarization const& Pz){
+void ResponseFuncIntegrandBilayer::set_parameters(hoppings_bilayer2 const& h, double T, double delta, double mu, cx_double omega, Polarization const& Pz){
   hb_ = h;
-  ResponseFuncIntegrand::update_parameters(T, delta, omega, Pz);
+  ResponseFuncIntegrand::update_parameters(T, delta, mu, omega, Pz);
 }
 
 int ResponseFuncIntegrandBilayer::calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const {
@@ -55,39 +56,27 @@ int ResponseFuncIntegrandBilayer::calc(const int *ndim, const cubareal xx[], con
    /* Sum over kz */
    for(int z=0; z < 2; z++){       
      double kz = M_PI * z;	  
-
-    // /* Fermi density */
-    // double n_minus = 1.0;
-    // double n_plus = 0.0;
-    // if ( kB * T() < 1e-15 ) {
-    //   n_minus = 1.0;
-    //   n_plus = 0.0;
-    // } else {
-    //   double Em, Ep;
-    //   std::tie(Em, Ep) = calc_single_particle_energy2(*ts(), kx, ky, kz, 0);  // delta == 0
-    //   double mu = 0.5 * ( Em + Ep );
-    //   n_minus = fermi_density(Em, kB*T(), mu);
-    //   n_plus = fermi_density(Ep, kB*T(), mu);	    
-    // }
      
      /* Sum over bands (signs) */
      for(int sg1=-1; sg1<=1; sg1+=2){
-       int sg2 = - sg1; /* Opposite sign */
-       cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, *ts(), kx, ky, kz, Pz()->qx(), Pz()->qy(), Pz()->qz(), omega(), delta());
+       for(int sg2=-1; sg2<=1; sg2+=2){
+	 // int sg2 = - sg1; /* Opposite sign */
+	 cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, *ts(), T(), kx, ky, kz, Pz()->qx(), Pz()->qy(), Pz()->qz(), omega(), delta(), mu());
     
-       /* Getting the polarization */
-       Pz()->calc_polarization(hb_, delta(), kx, ky, kz, sg1, sg2, Ppmk, Pzzk);
+	 /* Getting the polarization */
+	 Pz()->calc_polarization(hb_, delta(), kx, ky, kz, sg1, sg2, Ppmk, Pzzk);
 
-       /* Integrand */
-       for(int comp=0; comp<*ncomp; comp+=2){
-	 int ope, elem;
-	 std::tie(ope, elem) = comp_to_ope_elem(comp, NSUBL*NSUBL);
-	 if ( ope == 0 ) {  /* Ppmk */
-	   ff[comp] += std::real(prefactor * Ppmk[elem]);
-	   ff[comp+1] += std::imag(prefactor * Ppmk[elem]);
-	 } else /* ope == 1 */ { /* Pzzk */	      
-	   ff[comp] += std::real(prefactor * Pzzk[elem]);
-	   ff[comp+1] += std::imag(prefactor * Pzzk[elem]);
+	 /* Integrand */
+	 for(int comp=0; comp<*ncomp; comp+=2){
+	   int ope, elem;
+	   std::tie(ope, elem) = comp_to_ope_elem(comp, NSUBL*NSUBL);
+	   if ( ope == 0 ) {  /* Ppmk */
+	     ff[comp] += std::real(prefactor * Ppmk[elem]);
+	     ff[comp+1] += std::imag(prefactor * Ppmk[elem]);
+	   } else /* ope == 1 */ { /* Pzzk */	      
+	     ff[comp] += std::real(prefactor * Pzzk[elem]);
+	     ff[comp+1] += std::imag(prefactor * Pzzk[elem]);
+	   }
 	 }
        }
      }
@@ -158,7 +147,7 @@ std::tuple<arma::cx_mat, arma::cx_mat> calc_bare_response_bilayer(int L, hopping
   
   if ( continuous_k ) {
     /* Changing the parameters */
-    rfib.set_parameters(ts, T, delta, omega, Pz);
+    rfib.set_parameters(ts, T, delta, mu, omega, Pz);
 
     /* For Cuba */
     int nregions, neval, fail;
@@ -197,7 +186,7 @@ std::tuple<arma::cx_mat, arma::cx_mat> calc_bare_response_bilayer(int L, hopping
 	double kx = k1 * x;
 	for(int y=-L/2; y < L/2; y++){
 	  double ky = k1 * y;
-	  add_to_sus_mat4( ts, mu, chi0_pm, chi0_zz_u, kx, ky, kz, Pz, delta, omega );	  
+	  add_to_sus_mat4( ts, T, mu, chi0_pm, chi0_zz_u, kx, ky, kz, Pz, delta, omega );	  
 	}
       }
     }

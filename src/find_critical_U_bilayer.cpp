@@ -18,38 +18,12 @@ int find_critical_U_bilayer_integrand(const int *ndim, const cubareal xx[], cons
   return fuib.calc(ndim, xx, ncomp, ff, userdata);
 }
 
-/* Member functions of FindUcIntegrandBilayer */
-void FindUcIntegrandBilayer::set_parameters(hoppings_bilayer2 const& h){
-  hb_ = h;
-}
-
-int FindUcIntegrandBilayer::calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const {
-  /* Reset */
-  ff[0] = 0;
-  
-  /* Wavenumbers */
-  double k1 = xx[0] * 2 * M_PI;
-  double k2 = xx[1] * 2 * M_PI;
-  
-  double kx = 0.5 * (k2 + k1);
-  double ky = 0.5 * (k2 - k1);
-  
-  /* Sum over kz */
-  for(int z=0; z < 2; z++){       
-    double kz = M_PI * z;	  
-    
-    cx_double ek1 = ts()->ek1(kx, ky, kz);
-    ff[0] += 1. / std::abs(bk(up_spin, ek1, ts()->tz, kz));  // Spin does not matter.
-  }
-  
-  return 0;   
-}
-
 void find_critical_U_bilayer(path& base_dir, rpa::parameters const& pr){
   std::cout << "Finding the critical U..." << std::endl;
   
   /* Getting parameters */
   int L = pr.L;
+  double filling = pr.filling;
   bool continuous_k = pr.continuous_k;
   
   /* Hopping parameters */
@@ -70,17 +44,17 @@ void find_critical_U_bilayer(path& base_dir, rpa::parameters const& pr){
   /* Hopping class */
   std::unique_ptr<hoppings_bilayer2> ts;
   ts = hoppings_bilayer2::mk_bilayer2(t1_cx, t2, t3, tz1_cx, tz2);
-    
+
+  /* Setting the parameters */
+  fuib.set_parameters(*ts, filling);  
+  
   double sum = 0;  
   if ( continuous_k ) {
-    /* Changing the parameters */
-    fuib.set_parameters(*ts);
-
     /* Parameters for Cuba */
     CubaParam cbp(pr);
   
     /* For Cuba */
-    double epsrel = 1e-8;
+    double epsrel = 1e-10;
     double epsabs = 1e-10;
     int ncomp = 1;    
     int nregions, neval, fail;
@@ -120,9 +94,8 @@ void find_critical_U_bilayer(path& base_dir, rpa::parameters const& pr){
 	    factor = 0.5;
 	  }
 
-	  cx_double ek1 = ts->ek1(kx, ky, kz);
-	  cx_double bki = bk(up_spin, ek1, ts->tz, kz);  // Spin does not matter.
-	  sum += factor / std::abs(bki);
+	  double qvec[3] = {kx, ky, kz};
+	  sum += factor * fuib.integrand(qvec);	  
 	} /* end for y */
       } /* end for x */
     } /* end for z */

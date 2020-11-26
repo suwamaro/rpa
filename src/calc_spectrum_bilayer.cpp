@@ -16,6 +16,7 @@
 #include "calc_gap.h"
 #include "calc_chemical_potential.h"
 #include "calc_single_particle_energy.h"
+#include "find_critical_T.h"
 
 void calc_single_particle_energy_bilayer(hoppings const& ts, int L, double delta){
   /* Output */
@@ -345,6 +346,12 @@ void WaveVector::make_q_table(){
 	push_back_qs(qx, qy, qz);      
       }
     }
+  } else if ( q_type() == "high_symmetry1" ) {
+    push_back_qs(0, 0, 0);
+    push_back_qs(0, 0, M_PI);
+    push_back_qs(M_PI, 0, M_PI);
+    push_back_qs(0.5*M_PI, 0.5*M_PI, M_PI);
+    push_back_qs(M_PI, M_PI, M_PI);
   } else {
     std::cerr << "\"q_type\" == " << q_type() << " is not supported.\n";
     std::exit(EXIT_FAILURE);
@@ -352,17 +359,19 @@ void WaveVector::make_q_table(){
 }
 
 void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
+  std::cout << "Calculating the spectrum of the bilayer system." << std::endl;
+  
   /* Getting parameters */
   int L = pr.L;
   int Lk = pr.Lk;
   double eta = pr.eta;
   double U = pr.U;
-  double T = pr.T;
   double filling = pr.filling;
   bool continuous_k = pr.continuous_k;
 
   /* Wavevectors */
-  WaveVector wv("bilayer", pr.qi, pr.qf, pr.Lk);
+  WaveVector wv("high_symmetry1", pr.qi, pr.qf, pr.Lk);
+  // WaveVector wv("bilayer", pr.qi, pr.qf, pr.Lk);  
   
   /* Hopping parameters */
   double t1 = pr.t1;
@@ -382,7 +391,7 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
   /* Hopping class */
   std::unique_ptr<hoppings_bilayer2> ts;
   ts = hoppings_bilayer2::mk_bilayer2(t1_cx, t2, t3, tz1_cx, tz2);
-  
+
   /* Omegas */
   double omega_min = pr.omega_min;
   double omega_max = pr.omega_max;
@@ -394,16 +403,34 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
 
   /* Parameters for Cuba */
   CubaParam cbp(pr);
-  
-  /* Calculate the chemical potential and the charge gap. */
-  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, T, cbp, continuous_k );  
-  std::cout << "delta = " << delta << std::endl;  
-  /* Assume that mu does not depend on L for integral over continuous k. */  
-  double mu = calc_chemical_potential_bilayer3( base_dir, L, *ts, filling, T, delta, cbp, continuous_k );  /* Finite size */
 
-  // for check
-  return;
+  /* Calculating delta and mu */
+  double delta = 0, mu = 0;
+  double T = 0;
   
+  /* Checking if the temperature T == 0 */
+  if ( pr.T_equal_to_0 ) {
+    T = 0;
+    std::cout << "T = " << T << std::endl;
+    
+    /* Calculating the order parameter. */
+    delta = solve_self_consistent_eq_bilayer2( L, *ts, U, filling, T, cbp, continuous_k );  
+    std::cout << "delta = " << delta << std::endl;  
+    
+    /* Calculating the chemical potential. */  
+    mu = calc_chemical_potential_bilayer_output( base_dir, L, *ts, filling, T, delta, cbp, continuous_k );  /* Finite size */
+    std::cout << "mu = " << mu << std::endl;
+  } else {
+    /* Find the critical temperature */
+    double Tc = find_critical_T_bilayer(pr);
+    T = pr.calc_T(Tc);
+    std::cout << "T = " << T << std::endl;    
+    bool non_zero_delta = T < Tc;
+    std::tie(delta, mu) = solve_self_consistent_eqs_bilayer( pr, L, *ts, U, filling, T, continuous_k, non_zero_delta );
+    std::cout << "delta = " << delta << std::endl;
+    std::cout << "mu = " << mu << std::endl;
+  }
+
   /* Single particle energy */
   calc_single_particle_energy_bilayer2( base_dir, *ts, L, delta );
   
@@ -431,13 +458,10 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
     wv.increment_index();
 
     /* Output */
-    std::cout << "( qidx, qx, qy, qz ) = ( " << q_idx << ", " << qx << ", " << qy << ", " << qz << " )" << std::endl;    
+    //    std::cout << "( qidx, qx, qy, qz ) = ( " << q_idx << ", " << qx << ", " << qy << ", " << qz << " )" << std::endl;    
   
     /* Setting wavenumbers */
     Pz.set_q( qx, qy, qz );
-
-    /* A factor from the response function to the dynamical structure factor */
-    double factor_dsf = 2.;
 
     if ( continuous_k ) {
       /* Single thread here, but Cuba functions will run in parallel automatically. */
@@ -445,6 +469,15 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
 	/* Calculating the response (Green's) functions */
 	cx_double chi_xy, chi_z;	
 	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, T, delta, cbp, Pz, omegas[o]+1i*eta, continuous_k);
+
+	/* A factor from the response function to the dynamical structure factor */
+	double factor_dsf = 0;
+	if ( pr.T_equal_to_0 ) {
+	  factor_dsf = 2.;
+	} else {
+	  factor_dsf = 2. / (1. - exp(- omegas[o] / (kB*T)) );
+	}
+
 	spec_xy[o] = factor_dsf * std::imag(chi_xy);
 	spec_z[o] = factor_dsf * std::imag(chi_z);	
       }
@@ -475,6 +508,14 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
 	/* Calculating the response (Green's) functions */
 	cx_double chi_xy, chi_z;	
 	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, T, delta, cbp, Pz, omegas[o]+1i*eta, continuous_k);
+
+	/* A factor from the response function to the dynamical structure factor */
+	double factor_dsf = 0;
+	if ( pr.T_equal_to_0 ) {
+	  factor_dsf = 2.;
+	} else {
+	  factor_dsf = 2. / (1. - exp(- omegas[o] / (kB*T)) );
+	}
 	
 #ifdef WITH_OpenMP
 	spec_xy_thread[oidx] = factor_dsf * std::imag(chi_xy);
@@ -511,4 +552,11 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
 
   out_xy.close();
   out_z.close();
+}
+
+void calc_spectrum_bilayer2_wrapper(int argc, char **argv){
+  path base_dir;
+  rpa::parameters p;
+  std::tie(base_dir, p) = rpa::extract_parameters(argv[1]);
+  calc_spectrum_bilayer2(base_dir, p);
 }

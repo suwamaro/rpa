@@ -23,25 +23,23 @@
 #include "calc_binding_energy.h"
 
 int main(int argc, char **argv){
-  /* Simulation directory */
-  path base_dir(argv[1]);
-  
-  /* Input parameters */  
-  auto input_file = base_dir / "config.toml";
-  if ( !exists(input_file) ) {
-    std::cerr << "Required input file " << input_file << " does not exist.\n";
-    std::exit(EXIT_FAILURE);
-  }  
-  rpa::parameters p(input_file.string());
+  path base_dir;
+  rpa::parameters p;
+  std::tie(base_dir, p) = rpa::extract_parameters(argv[1]);
 
-  /* Finding the critical U */
-  find_critical_U_bilayer(base_dir, p);
+  // /* Finding the critical U */
+  // find_critical_U_bilayer(base_dir, p);
 
-  /* Finding the critical U */
-  find_critical_T_bilayer(base_dir, p);  
+  // /* Finding the critical U */
+  // find_critical_T_bilayer_output(base_dir, p);
+
+  // /* Temperature dependence */
+  // solve_self_consistent_eqs_bilayer_T(base_dir, p);
   
   /* Calculating the spectrum */
-  calc_spectrum_bilayer2(base_dir, p);
+  calc_spectrum_bilayer2_wrapper(argc, argv);
+  // calc_spectrum_bilayer2(base_dir, p);
+  
 
   /* Calculating the exciton wave function */
   // calc_wave_func_bilayer(base_dir, p);

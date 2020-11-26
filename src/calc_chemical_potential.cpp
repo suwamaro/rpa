@@ -41,17 +41,10 @@ int ElecFillingIntegrandBilayer::calc(const int *ndim, const cubareal xx[], cons
     cx_double ek1 = ts()->ek1(kx, ky, kz);
 
     /* Fermi density */
-    double n_minus = 1.0;
-    double n_plus = 0.0;
-    if ( kB * T() < 1e-15 ) {
-      n_minus = 1.0;
-      n_plus = 0.0;
-    } else {
-      double Em, Ep;
-      std::tie(Em, Ep) = calc_single_particle_energy2(*ts(), kx, ky, kz, delta());    
-      n_minus = fermi_density(Em, kB*T(), mu());
-      n_plus = fermi_density(Ep, kB*T(), mu());	    
-    }
+    double Em, Ep;
+    std::tie(Em, Ep) = calc_single_particle_energy2(*ts(), kx, ky, kz, delta());    
+    double n_minus = fermi_density(Em, kB*T(), mu());
+    double n_plus = fermi_density(Ep, kB*T(), mu());	    
     
     ff[0] += n_minus + n_plus;
   }

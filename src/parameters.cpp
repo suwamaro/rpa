@@ -7,17 +7,46 @@
 *
 *****************************************************************************/
 
+#include <iostream>
 #include "parameters.h"
 #include "cpptoml.h"
 
 namespace rpa {
+  parameters::parameters(){};
   parameters::parameters(std::string const& ifn){
     auto config = cpptoml::parse_file(ifn);
     L = config->get_as<int64_t>("L").value_or(16);
     Lk = config->get_as<int64_t>("Lk").value_or(L);
-    T = config->get_as<double>("T").value_or(0.0);
+    relative_temperature = config->get_as<bool>("relative_temperature").value_or(false);
+    if ( relative_temperature ) {
+      T_over_Tc = config->get_as<double>("T_over_Tc").value_or(0.8);
+      if ( T_over_Tc < 0 ) {
+	std::cerr << "Input parameter \"T_over_Tc\" has to be non-negative." << std::endl;
+	std::exit(EXIT_FAILURE);
+      } else if ( T_over_Tc < 1e-15 ) {
+	T_equal_to_0 = true;
+      } else {
+	T_equal_to_0 = false;
+      }
+      
+      if ( config->contains("T") ) {
+	std::cerr << "Input parameter \"T\" will be ignored, and \"T_over_Tc\" will be used instead." << std::endl;
+      }
+    } else {
+      T = config->get_as<double>("T").value_or(0.0);
+      if ( T < 0 ) {
+	std::cerr << "Input parameter \"T\" has to be non-negative." << std::endl;
+	std::exit(EXIT_FAILURE);
+      } else if ( T < 1e-15 ) {
+	T_equal_to_0 = true;
+      } else {
+	T_equal_to_0 = false;
+      }
+    }
+
     filling = config->get_as<double>("filling").value_or(0.5);    
     continuous_k = config->get_as<bool>("continuous_k").value_or(false);
+    epsfunc = config->get_as<double>("epsfunc").value_or(1e-10);
     eta = config->get_as<double>("eta").value_or(0.001);
     U = config->get_as<double>("U").value_or(1.0);
 
@@ -43,6 +72,11 @@ namespace rpa {
     phase5 = config->get_as<double>("phase5").value_or(0);
     phase6 = config->get_as<double>("phase6").value_or(0);
 
+    /* Temperatures */
+    T_min = config->get_as<double>("T_min").value_or(0);
+    T_max = config->get_as<double>("T_max").value_or(2000.);
+    T_delta = config->get_as<double>("T_delta").value_or(100.);
+    
     /* Energy scale of the spectrum */
     omega_min = config->get_as<double>("omega_min").value_or(0);
     omega_max = config->get_as<double>("omega_max").value_or(1.);
@@ -63,4 +97,27 @@ namespace rpa {
     largeUlimit = config->get_as<bool>("largeUlimit").value_or(false);
     largeU_scaling_prefactor = config->get_as<double>("largeU_scaling_prefactor").value_or(0.);
   }
+  
+  double parameters::calc_T(double Tc) const {
+    if ( relative_temperature ) {
+      return T_over_Tc * Tc;
+    } else {
+      return T;
+    }
+  }
+
+  std::tuple<path, rpa::parameters> extract_parameters(const char* dirn){
+    /* Simulation directory */
+    path base_dir(dirn);
+  
+    /* Input parameters */  
+    auto input_file = base_dir / "config.toml";
+    if ( !exists(input_file) ) {
+      std::cerr << "Required input file " << input_file << " does not exist.\n";
+      std::exit(EXIT_FAILURE);
+    }  
+    rpa::parameters p(input_file.string());
+    return std::make_tuple(base_dir, p);
+  }
+  
 }

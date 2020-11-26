@@ -366,15 +366,17 @@ void Polarization::build_table(hoppings2 const& ts, double delta){
 	long int xyz_idx = xyz_to_index(x,y,z) * nbands() * nbands() * nsub() * nsub();
 	
 	for(int sg1=-1; sg1<=1; sg1+=2){
-	  int sg2 = - sg1; /* Opposite sign */
-	  calc_polarization(ts, delta, kx, ky, kz, sg1, sg2, ppm, pzz);
+	  for(int sg2=-1; sg2<=1; sg2+=2){
+	    // int sg2 = - sg1; /* Opposite sign */
+	    calc_polarization(ts, delta, kx, ky, kz, sg1, sg2, ppm, pzz);
 	  
-	  int sg1i = (sg1+1) >> 1;
-	  int sg2i = (sg2+1) >> 1;
-	  long int bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
-	  long int xyz_bands_idx = xyz_idx + bands_idx;	  	
-	  memcpy(Ppm_ + xyz_bands_idx, ppm, sizeof(cx_double)*nsub()*nsub() );
-	  memcpy(Pzz_ + xyz_bands_idx, pzz, sizeof(cx_double)*nsub()*nsub() );
+	    int sg1i = (sg1+1) >> 1;
+	    int sg2i = (sg2+1) >> 1;
+	    long int bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+	    long int xyz_bands_idx = xyz_idx + bands_idx;	  	
+	    memcpy(Ppm_ + xyz_bands_idx, ppm, sizeof(cx_double)*nsub()*nsub() );
+	    memcpy(Pzz_ + xyz_bands_idx, pzz, sizeof(cx_double)*nsub()*nsub() );
+	  }
 	}
       }
     }
@@ -434,7 +436,7 @@ void add_to_sus_mat3(hoppings2 const& ts, double mu, arma::cx_mat& chi, double q
     /* Electron density at zero temperature */
     int n1 = ( ( sg1 + 1 ) >> 1 ) ^ 1;  /* -1 -> 1, 1 -> 0 */
     int n2 = n1 ^ 1;
-    double n_diff = (double)(n2 - n1);
+    double n_diff = (double)(n2 - n1);      
     double Ek = eigenenergy_HF(sg1, ek1, ek23, ekz, tz, kz, delta);
     double Ek_q = eigenenergy_HF(sg2, ek_q1, ek_q23, ek_qz, tz, kz2, delta);
     cx_double diff_E = omega - (Ek_q - Ek);    
@@ -462,13 +464,14 @@ void add_to_sus_mat3(hoppings2 const& ts, double mu, arma::cx_mat& chi, double q
   }
 }
 
-cx_double calc_prefactor_bare_res_func_bilayer(int sg1, int sg2, hoppings2 const& ts, double kx, double ky, double kz, double qx, double qy, double qz, cx_double omega, double delta){
+cx_double calc_prefactor_bare_res_func_bilayer(int sg1, int sg2, hoppings2 const& ts, double T, double kx, double ky, double kz, double qx, double qy, double qz, cx_double omega, double delta, double mu){
   /* k */
   cx_double ek1 = ts.ek1(kx, ky, kz);
   cx_double ek23 = ts.ek23(kx, ky, kz);
   cx_double ekz = ts.ekz(kx, ky, kz);  
   double Ek = eigenenergy_HF(sg1, ek1, ek23, ekz, ts.tz, kz, delta);
-
+  double nk = fermi_density(Ek, kB*T, mu);
+  
   /* k + q */  
   double kx2 = kx + qx;
   double ky2 = ky + qy;
@@ -477,20 +480,22 @@ cx_double calc_prefactor_bare_res_func_bilayer(int sg1, int sg2, hoppings2 const
   cx_double ek_q23 = ts.ek23( kx2, ky2, kz2 );
   cx_double ek_qz = ts.ekz( kx2, ky2, kz2 );  
   double Ek_q = eigenenergy_HF(sg2, ek_q1, ek_q23, ek_qz, ts.tz, kz2, delta);
-
+  double nk_q = fermi_density(Ek_q, kB*T, mu);
+  
   /* Denominator */
   cx_double diff_E = omega - (Ek_q - Ek);
   
   /* Electron density at zero temperature */  
-  int n1 = ( ( sg1 + 1 ) >> 1 ) ^ 1;  /* -1 -> 1, 1 -> 0 */
-  int n2 = n1 ^ 1;
-  double n_diff = (double)(n2 - n1);
+  // int n1 = ( ( sg1 + 1 ) >> 1 ) ^ 1;  /* -1 -> 1, 1 -> 0 */
+  // int n2 = n1 ^ 1;
+  // double n_diff = (double)(n2 - n1);
+  double n_diff = nk_q - nk;
   
   cx_double prefactor = n_diff / diff_E;
   return prefactor;
 }
 
-void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz_u, double kx, double ky, double kz, Polarization const& Pz, double delta, cx_double omega){  
+void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz_u, double kx, double ky, double kz, Polarization const& Pz, double delta, cx_double omega){  
   /* Checking if the wavevector is inside the BZ. */
   double mu_free = 0;  /* Assume at half filling */
   double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc: t=1 */
@@ -501,30 +506,31 @@ void add_to_sus_mat4(hoppings2 const& ts, double mu, arma::cx_mat& chi_pm, arma:
   else { factor = 1.; }
       
   for(int sg1=-1; sg1<=1; sg1+=2){
-    // for(int sg2=-1; sg2<=1; sg2+=2){
-    int sg2 = - sg1; /* Opposite sign */
-    cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, ts, kx, ky, kz, Pz.qx(), Pz.qy(), Pz.qz(), omega, delta);
-    prefactor *= factor;
-    int sg1i = (sg1+1) >> 1;    
-    int sg2i = (sg2+1) >> 1;    
-    cx_double Ppm[NSUBL*NSUBL];
-    cx_double Pzz[NSUBL*NSUBL];    
+    for(int sg2=-1; sg2<=1; sg2+=2){
+      // int sg2 = - sg1; /* Opposite sign */
+      cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, ts, T, kx, ky, kz, Pz.qx(), Pz.qy(), Pz.qz(), omega, delta, mu);
+      prefactor *= factor;
+      int sg1i = (sg1+1) >> 1;    
+      int sg2i = (sg2+1) >> 1;    
+      cx_double Ppm[NSUBL*NSUBL];
+      cx_double Pzz[NSUBL*NSUBL];    
 
-    if ( Pz.is_table_set() ) {
-      Pz.get_Ppm(kx, ky, kz, sg1i, sg2i, Ppm);
-      Pz.get_Pzz(kx, ky, kz, sg1i, sg2i, Pzz);
-    } else {
-      Pz.calc_polarization(ts, delta, kx, ky, kz, sg1, sg2, Ppm, Pzz);
-    }
+      if ( Pz.is_table_set() ) {
+	Pz.get_Ppm(kx, ky, kz, sg1i, sg2i, Ppm);
+	Pz.get_Pzz(kx, ky, kz, sg1i, sg2i, Pzz);
+      } else {
+	Pz.calc_polarization(ts, delta, kx, ky, kz, sg1, sg2, Ppm, Pzz);
+      }
 
-    chi_pm(0,0) += prefactor * Ppm[0];
-    chi_pm(0,1) += prefactor * Ppm[1];
-    chi_pm(1,0) += prefactor * Ppm[2];
-    chi_pm(1,1) += prefactor * Ppm[3];
+      chi_pm(0,0) += prefactor * Ppm[0];
+      chi_pm(0,1) += prefactor * Ppm[1];
+      chi_pm(1,0) += prefactor * Ppm[2];
+      chi_pm(1,1) += prefactor * Ppm[3];
     
-    chi_zz_u(0,0) += prefactor * Pzz[0];
-    chi_zz_u(0,1) += prefactor * Pzz[1];
-    chi_zz_u(1,0) += prefactor * Pzz[2];
-    chi_zz_u(1,1) += prefactor * Pzz[3];
+      chi_zz_u(0,0) += prefactor * Pzz[0];
+      chi_zz_u(0,1) += prefactor * Pzz[1];
+      chi_zz_u(1,0) += prefactor * Pzz[2];
+      chi_zz_u(1,1) += prefactor * Pzz[3];
+    }
   }
 }

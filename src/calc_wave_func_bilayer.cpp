@@ -235,7 +235,7 @@ double calc_Psider(int L, hoppings_bilayer2 const& ts, double mu, double omega, 
     pdib.set_parameters(ts, omega, delta);
 
     /* For Cuba */
-    double epsrel = 1e-8;
+    double epsrel = 1e-10;
     double epsabs = 1e-10;    
     int ncomp = 1;
     int nregions, neval, fail;
@@ -326,7 +326,7 @@ double calc_weight_distribution_bilayer(int L, hoppings_bilayer2 const& ts, Cuba
   cx_double wavefunc = 0;  
   if ( continuous_k ) {
     /* For Cuba */
-    double epsrel = 1e-8;
+    double epsrel = 1e-10;
     double epsabs = 1e-10;    
     int ncomp = 2;
     int nregions, neval, fail;
@@ -401,6 +401,7 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
   int Lk = pr.Lk;
   double eta = pr.eta;
   double U = pr.U;
+  double filling = pr.filling;
   double T = pr.T;
   bool continuous_k = pr.continuous_k;
 
@@ -427,7 +428,7 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
   CubaParam cbp(pr);
   
   /* Calculate the chemical potential and the charge gap. */
-  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, T, cbp, continuous_k );  
+  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, filling, T, cbp, continuous_k );  
   std::cout << "delta = " << delta << std::endl;  
   /* Assume that mu does not depend on L for integral over continuous k. */
   double ch_gap, mu;
