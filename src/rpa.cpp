@@ -28,18 +28,16 @@ int main(int argc, char **argv){
   std::tie(base_dir, p) = rpa::extract_parameters(argv[1]);
 
   // /* Finding the critical U */
-  // find_critical_U_bilayer(base_dir, p);
+  // find_critical_U_bilayer_output(base_dir, p);
 
-  // /* Finding the critical U */
+  // /* Finding the critical T */
   // find_critical_T_bilayer_output(base_dir, p);
 
   // /* Temperature dependence */
   // solve_self_consistent_eqs_bilayer_T(base_dir, p);
   
   /* Calculating the spectrum */
-  calc_spectrum_bilayer2_wrapper(argc, argv);
-  // calc_spectrum_bilayer2(base_dir, p);
-  
+  calc_spectrum_bilayer2(base_dir, p);
 
   /* Calculating the exciton wave function */
   // calc_wave_func_bilayer(base_dir, p);

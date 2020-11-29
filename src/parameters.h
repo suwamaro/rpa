@@ -26,6 +26,7 @@ namespace rpa {
     double T;  // Temperature (Kelvin)
     double T_over_Tc;  // T is set to be T_over_Tc * Tc if relative_temperature is true.
     bool T_equal_to_0;
+    bool Neel_phase;  // Requiring U > Uc
     double filling;  // Electron filling
     
     /* If continous_k == true, L should not matter to the result. */

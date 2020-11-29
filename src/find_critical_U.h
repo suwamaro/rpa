@@ -35,4 +35,5 @@ private:
 };
 
 /* For bilayer lattices */
-void find_critical_U_bilayer(path& base_dir, rpa::parameters const& pr);
+double find_critical_U_bilayer(rpa::parameters const& pr);
+void find_critical_U_bilayer_output(path& base_dir, rpa::parameters const& pr);

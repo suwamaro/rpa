@@ -18,9 +18,7 @@ int find_critical_U_bilayer_integrand(const int *ndim, const cubareal xx[], cons
   return fuib.calc(ndim, xx, ncomp, ff, userdata);
 }
 
-void find_critical_U_bilayer(path& base_dir, rpa::parameters const& pr){
-  std::cout << "Finding the critical U..." << std::endl;
-  
+double find_critical_U_bilayer(rpa::parameters const& pr){
   /* Getting parameters */
   int L = pr.L;
   double filling = pr.filling;
@@ -106,6 +104,12 @@ void find_critical_U_bilayer(path& base_dir, rpa::parameters const& pr){
 
   /* Uc */  
   double Uc = 1. / sum;
+  return Uc;
+}
+
+void find_critical_U_bilayer_output(path& base_dir, rpa::parameters const& pr){
+  std::cout << "Finding the critical U..." << std::endl;
+  double Uc = find_critical_U_bilayer(pr);
   
   /* Precision */
   int prec = 12;

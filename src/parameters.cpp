@@ -45,6 +45,7 @@ namespace rpa {
       }
     }
 
+    Neel_phase = config->get_as<bool>("Neel_phase").value_or(false);    
     filling = config->get_as<double>("filling").value_or(0.5);    
     continuous_k = config->get_as<bool>("continuous_k").value_or(false);
     epsfunc = config->get_as<double>("epsfunc").value_or(1e-10);

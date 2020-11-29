@@ -17,6 +17,7 @@
 #include "calc_chemical_potential.h"
 #include "calc_single_particle_energy.h"
 #include "find_critical_T.h"
+#include "find_critical_U.h"
 
 void calc_single_particle_energy_bilayer(hoppings const& ts, int L, double delta){
   /* Output */
@@ -552,9 +553,24 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
   out_z.close();
 }
 
-void calc_spectrum_bilayer2_wrapper(int argc, char **argv){
+int calc_spectrum_bilayer2_wrapper(int argc, char **argv){
   path base_dir;
   rpa::parameters p;
   std::tie(base_dir, p) = rpa::extract_parameters(argv[1]);
+
+  if ( p.Neel_phase ) {
+    /* Find Uc */
+    double Uc = find_critical_U_bilayer(p);
+
+    /* Checking if U > Uc */
+    if ( p.U <= Uc ) {
+      std::cout << "Skipping the spectrum calculation because U <= Uc: U = " << p.U << ", Uc = " << Uc << std::endl;
+      return 1;
+    }
+  }
+
+  /* Calculating the spectrum */
   calc_spectrum_bilayer2(base_dir, p);
+  
+  return 0;
 }
