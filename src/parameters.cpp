@@ -17,6 +17,7 @@ namespace rpa {
     auto config = cpptoml::parse_file(ifn);
     L = config->get_as<int64_t>("L").value_or(16);
     Lk = config->get_as<int64_t>("Lk").value_or(L);
+    wave_vector_type = config->get_as<std::string>("wave_vector_type").value_or("high_symmetry1");
     relative_temperature = config->get_as<bool>("relative_temperature").value_or(false);
     if ( relative_temperature ) {
       T_over_Tc = config->get_as<double>("T_over_Tc").value_or(0.8);

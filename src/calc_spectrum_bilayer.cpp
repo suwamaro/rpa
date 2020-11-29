@@ -347,7 +347,6 @@ void WaveVector::make_q_table(){
       }
     }
   } else if ( q_type() == "high_symmetry1" ) {
-    push_back_qs(0, 0, 0);
     push_back_qs(0, 0, M_PI);
     push_back_qs(M_PI, 0, M_PI);
     push_back_qs(0.5*M_PI, 0.5*M_PI, M_PI);
@@ -370,8 +369,7 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
   bool continuous_k = pr.continuous_k;
 
   /* Wavevectors */
-  WaveVector wv("high_symmetry1", pr.qi, pr.qf, pr.Lk);
-  // WaveVector wv("bilayer", pr.qi, pr.qf, pr.Lk);  
+  WaveVector wv(pr.wave_vector_type, pr.qi, pr.qf, pr.Lk);
   
   /* Hopping parameters */
   double t1 = pr.t1;

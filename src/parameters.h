@@ -21,6 +21,7 @@ namespace rpa {
     double calc_T(double Tc) const;
     int L;  // System size
     int Lk;  // Delta q = 2pi / Lk for plot
+    std::string wave_vector_type;
     bool relative_temperature;
     double T;  // Temperature (Kelvin)
     double T_over_Tc;  // T is set to be T_over_Tc * Tc if relative_temperature is true.
