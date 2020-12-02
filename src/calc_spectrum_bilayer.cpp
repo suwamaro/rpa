@@ -352,6 +352,29 @@ void WaveVector::make_q_table(){
     push_back_qs(M_PI, 0, M_PI);
     push_back_qs(0.5*M_PI, 0.5*M_PI, M_PI);
     push_back_qs(M_PI, M_PI, M_PI);
+  } else if ( q_type() == "qz=pi" ) {
+    /* Q: 0 (pi,0) -> 4 (pi,pi) -> 8 (pi/2,pi/2) -> 12 (0,0) -> 16 (pi,0) -> 20 (pi/2,pi/2) */
+    double k1 = M_PI / 8;
+    push_back_qs(M_PI, 0, M_PI);
+    push_back_qs(M_PI, 2*k1, M_PI);
+    push_back_qs(M_PI, 4*k1, M_PI);
+    push_back_qs(M_PI, 6*k1, M_PI);
+    push_back_qs(M_PI, M_PI, M_PI);
+    push_back_qs(M_PI-k1, M_PI-k1, M_PI);
+    push_back_qs(M_PI-2*k1, M_PI-2*k1, M_PI);
+    push_back_qs(M_PI-3*k1, M_PI-3*k1, M_PI);
+    push_back_qs(M_PI/2, M_PI/2, M_PI);
+    push_back_qs(M_PI/2-k1, M_PI/2-k1, M_PI);
+    push_back_qs(M_PI/2-2*k1, M_PI/2-2*k1, M_PI);
+    push_back_qs(M_PI/2-3*k1, M_PI/2-3*k1, M_PI);
+    push_back_qs(0, 0, M_PI);
+    push_back_qs(2*k1, 0, M_PI);
+    push_back_qs(4*k1, 0, M_PI);
+    push_back_qs(6*k1, 0, M_PI);
+    push_back_qs(M_PI, 0, M_PI);
+    push_back_qs(M_PI-k1, k1, M_PI);
+    push_back_qs(M_PI-2*k1, 2*k1, M_PI);
+    push_back_qs(M_PI-3*k1, 3*k1, M_PI);
   } else {
     std::cerr << "\"q_type\" == " << q_type() << " is not supported.\n";
     std::exit(EXIT_FAILURE);
