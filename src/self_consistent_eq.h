@@ -67,6 +67,7 @@ public:
   bool continuous_k() const;
   bool non_zero_delta() const;
   double non_zero_delta_lower_bound() const;
+  double delta_upper_bound() const;
   
 private:
   int64_t max_iter_;

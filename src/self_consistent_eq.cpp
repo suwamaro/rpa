@@ -76,6 +76,7 @@ double SelfConsistentIntegrand2::mu() const { return mu_; }
 bool SelfConsistentIntegrand2::continuous_k() const { return continuous_k_; }
 bool SelfConsistentIntegrand2::non_zero_delta() const { return non_zero_delta_; }
 double SelfConsistentIntegrand2::non_zero_delta_lower_bound() const { return non_zero_delta_lower_bound_; }
+double SelfConsistentIntegrand2::delta_upper_bound() const { return 0.5 * U(); }
 
 void SelfConsistentIntegrand2::set_parameters(int _L, double _U, double _filling, double _T, double _delta, double _mu, bool _continuous_k, bool _non_zero_delta){
   L_ = _L;

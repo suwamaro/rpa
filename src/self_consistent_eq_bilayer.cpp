@@ -191,6 +191,7 @@ void SelfConsistentIntegrand2Bilayer::update_parameters(int64_t niter, double& _
     bool status = nr_.calc_dx2(niter, dx);
     _delta += dx(0);
     if ( _delta < non_zero_delta_lower_bound() ) { _delta = non_zero_delta_lower_bound(); }
+    if ( _delta > delta_upper_bound() ) { _delta = delta_upper_bound(); }    
     _mu += dx(1);
   } else {
     /* Updating mu only */
@@ -474,7 +475,7 @@ std::tuple<double, double> solve_self_consistent_eqs_bilayer(rpa::parameters con
   sci2b.set_parameters(pr, L, ts, U, filling, T, delta, mu, continuous_k, non_zero_delta);
 
   /* Find a solution */
-  bool verbose = false;
+  bool verbose = false;  
   bool sol_found = sci2b.find_solution(delta, mu, verbose);  
 
   if ( !sol_found ) {
