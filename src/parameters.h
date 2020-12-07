@@ -34,6 +34,7 @@ namespace rpa {
 
     /* Parameter for solving the self-consistent equations */
     double epsfunc;
+    double mod_prefactor;
     
     double eta;  // Broadnening factor
     double U;  // Onsite Coulomb interaction

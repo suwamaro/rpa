@@ -37,6 +37,7 @@ void SelfConsistentIntegrand2Bilayer::set_parameters(rpa::parameters const& pr, 
   SelfConsistentIntegrand2::set_eps_func(pr.epsfunc);
   hb_ = _hb;
   cbp_.set_parameters(pr);
+  nr_.mod_prefactor = pr.mod_prefactor;
 }
 
 std::tuple<double, double> SelfConsistentIntegrand2Bilayer::calc_elec_density(const double *qvec) const {
@@ -186,9 +187,10 @@ void SelfConsistentIntegrand2Bilayer::update_parameters(int64_t niter, double& _
     nr_.J(1,1) = calc_elec_density_der_mu();
     nr_.F(0) = calc_mean_field();
     nr_.F(1) = calc_elec_density();
-    vec dx = nr_.calc_dx(niter);
+    vec dx;
+    bool status = nr_.calc_dx2(niter, dx);
     _delta += dx(0);
-    if ( _delta < 0 ) { _delta = 0; }  // The lower bound is 0.
+    if ( _delta < non_zero_delta_lower_bound() ) { _delta = non_zero_delta_lower_bound(); }
     _mu += dx(1);
   } else {
     /* Updating mu only */

@@ -452,10 +452,10 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
     std::cout << "delta = " << delta << std::endl;
     std::cout << "mu = " << mu << std::endl;
   }
-
+      
   /* Single particle energy */
   calc_single_particle_energy_bilayer2( base_dir, *ts, L, delta );
-  
+      
   /* Output */
   ofstream out_xy, out_z;
   out_xy.open(base_dir / "spectrum-xy.text");

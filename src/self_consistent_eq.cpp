@@ -61,6 +61,7 @@ SelfConsistentIntegrand2::SelfConsistentIntegrand2(hoppings2 *ts):ts_(ts){
   max_iter_ = 1e+6;
   eps_ = 1e-12;
   eps_func_ = 1e-10;
+  non_zero_delta_lower_bound_ = 1e-12;
 }
 int64_t SelfConsistentIntegrand2::max_iter() const { return max_iter_; }
 double SelfConsistentIntegrand2::eps() const { return eps_; }
@@ -74,6 +75,7 @@ double SelfConsistentIntegrand2::delta() const { return delta_; }
 double SelfConsistentIntegrand2::mu() const { return mu_; }
 bool SelfConsistentIntegrand2::continuous_k() const { return continuous_k_; }
 bool SelfConsistentIntegrand2::non_zero_delta() const { return non_zero_delta_; }
+double SelfConsistentIntegrand2::non_zero_delta_lower_bound() const { return non_zero_delta_lower_bound_; }
 
 void SelfConsistentIntegrand2::set_parameters(int _L, double _U, double _filling, double _T, double _delta, double _mu, bool _continuous_k, bool _non_zero_delta){
   L_ = _L;

@@ -66,6 +66,7 @@ public:
   double mu() const;
   bool continuous_k() const;
   bool non_zero_delta() const;
+  double non_zero_delta_lower_bound() const;
   
 private:
   int64_t max_iter_;
@@ -80,6 +81,7 @@ private:
   double mu_;
   bool continuous_k_;
   bool non_zero_delta_;
+  double non_zero_delta_lower_bound_;
 };
 
 class SelfConsistentIntegrand2Bilayer : public SelfConsistentIntegrand2 {

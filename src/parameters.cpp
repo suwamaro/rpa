@@ -49,6 +49,7 @@ namespace rpa {
     filling = config->get_as<double>("filling").value_or(0.5);    
     continuous_k = config->get_as<bool>("continuous_k").value_or(false);
     epsfunc = config->get_as<double>("epsfunc").value_or(1e-10);
+    mod_prefactor = config->get_as<double>("mod_prefactor").value_or(1.0);
     eta = config->get_as<double>("eta").value_or(0.001);
     U = config->get_as<double>("U").value_or(1.0);
 
