@@ -1,6 +1,14 @@
 #include <iostream>
 #include "BinarySearch.h"
 
+BinarySearch::BinarySearch(bool continuous_k){
+  if ( continuous_k ) {
+    eps_fx = 1e-7;  // Appropriate?
+  } else {
+    eps_fx = 1e-10;
+  }
+}
+
 bool BinarySearch::find_solution(double& x, double target, std::function<double(double x)> const& f, bool additive, double x_delta, bool debug){
   if ( debug && !std::isnan(x_MIN_) && !std::isnan(x_MAX_) ) { std::cout << "Finding the solution between " << x_MIN_ << " and " << x_MAX_ << std::endl; }
   
@@ -104,6 +112,7 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
 
     if ( debug ) {
       std::cout << n_iter << "   " << x << "   " << fx << "   " << target << "   " << diff << std::endl;
+      
     }
     
     if ( std::abs( dx ) < 1e-24 ) {

@@ -452,7 +452,7 @@ double solve_self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, dou
   using std::placeholders::_1;
   auto scc = std::bind( self_consistent_eq_bilayer2, L, std::ref(ts), filling, T, _1, std::ref(cbp), continuous_k );
 
-  BinarySearch bs;
+  BinarySearch bs(continuous_k);
   bool sol_found = bs.find_solution( delta, target, scc );
 
   if ( sol_found ) {

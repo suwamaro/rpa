@@ -186,7 +186,7 @@ double calc_chemical_potential_bilayer3(int L, hoppings_bilayer2 const& ts, doub
   using std::placeholders::_1;
   auto eq = std::bind( elec_filling_eq_bilayer, L, std::ref(ts), _1, T, delta, std::ref(cbp), continuous_k );
 
-  BinarySearch bs;
+  BinarySearch bs(continuous_k);
   double mu_delta = 0.1;
   bool sol_found = bs.find_solution( mu, target, eq, true, mu_delta, verbose );  
   return mu;

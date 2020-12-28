@@ -106,12 +106,12 @@ double find_critical_point_bilayer(rpa::parameters& pr){
   double target = 1. / U;
 
   /* Parameter to optimize */
-  double tz = std::max(U, 1e-5);  
+  double tz = std::max(0.53*U, 1e-5);  
   
   using std::placeholders::_1;
   auto scc = std::bind( self_consistent_eq_point_bilayer2, _1, std::ref(pr), std::ref(cbp) );
 
-  BinarySearch bs;
+  BinarySearch bs(pr.continuous_k);
   bs.set_x_MIN(0);
   bool verbose = true;
   bool sol_found = bs.find_solution( tz, target, scc, false, 0.0, verbose );

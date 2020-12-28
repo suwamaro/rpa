@@ -102,7 +102,7 @@ double find_critical_T_bilayer(rpa::parameters const& pr){
   using std::placeholders::_1;
   auto scc = std::bind( self_consistent_eq_T_bilayer2, L, std::ref(*ts), filling, _1, std::ref(cbp), continuous_k );
 
-  BinarySearch bs;
+  BinarySearch bs(continuous_k);
   bs.set_x_MIN(0);
   double T_delta = 100. * U / kB;
   bool verbose = false;

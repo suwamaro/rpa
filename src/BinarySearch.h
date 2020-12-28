@@ -4,6 +4,7 @@
 class BinarySearch {
 public:
   BinarySearch(){};
+  explicit BinarySearch(bool continuous_k);
   virtual ~BinarySearch(){};
   void set_x_MIN(double _x_MIN) { x_MIN_ = _x_MIN; }
   void set_x_MAX(double _x_MAX) { x_MAX_ = _x_MAX; }  

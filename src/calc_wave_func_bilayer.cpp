@@ -208,7 +208,7 @@ double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, doub
 
   using std::placeholders::_1;
   auto pe = std::bind( pole_eq_bilayer, L, std::ref(ts), _1, mu, U, T, delta, std::ref(cbp), std::ref(Pz), continuous_k, mode );
-  BinarySearch bs;
+  BinarySearch bs(continuous_k);
   bs.set_x_MIN(0);
   double omega_eps = 1e-5;
   // double omega_eps = 1e-7;  
