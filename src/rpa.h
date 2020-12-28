@@ -10,6 +10,9 @@
 #ifndef __RPA__
 #define __RPA__
 
+/* Uncomment if you use Boost Filesystem. */
+// #define _USE_BOOST_FILESYSTEM_
+
 #include <iostream>
 #include <iomanip>
 #include <complex>
@@ -22,16 +25,18 @@ typedef arma::cx_vec cx_vec;
 typedef arma::mat mat;
 typedef arma::cx_mat cx_mat;
 
-// /* Using boost::filesystem */
-// #include <boost/filesystem.hpp>
-// typedef boost::filesystem::path path;
-// typedef boost::filesystem::ofstream ofstream;
-// using boost::filesystem::exists;
-
-// /* Using std::filesystem */
+#ifdef _USE_BOOST_FILESYSTEM_
+/* Using boost::filesystem */
+#include <boost/filesystem.hpp>
+typedef boost::filesystem::path path;
+typedef boost::filesystem::ofstream ofstream;
+using boost::filesystem::exists;
+#else
+/* Using std::filesystem */
 typedef std::filesystem::path path;
 typedef std::ofstream ofstream;
 using std::filesystem::exists;
+#endif
 
 using namespace std::complex_literals;
 
