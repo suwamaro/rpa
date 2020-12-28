@@ -18,32 +18,40 @@
 #include "plot_chi0_AF.h"
 #include "find_critical_U.h"
 #include "find_critical_T.h"
+#include "find_critical_point.h"
 #include "calc_spectrum.h"
 #include "calc_wave_func.h"
 #include "calc_binding_energy.h"
+#include "calc_phase_boundary.h"
 
 int main(int argc, char **argv){
   path base_dir;
   rpa::parameters p;
   std::tie(base_dir, p) = rpa::extract_parameters(argv[1]);
 
-  // /* Finding the critical U */
-  // find_critical_U_bilayer_output(base_dir, p);
+  /* Finding the critical U */
+  find_critical_U_bilayer_output(base_dir, p);
+  
+  /* Finding the critical parameter */
+  find_critical_point_bilayer_output(base_dir, p);
 
-  // /* Finding the critical T */
-  // find_critical_T_bilayer_output(base_dir, p);
+  /* Finding the critical T */
+  find_critical_T_bilayer_output(base_dir, p);  
 
-  // /* Temperature dependence */
-  // solve_self_consistent_eqs_bilayer_T(base_dir, p);
+  /* Temperature dependence */
+  solve_self_consistent_eqs_bilayer_T(base_dir, p);
   
   /* Calculating the spectrum */
   calc_spectrum_bilayer2(base_dir, p);
 
   /* Calculating the exciton wave function */
-  // calc_wave_func_bilayer(base_dir, p);
+  calc_wave_func_bilayer(base_dir, p);
 
   /* Calculating the exciton binding energy */
-  // calc_binding_energy_bilayer(base_dir, p);  
+  calc_binding_energy_bilayer(base_dir, p);  
+
+  /* Obtaining the U-tz phase diagram */
+  calc_phase_boundary_bilayer(base_dir, p);
   
   return 0;
 }

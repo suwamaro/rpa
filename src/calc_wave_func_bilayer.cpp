@@ -406,23 +406,7 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
   bool continuous_k = pr.continuous_k;
 
   /* Hopping parameters */
-  double t1 = pr.t1;
-  double t2 = pr.t2;
-  double t3 = pr.t3;
-  double tz1 = pr.t4;
-  double tz2 = pr.t5;
-  double phase1 = pr.phase1;
-  double phasez = pr.phase4;
-  
-  using namespace std::complex_literals;  
-  // cx_double t1_cx( pr.t1, pr.t1_bar );
-  // cx_double tz_cx( pr.t4, pr.t4_bar );
-  cx_double t1_cx = t1*exp(1i*phase1*0.5);
-  cx_double tz1_cx = tz1*exp(1i*phasez*0.5);
-
-  /* Hopping class */
-  std::unique_ptr<hoppings_bilayer2> ts;
-  ts = hoppings_bilayer2::mk_bilayer2(t1_cx, t2, t3, tz1_cx, tz2);
+  std::unique_ptr<hoppings_bilayer2> ts = hoppings_bilayer2::mk_bilayer3(pr);
   
   /* Parameters for Cuba */
   CubaParam cbp(pr);

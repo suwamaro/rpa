@@ -7,8 +7,8 @@
 *
 *****************************************************************************/
 
-#ifndef __parameters__
-#define __parameters__
+#ifndef _RPA_PARAMETERS_
+#define _RPA_PARAMETERS_
 
 #include <string>
 #include "rpa.h"
@@ -79,9 +79,15 @@ namespace rpa {
     /* Parameters for the calculation of the wavefunction */
     bool largeUlimit;
     double largeU_scaling_prefactor;
+
+    /* Parameters for obtaining the U-tz phase diagram */
+    bool fix_J;
+    double J;
+    double t4_min, t4_max, t4_delta;
+    double U_min, U_max, U_delta;
   };
 
   std::tuple<path, rpa::parameters> extract_parameters(const char* dirn);
 }
 
-#endif // __parameters__
+#endif // _RPA_PARAMETERS_

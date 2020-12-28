@@ -10,7 +10,7 @@
 #ifndef __HOPPINGS__
 #define __HOPPINGS__
 
-#include "rpa.h"
+#include "parameters.h"
 
 class hoppings {
 public:
@@ -93,6 +93,7 @@ public:
 
   // instantiations
   static std::unique_ptr<hoppings_bilayer2> mk_bilayer2(cx_double v, cx_double vp, cx_double vpp, cx_double vz, cx_double vzp);
+  static std::unique_ptr<hoppings_bilayer2> mk_bilayer3(rpa::parameters const& pr);
 };
 
 class hoppings_Sr3Ir2O7 : public hoppings_bilayer {

@@ -8,6 +8,7 @@
 *****************************************************************************/
 
 #include "rpa.h"
+#include "hoppings.h"
 
 double energy_free_electron(double t, double mu, double kx, double ky, double kz);
 double energy_free_electron(double t, double mu, double kx, double ky);

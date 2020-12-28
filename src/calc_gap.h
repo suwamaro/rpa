@@ -12,6 +12,7 @@
 
 #include <armadillo>
 #include "rpa.h"
+#include "hoppings.h"
 #include "parameters.h"
 #include "cuba_helper.h"
 

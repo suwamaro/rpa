@@ -1,6 +1,6 @@
 /*****************************************************************************
 *
-* Functions for calculating the critical U.
+* Functions for finding the critical point.
 *
 * Copyright (C) 2018 by Hidemaro Suwa
 * e-mail:suwamaro@phys.s.u-tokyo.ac.jp
@@ -13,28 +13,31 @@
 #include "cuba_helper.h"
 
 /* Integrand */
-class FindUcIntegrand {
+class FindQCPIntegrand {
 public:
-  explicit FindUcIntegrand(hoppings2 *ts):ts_(ts){}
+  explicit FindQCPIntegrand(hoppings2 *ts):ts_(ts){}
   virtual double integrand(const double *qvec) const = 0;
   virtual int calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const = 0;
-  hoppings2 *ts() const { return ts_; }
+  void set_mu(double _mu);
+  hoppings2 *ts() const;
+  double mu() const;
   
 private:  
   hoppings2 *ts_;
+  double mu_;
 };
 
-class FindUcIntegrandBilayer : public FindUcIntegrand {
+class FindQCPIntegrandBilayer : public FindQCPIntegrand {
 public:
-  FindUcIntegrandBilayer():FindUcIntegrand(&hb_){}
-  void set_parameters(hoppings_bilayer2 const& h, double filling);
+  FindQCPIntegrandBilayer():FindQCPIntegrand(&hb_){}
+  void set_parameters(hoppings_bilayer2 const& h, double _mu);
   double integrand(const double *qvec) const;  
   int calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const;
-  
+
 private:
   hoppings_bilayer2 hb_;
 };
 
 /* For bilayer lattices */
-double find_critical_U_bilayer(rpa::parameters const& pr);
-void find_critical_U_bilayer_output(path& base_dir, rpa::parameters const& pr);
+double find_critical_point_bilayer(rpa::parameters& pr);
+void find_critical_point_bilayer_output(path& base_dir, rpa::parameters& pr);

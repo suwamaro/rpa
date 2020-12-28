@@ -9,6 +9,7 @@
 
 #include <cuba.h>
 #include "rpa.h"
+#include "hoppings.h"
 #include "cuba_helper.h"
 #include "find_root.h"
 

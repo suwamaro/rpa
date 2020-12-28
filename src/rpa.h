@@ -33,7 +33,7 @@ typedef std::filesystem::path path;
 typedef std::ofstream ofstream;
 using std::filesystem::exists;
 
-#include "hoppings.h"
+using namespace std::complex_literals;
 
 constexpr int up_spin = 1;
 constexpr int down_spin = -1;

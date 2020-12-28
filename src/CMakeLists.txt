@@ -7,6 +7,8 @@ find_critical_U.cpp
 find_critical_U_bilayer.cpp
 find_critical_T.cpp
 find_critical_T_bilayer.cpp
+find_critical_point.cpp
+find_critical_point_bilayer.cpp
 #plot_chi0.cpp
 #plot_chi0_AF.cpp
 self_consistent_eq.cpp
@@ -33,6 +35,7 @@ calc_single_particle_energy.cpp
 hoppings.cpp
 calc_wave_func_bilayer.cpp
 calc_binding_energy_bilayer.cpp
+calc_phase_boundary_bilayer.cpp
 )
 
 # rpa

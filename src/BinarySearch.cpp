@@ -9,7 +9,7 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
     std::cerr << "x is out of the range.\n";
     std::exit(EXIT_FAILURE);
   }
-
+  
   /* Checking if x is a solution */
   double fx = f( x );
   if ( std::abs( fx - target ) < eps_fx ) {
@@ -18,7 +18,7 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
     }
     return true;
   }
-
+  
   /* Another x */
   double x2 = 0;
   if ( additive ) { x2 = x + x_delta; }
@@ -27,7 +27,7 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
     std::cerr << "x2 is out of the range.\n";
     std::exit(EXIT_FAILURE);
   }
-
+  
   /* Checking whether f(x) is an increasing or decreasing function of x */
   double fx2 = f( x2 );
   if ( std::abs( fx2 - fx ) < eps_fx ) {
@@ -36,7 +36,7 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
     std::exit(EXIT_FAILURE);
   }
   bool increasing = fx2 > fx;
-
+  
   /* Determining increasing or decreasing x */
   double diff = fx - target;
   double factor = 0;
@@ -126,7 +126,7 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
     }
     
   } /* end for while */
-
+  
   if ( debug ) {
     std::cout << n_iter << "   " << x << "   " << fx << "   " << target << "   " << diff << std::endl;
   }

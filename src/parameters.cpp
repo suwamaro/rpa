@@ -99,6 +99,16 @@ namespace rpa {
     /* Parameters for the calculation of the wavefunction */
     largeUlimit = config->get_as<bool>("largeUlimit").value_or(false);
     largeU_scaling_prefactor = config->get_as<double>("largeU_scaling_prefactor").value_or(0.);
+
+    /* Parameters for obtaining the U-tz phase diagram */
+    fix_J = config->get_as<bool>("fix_J").value_or(false);
+    J = config->get_as<double>("J").value_or(1.0);
+    t4_min = config->get_as<double>("t4_min").value_or(0);
+    t4_max = config->get_as<double>("t4_max").value_or(1.0);
+    t4_delta = config->get_as<double>("t4_delta").value_or(0.1);
+    U_min = config->get_as<double>("U_min").value_or(0);
+    U_max = config->get_as<double>("U_max").value_or(1.0);
+    U_delta = config->get_as<double>("U_delta").value_or(0.1);    
   }
   
   double parameters::calc_T(double Tc) const {
