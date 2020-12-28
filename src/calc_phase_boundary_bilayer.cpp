@@ -9,15 +9,16 @@
 
 #include "calc_phase_boundary.h"
 #include "find_critical_point.h"
+#include "find_critical_U.h"
 
-void calc_phase_boundary_bilayer(path& base_dir, rpa::parameters& pr){
-  std::cout << "Obtaining the phase boundary..." << std::endl;
+void calc_phase_boundary_U_bilayer(path& base_dir, rpa::parameters& pr){
+  std::cout << "Obtaining the phase boundary as a function of U..." << std::endl;
     
   /* Output */
   ofstream out_pb;
-  out_pb.open( base_dir / "phase-boundary.text");
+  out_pb.open( base_dir / "phase-boundary-U.out");
   out_pb << "# U     tz_c" << std::endl;
-
+  
   /* Precision */
   int prec = 12;
   
@@ -29,7 +30,7 @@ void calc_phase_boundary_bilayer(path& base_dir, rpa::parameters& pr){
   /* For each U */
   for(int Ui=0; Ui < n_U; Ui++){
     double U = Us[Ui];
-    if ( U == 0 ) {
+    if ( std::abs(U) < 1e-12 ) {
       std::cout << "Skipping the case of U = 0." << std::endl;
       continue;
     }
@@ -41,18 +42,37 @@ void calc_phase_boundary_bilayer(path& base_dir, rpa::parameters& pr){
     out_pb << std::setprecision(prec) << U << std::setw(prec+8) << tz_c << std::endl;
   }
   
-  // /* t4 values */
-  // int n_t4 = int((pr.t4_max - pr.t4_min) / pr.t4_delta + 1e-12) + 1;
-  // std::vector<double> t4s(n_t4);
-  // for(int t4i=0; t4i < n_t4; t4i++){ t4s[t4i] = pr.t4_min + pr.t4_delta * t4i; }
+  out_pb.close();  
+}
 
-  // /* For each t4 */
-  // for(int t4i=0; t4i < n_t4; t4i++){
-  //   double t4 = t4s[t4i];
-  //   pr.t4 = t4;
-  //   double Uc = find_critical_U_bilayer(pr);
-  //   out_pb << std::setprecision(prec) << t4 << std::setw(prec+8) << Uc << std::endl;
-  // }
+
+void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
+  std::cout << "Obtaining the phase boundary as a function of t4..." << std::endl;
+    
+  /* Output */
+  ofstream out_pb;
+  out_pb.open( base_dir / "phase-boundary-t4.out");
+  out_pb << "# tz     U_c" << std::endl;
+  
+  /* Precision */
+  int prec = 12;
+  
+  /* t4 values */
+  int n_t4 = int((pr.t4_max - pr.t4_min) / pr.t4_delta + 1e-12) + 1;
+  std::vector<double> t4s(n_t4);
+  for(int t4i=0; t4i < n_t4; t4i++){ t4s[t4i] = pr.t4_min + pr.t4_delta * t4i; }
+
+  /* For each t4 */
+  for(int t4i=0; t4i < n_t4; t4i++){
+    double t4 = t4s[t4i];
+    if ( std::abs(t4) < 1e-12 ) {
+      std::cout << "Skipping the case of t4 = 0." << std::endl;
+      continue;
+    }    
+    pr.t4 = t4;
+    double Uc = find_critical_U_bilayer(pr);
+    out_pb << std::setprecision(prec) << t4 << std::setw(prec+8) << Uc << std::endl;
+  }
 
   out_pb.close();  
 }

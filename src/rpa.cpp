@@ -50,8 +50,9 @@ int main(int argc, char **argv){
   /* Calculating the exciton binding energy */
   calc_binding_energy_bilayer(base_dir, p);  
 
-  /* Obtaining the U-tz phase diagram */
-  calc_phase_boundary_bilayer(base_dir, p);
+  /* Obtaining the U-t4 (U-tz) phase diagram */
+  calc_phase_boundary_U_bilayer(base_dir, p);
+  calc_phase_boundary_t4_bilayer(base_dir, p);
   
   return 0;
 }

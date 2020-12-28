@@ -11,4 +11,5 @@
 #include "parameters.h"
 
 /* For bilayer lattices */
-void calc_phase_boundary_bilayer(path& base_dir, rpa::parameters& pr);
+void calc_phase_boundary_U_bilayer(path& base_dir, rpa::parameters& pr);
+void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr);
