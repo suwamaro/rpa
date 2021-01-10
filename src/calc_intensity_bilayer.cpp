@@ -226,7 +226,7 @@ std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer
   arma::cx_mat chi_zz = arma::inv(denom_zz) * chi0_zz;
   
   // sigma-to-spin factor
-  cx_double chi_xy = 0.25 * arma::accu(chi_pm);
+  cx_double chi_xy = 0.5 * arma::accu(chi_pm);
   cx_double chi_z = 0.25 * arma::accu(chi_zz);  
 
   // // for check
