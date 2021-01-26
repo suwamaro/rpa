@@ -352,6 +352,19 @@ void WaveVector::make_q_table(){
     push_back_qs(M_PI, 0, M_PI);
     push_back_qs(0.5*M_PI, 0.5*M_PI, M_PI);
     push_back_qs(M_PI, M_PI, M_PI);
+  } else if ( q_type() == "high_symmetry2" ) {
+    push_back_qs(0, 0, 0);
+    push_back_qs(M_PI, 0, 0);
+    push_back_qs(M_PI, M_PI, 0);
+    push_back_qs(0.5*M_PI, 0.5*M_PI, 0);
+    push_back_qs(0.5*M_PI, 0, 0);
+    push_back_qs(M_PI, 0.5*M_PI, 0);
+    push_back_qs(0, 0, M_PI);
+    push_back_qs(M_PI, 0, M_PI);
+    push_back_qs(M_PI, M_PI, M_PI);
+    push_back_qs(0.5*M_PI, 0.5*M_PI, M_PI);
+    push_back_qs(0.5*M_PI, 0, M_PI);
+    push_back_qs(M_PI, 0.5*M_PI, M_PI);
   } else if ( q_type() == "qz=pi" ) {
     /* Q: 0 (pi,0) -> 4 (pi,pi) -> 8 (pi/2,pi/2) -> 12 (0,0) -> 16 (pi,0) -> 20 (pi/2,pi/2) */
     double k1 = M_PI / 8;
