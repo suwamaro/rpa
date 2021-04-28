@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(density_matrix_dynamics)
+project(rpa)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
@@ -41,14 +41,8 @@ if (OPENMP_FOUND)
   add_definitions(-DWITH_OpenMP)
 endif()
 
-# Boost
-#find_package(Boost 1.55.0 REQUIRED COMPONENTS filesystem system)
-#include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-#set(LIBS ${LIBS} ${Boost_LIBRARIES})
-
 # Armadillo
 find_package(Armadillo REQUIRED CONFIG
-#find_package(Armadillo 4.400.2 REQUIRED CONFIG
              PATHS "/usr/local" "$ENV{ARMA_ROOT}" NO_SYSTEM_ENVIRONMENT_PATH)
 include_directories(SYSTEM ${ARMADILLO_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${ARMADILLO_LIBRARIES})
