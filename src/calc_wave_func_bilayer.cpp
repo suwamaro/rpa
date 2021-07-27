@@ -399,7 +399,6 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
   /* Getting parameters */
   int L = pr.L;
   int Lk = pr.Lk;
-  double eta = pr.eta;
   double U = pr.U;
   double filling = pr.filling;
   double T = pr.T;
