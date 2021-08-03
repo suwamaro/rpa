@@ -484,3 +484,101 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
   out_gap.close();
   out_prob.close();
 }
+
+void check_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
+  /* Getting parameters */
+  int L = pr.L;
+  int Lk = pr.Lk;
+  double U = pr.U;
+  double filling = pr.filling;
+  double T = pr.T;
+  bool continuous_k = pr.continuous_k;
+
+  /* Hopping parameters */
+  std::unique_ptr<hoppings_bilayer2> ts = hoppings_bilayer2::mk_bilayer3(pr);
+  
+  /* Parameters for Cuba */
+  CubaParam cbp(pr);
+  
+  /* Calculate the chemical potential and the charge gap. */
+  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, filling, T, cbp, continuous_k );  
+  std::cout << "delta = " << delta << std::endl;  
+  /* Assume that mu does not depend on L for integral over continuous k. */
+  double ch_gap, mu;
+  std::tie(ch_gap, mu) = calc_charge_gap_bilayer( L, *ts, delta );  /* Finite size */  
+  // double mu = calc_chemical_potential_bilayer2( base_dir, L, *ts, delta );  /* Finite size */
+
+  /* Output */
+  ofstream out_gap;
+  out_gap.open(base_dir / "gap.text");
+  out_gap << "Charge gap = " << ch_gap << std::endl;
+  out_gap << "mu = " << mu << std::endl;
+  
+  /* Polarization */
+  Polarization Pz( L, L, 2, NSUBL );
+  
+  /* Setting the ordering vector */
+  Pz.set_q( M_PI, M_PI, M_PI );
+  if ( !continuous_k ) {
+    /* The polarizations are calculated in advance. */
+    Pz.set_table( *ts, delta );
+  }
+
+  /* Calculating gaps */
+  double omega_T = 0, omega_L = 0, omega_ph = 0;
+  std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, mu, U, T, delta, cbp, Pz, continuous_k);
+
+  /* Output */
+  out_gap << "omega_T = " << omega_T << std::endl;
+  out_gap << "omega_L = " << omega_L << std::endl;
+  out_gap << "omega_ph = " << omega_ph << std::endl;
+  
+  /* Calculating Psi'*/
+  double Psider = 1.0;
+  // double Psider = calc_Psider(L, *ts, mu, omega_L, delta, cbp, continuous_k);
+
+  /* Output */
+  out_gap << "Psider = " << Psider << std::endl;
+
+  /* Output */
+  ofstream out_wf;
+  out_wf.open(base_dir / "exciton_wave_function-k.text");
+  out_wf << "# x    y    z    P(r)" << std::endl;
+
+  /* Calculating the minimum bk square */
+  double min_bk_sq = calc_min_bk_sq_bilayer(L, *ts);
+  
+  /* Calculating the wave function */
+  int spin = -1; // down electron and down hole
+  int sublattice = 0;
+  int diff_r[] = {0,0,0};
+  
+  /* Setting the parameters */	  
+  wfib.set_parameters(*ts, pr.largeUlimit, pr.largeU_scaling_prefactor, spin, omega_L, Psider, delta, diff_r, sublattice, min_bk_sq);
+
+  double k1 = 2. * M_PI / (double)L;
+  for(int z=0; z < 2; z++){    
+    double kz = M_PI * z;
+    for(int x=-L/2; x < L/2; x++){
+      double kx = k1 * x;
+      for(int y=-L/2; y < L/2; y++){
+	double ky = k1 * y;      
+	cx_double ek1 = ts->ek1(kx, ky, kz);
+	cx_double ek23 = ts->ek23(kx, ky, kz);
+	cx_double ekz = ts->ekz(kx, ky, kz);    
+	cx_double xki = xk(wfib.spin(), ek1, ts->tz, kz, wfib.delta());
+	double zki = zk(ek1, ts->tz, kz, wfib.delta());
+	cx_double bki = bk(wfib.spin(), ek1, ts->tz, kz);
+	double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, ts->tz, kz, wfib.delta());
+	double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, ts->tz, kz, wfib.delta());
+	double wavefunc = std::real(wfib.integrand(xki, zki, bki, ek_plus, ek_minus, 1.));
+	
+	out_wf << kx << std::setw(15) << ky << std::setw(15) << kz << std::setw(15) << wavefunc << std::endl;
+      } /* end for y */
+    } /* end for x */
+  } /* end for z */
+
+  out_gap.close();
+  out_wf.close();
+}
+			 
