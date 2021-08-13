@@ -46,5 +46,7 @@ constexpr int down_spin = -1;
 constexpr int NSUBL = 2;  // Number of sublattices
 
 constexpr double kB = 8.617333262145e-5; // = 1380649. / 16021766340;
+constexpr double J_over_eV = 6.24150907446076 * 1e+18;
+constexpr double e_over_hbar = 1.519267447 * 1e+15 / J_over_eV;  // (A/eV)
 
 #endif // __RPA__

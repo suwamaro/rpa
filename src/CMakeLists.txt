@@ -36,6 +36,8 @@ hoppings.cpp
 calc_wave_func_bilayer.cpp
 calc_binding_energy_bilayer.cpp
 calc_phase_boundary_bilayer.cpp
+calc_current_bilayer.cpp
+mean_field_bilayer.cpp
 )
 
 # rpa

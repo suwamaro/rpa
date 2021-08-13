@@ -23,12 +23,13 @@
 #include "calc_wave_func.h"
 #include "calc_binding_energy.h"
 #include "calc_phase_boundary.h"
+#include "calc_current.h"
 
 int main(int argc, char **argv){
   path base_dir;
   rpa::parameters p;
   std::tie(base_dir, p) = rpa::extract_parameters(argv[1]);
-
+  
   /* Finding the critical U */
   find_critical_U_bilayer_output(base_dir, p);
   
