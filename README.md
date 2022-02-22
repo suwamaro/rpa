@@ -16,7 +16,8 @@ This is a sample code of the random phase approximation (RPA) for the fermionic 
     
 ## Reference
 
- - H. Suwa, S.-S. Zhang, and C. D. Batista, *Exciton condensation in bilayer spin-orbit insulator*, Phys. Rev. Research 3, 013224 (2021).
+ - D. G. Mazzone, Y. Shen, H. Suwa, G. Fabbris, J. Yang, S.-S. Zhang, H. Miao, J. Sears, Ke Jia, Y. G. Shi, M. H. Upton, D. M. Casa, X. Liu, Jian Liu, C. D. Batista, and M. P. M. Dean, Antiferromagnetic excitonic insulator state in Sr3Ir2O7, Nat. Commun. 13, 913 (2022).
+ - H. Suwa, S.-S. Zhang, and C. D. Batista, Exciton condensation in bilayer spin-orbit insulator, Phys. Rev. Research 3, 013224 (2021).
 
 ## Developer
 
