@@ -85,6 +85,7 @@ namespace rpa {
     double J;
     double t4_min, t4_max, t4_delta;
     double U_min, U_max, U_delta;
+    double init_value;
   };
 
   std::tuple<path, rpa::parameters> extract_parameters(const char* dirn);

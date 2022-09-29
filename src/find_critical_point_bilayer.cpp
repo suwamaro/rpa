@@ -105,8 +105,13 @@ double find_critical_point_bilayer(rpa::parameters& pr){
   std::cout << "Finding a critical point for U = " << U << std::endl;
   double target = 1. / U;
 
-  /* Parameter to optimize */
-  double tz = std::max(0.53*U, 1e-5);  
+  /* Setting the parameter to an initial value. */
+  double tz = 0;
+  if ( pr.init_value == std::numeric_limits<double>::quiet_NaN() ) {
+    tz = std::max(0.53*U, 1e-5);
+  } else {
+    tz = pr.init_value;
+  }
   
   using std::placeholders::_1;
   auto scc = std::bind( self_consistent_eq_point_bilayer2, _1, std::ref(pr), std::ref(cbp) );

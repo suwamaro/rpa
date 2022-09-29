@@ -108,7 +108,8 @@ namespace rpa {
     t4_delta = config->get_as<double>("t4_delta").value_or(0.1);
     U_min = config->get_as<double>("U_min").value_or(0);
     U_max = config->get_as<double>("U_max").value_or(1.0);
-    U_delta = config->get_as<double>("U_delta").value_or(0.1);    
+    U_delta = config->get_as<double>("U_delta").value_or(0.1);
+    init_value = config->get_as<double>("init_value").value_or(std::numeric_limits<double>::quiet_NaN());        
   }
   
   double parameters::calc_T(double Tc) const {
