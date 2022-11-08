@@ -36,6 +36,21 @@ double hoppings2::t_max() const {
   return tmax;
 }
 
+/* Member functions of hoppings_two_site */
+cx_double hoppings_two_site::ek1(double k, double, double) const {
+  return - t * cos(k);
+}
+cx_double hoppings_two_site::ek23(double, double, double) const { return 0; }
+cx_double hoppings_two_site::ekz(double, double, double) const { return 0; }
+hoppings_two_site::hoppings_two_site(cx_double _t){
+  t = _t;
+}
+
+std::unique_ptr<hoppings_two_site> hoppings_two_site::mk_two_site(rpa::parameters const& pr){
+  using namespace std::complex_literals;  
+  cx_double t_cx = pr.t * exp(1i * 0.5 * pr.phase);
+  return std::make_unique<hoppings_two_site>(t_cx);
+}
 
 /* Member functions of hoppings_square */
 
@@ -133,9 +148,6 @@ hoppings_bilayer2::hoppings_bilayer2(cx_double v, cx_double vp, cx_double vpp, c
   tpp = vpp;
   tz = vz;
   tzp = vzp;
-
-  // for check
-  // std::cerr << t << "  " << tp << "  " << tpp << "  " << tz << "  " << tzp << std::endl;  
 }
 
 cx_double hoppings_bilayer2::ek1(double kx, double ky, double) const {

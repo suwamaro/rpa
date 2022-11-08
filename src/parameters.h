@@ -19,7 +19,22 @@ namespace rpa {
     parameters();
     explicit parameters(std::string const& ifn);
     double calc_T(double Tc) const;
+
+    /* Choose calculations. */
+    bool find_critical_U_bilayer;
+    bool find_critical_point_bilayer;
+    bool find_critical_T_bilayer;
+    bool solve_self_consistent_eqs_bilayer_T;
+    bool calc_spectrum_bilayer;
+    bool calc_wave_func_bilayer;
+    bool calc_binding_energy_bilayer;
+    bool calc_phase_boundary_U_bilayer;
+    bool calc_phase_boundary_t4_bilayer;
+    bool calc_Raman_bilayer;
+    bool calc_two_site_problem;
+    
     int L;  // System size
+    int Lx, Ly, Lz;
     int Lk;  // Delta q = 2pi / Lk for plot
     std::string wave_vector_type;
     bool relative_temperature;
@@ -40,6 +55,7 @@ namespace rpa {
     double U;  // Onsite Coulomb interaction
 
     /* Hopping amplitudes */
+    double t;
     double t1, t1_bar;  // t*_bar is the imaginary part.
     double t2, t2_bar;
     double t3, t3_bar;
@@ -47,7 +63,8 @@ namespace rpa {
     double t5, t5_bar;
     double t6, t6_bar;
 
-    /* Hopping phases */    
+    /* Hopping phases */
+    double phase;
     double phase1;
     double phase2;
     double phase3;
@@ -86,6 +103,10 @@ namespace rpa {
     double t4_min, t4_max, t4_delta;
     double U_min, U_max, U_delta;
     double init_value;
+
+    /* Parameters for the Raman scattering */
+    double omega_i;  // Energy of the initial photon state
+    int n_ex;  // Maximum number of excitons in the initial state.
   };
 
   std::tuple<path, rpa::parameters> extract_parameters(const char* dirn);

@@ -32,6 +32,10 @@ double PhiDerIntegrand::integrand(double omega, double delta, double zk, cx_doub
     return 1. / ( std::pow(b,3) * std::pow( 1. - g2, 2) );
   } else {
     /* For U > Uc */
+
+    // // for check
+    // std::cout << "Psider: " << zk << "  " << delta << "  " << omega << std::endl;
+    
     return std::pow(zk,3) * (1. - zk*zk) / std::pow(1 - std::pow(omega*zk/(2.*delta), 2), 2);
   }
 }
@@ -70,14 +74,18 @@ int PhiDerIntegrandBilayer::calc(const int *ndim, const cubareal xx[], const int
 
 /* Member functions of WaveFuncIntegrandBilayer */
 cx_double WaveFuncIntegrandBilayer::integrand(cx_double xk, double zk, cx_double bk, double ek_plus, double ek_minus, cx_double phase) const {
-  if ( sublattice() == 0 ) {
+  return integrand(xk, zk, bk, ek_plus, ek_minus, phase, sublattice());
+}
+
+cx_double WaveFuncIntegrandBilayer::integrand(cx_double xk, double zk, cx_double bk, double ek_plus, double ek_minus, cx_double phase, int sublattice) const {
+  if ( sublattice == 0 ) {
     if ( largeUlimit() ) {
       return 0;
     } else {
       double ek_diff = ek_plus - ek_minus;
       return (double)spin() * (1. - zk*zk) / (2.*sqrt(psider())) * ek_diff / (omega()*omega() - ek_diff*ek_diff) * phase;
     }
-  } else if ( sublattice() == 1 ) {
+  } else if ( sublattice == 1 ) {
     if ( largeUlimit() ) {
       return 2. * std::conj(bk) / sqrt(psider()) / ( scaling_prefactor() + 2. * (std::norm(bk) - min_bk_sq()) ) * phase;        
     } else {
@@ -87,7 +95,7 @@ cx_double WaveFuncIntegrandBilayer::integrand(cx_double xk, double zk, cx_double
   } else {
     std::cerr << "\"sublattice_\" has to be 0 or 1." << std::endl;
     std::exit(EXIT_FAILURE);
-  }
+  }  
 }
 
 void WaveFuncIntegrandBilayer::set_parameters(hoppings_bilayer2 const& h, bool largeUlimit, double scaling_prefactor, int spin, double omega, double psider, double delta, int *diff_r, int sublattice, double min_bk_sq){
@@ -166,43 +174,12 @@ double pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double omega, double 
   return std::real(det);  /* Assume that the imaginary part is 0. */
 }
 
-double calc_band_gap_bilayer(int L, hoppings_bilayer2 const& ts, double delta, double qx, double qy, double qz){
-  double k1 = 2. * M_PI / (double)L;
-  double E_diff_min = std::numeric_limits<double>::max();
-  cx_double tz = ts.tz;
+double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode, double upper, bool return_upper, bool verbose){
+  if ( verbose ) {
+    std::cout << "Solving the pole equation for U=" << U << std::endl;
+    std::cout << "Upper = " << upper << std::endl;
+  }
   
-  for(int z=0; z < 2; z++){    
-    double kz = M_PI * z;
-    for(int x=-L/2; x < L/2; x++){
-      double kx = k1 * x;
-      for(int y=-L/2; y < L/2; y++){
-	double ky = k1 * y;      
-
-	cx_double ek1 = ts.ek1(kx, ky, kz);
-	cx_double ek23 = ts.ek23(kx, ky, kz);
-	cx_double ekz = ts.ekz(kx, ky, kz);
-
-	double kx2 = kx + qx;
-	double ky2 = ky + qy;
-	double kz2 = kz + qz;
-	cx_double ek_q1 = ts.ek1( kx2, ky2, kz2 );
-	cx_double ek_q23 = ts.ek23( kx2, ky2, kz2 );
-	cx_double ek_qz = ts.ekz( kx2, ky2, kz2 );
-
-	double Ek_plus = eigenenergy_HF(1., ek_q1, ek_q23, ek_qz, tz, kz2, delta);
-	double Ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, tz, kz, delta);
-
-	double E_diff = std::max( 0., Ek_plus - Ek_minus );
-	E_diff_min = std::min( E_diff_min, E_diff );
-      } /* end for y */
-    } /* end for x */
-  } /* end for z */
-  
-  return E_diff_min;
-}
-
-double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode, double upper){
-  std::cout << "Solving the pole equation for U=" << U << std::endl;
   double target = 0;
   double omega = 0.5 * upper;
 
@@ -213,18 +190,23 @@ double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, doub
   double omega_eps = 1e-5;
   // double omega_eps = 1e-7;  
   bs.set_x_MAX(upper - omega_eps);
-  bool sol_found = bs.find_solution( omega, target, pe, false, 0, true );
+  bool sol_found = bs.find_solution( omega, target, pe, false, 0, verbose );
+  
   if ( sol_found ) {
     return omega;
   } else {
-    return 0;
+    if ( return_upper ) {
+      return upper;
+    } else {
+      return 0;
+    }
   }
 }
 
-std::tuple<double, double, double> calc_gap_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k){
+std::tuple<double, double, double> calc_gap_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, bool return_upper, bool verbose){
   double upper = calc_band_gap_bilayer(L, ts, delta, Pz.qx(), Pz.qy(), Pz.qz());
-  double omega_T = solve_pole_eq_bilayer(L, ts, mu, U, T, delta, cbp, Pz, continuous_k, "transverse", upper);
-  double omega_L = solve_pole_eq_bilayer(L, ts, mu, U, T, delta, cbp, Pz, continuous_k, "longitudinal", upper);
+  double omega_T = solve_pole_eq_bilayer(L, ts, mu, U, T, delta, cbp, Pz, continuous_k, "transverse", upper, return_upper, verbose);
+  double omega_L = solve_pole_eq_bilayer(L, ts, mu, U, T, delta, cbp, Pz, continuous_k, "longitudinal", upper, return_upper, verbose);
   return std::make_tuple(omega_T, omega_L, upper);
 }
 
@@ -284,6 +266,10 @@ double calc_Psider(int L, hoppings_bilayer2 const& ts, double mu, double omega, 
 	  double zki = zk(ek1, ts.tz, kz, delta);
 	  cx_double bki = bk(up_spin, ek1, ts.tz, kz);  // spin does not matter.
 	  Psider += factor * PhiDerIntegrand::integrand(omega, delta, zki, bki);
+
+	  // // for check
+	  // std::cout << x << "  " << y << "  " << z << "  " << omega << "  " << delta << "  " << zki << "  " << bki << "  " << factor << "  " << Psider << std::endl;
+	  
 	} /* end for y */
       } /* end for x */
     } /* end for z */

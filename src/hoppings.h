@@ -48,6 +48,18 @@ public:
   cx_double tzp = 0;
 };
 
+class hoppings_two_site : public hoppings2 {
+public:
+  hoppings_two_site(){};
+  explicit hoppings_two_site(cx_double _t);
+  cx_double ek1(double, double, double) const;
+  cx_double ek23(double, double, double) const;
+  cx_double ekz(double, double, double) const;
+  virtual ~hoppings_two_site(){};
+  // instantiations
+  static std::unique_ptr<hoppings_two_site> mk_two_site(rpa::parameters const& pr);
+};
+
 class hoppings_square : public hoppings {
 public:
   double ek1(double kx, double ky, double kz = 0) const;

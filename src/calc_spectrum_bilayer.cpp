@@ -348,6 +348,7 @@ void WaveVector::make_q_table(){
       }
     }
   } else if ( q_type() == "high_symmetry1" ) {
+    push_back_qs(0, 0, 0);    
     push_back_qs(0, 0, M_PI);
     push_back_qs(M_PI, 0, M_PI);
     push_back_qs(0.5*M_PI, 0.5*M_PI, M_PI);

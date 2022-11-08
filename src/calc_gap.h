@@ -15,6 +15,7 @@
 #include "hoppings.h"
 #include "parameters.h"
 #include "cuba_helper.h"
+#include "Hartree_Fock.h"
 
 /* For the bare response function */
 cx_double calc_prefactor_bare_res_func_bilayer(int sg1, int sg2, hoppings2 const& ts, double T, double kx, double ky, double kz, double qx, double qy, double qz, cx_double omega, double delta, double mu);
@@ -25,11 +26,10 @@ cx_double calc_ak_down_in_minus(double ek1, double ek2, double ek3, double delta
 
 /* Common to the lattices */
 cx_double larger_eigenvalue(cx_double A, cx_double B, cx_double D);
-double wave_vector_in_BZ(double k);
 void add_to_sus_mat(cx_double& A, cx_double& B, cx_double& D, double e_free, double e_free2, double delta, cx_double omega);
 void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, cx_double& C, cx_double& D, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega, bool zz);
 void add_to_sus_mat3(hoppings2 const& ts, double mu, arma::cx_mat& chi, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega, bool zz);
-
+  
 struct Polarization {
   Polarization(){};
   explicit Polarization(int Lx, int Ly, int Lz, int nsub);
@@ -75,10 +75,13 @@ void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, arma::cx_mat& chi
 double calc_eigval_square(int L, double t, double mu, double U, double delta, double qx, double qy, double omega);
 double calc_gap_square(int L, double t, double mu, double U, double delta, double qx, double qy);
 cx_double calc_intensity_square(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, cx_double omega, bool zz);
+double calc_band_gap_bilayer(int L, hoppings_bilayer2 const& ts, double delta, double qx, double qy, double qz);
+double calc_direct_band_gap_bilayer(int L, hoppings_bilayer2 const& ts, double delta, double qx, double qy, double qz);
 
 /* For a bilayer lattice */
 cx_double calc_intensity_bilayer(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, bool zz);
 std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer2& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& pz, cx_double omega, bool continuous_k);
+
 
 /* For a simple cubic lattice */
 cx_double calc_intensity_cubic(int L, hoppings const& ts, double mu, double U, double delta, double qx, double qy, double qz, cx_double omega, bool zz);

@@ -134,3 +134,6 @@ void solve_self_consistent_eqs_bilayer_T(path& base_dir, rpa::parameters const& 
 /* For a simple cubic lattice */
 double self_consistent_eq_cubic(int L, hoppings_cubic const& ts, double mu, double delta);
 double solve_self_consistent_eq_cubic(int L, hoppings_cubic const& ts, double mu, double U);
+
+/* For the two-site problem */
+double solve_self_consistent_eq_two_site(hoppings_two_site const& ts, double U, double T);

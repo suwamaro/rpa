@@ -15,8 +15,24 @@ namespace rpa {
   parameters::parameters(){};
   parameters::parameters(std::string const& ifn){
     auto config = cpptoml::parse_file(ifn);
+    
+    find_critical_U_bilayer = config->get_as<bool>("find_critical_U_bilayer").value_or(false);
+    find_critical_point_bilayer = config->get_as<bool>("find_critical_point_bilayer").value_or(false);
+    find_critical_T_bilayer = config->get_as<bool>("find_critical_T_bilayer").value_or(false);
+    solve_self_consistent_eqs_bilayer_T = config->get_as<bool>("solve_self_consistent_eqs_bilayer_T").value_or(false);
+    calc_spectrum_bilayer = config->get_as<bool>("calc_spectrum_bilayer").value_or(false);
+    calc_wave_func_bilayer = config->get_as<bool>("calc_wave_func_bilayer").value_or(false);
+    calc_binding_energy_bilayer = config->get_as<bool>("calc_binding_energy_bilayer").value_or(false);
+    calc_phase_boundary_U_bilayer = config->get_as<bool>("calc_phase_boundary_U_bilayer").value_or(false);
+    calc_phase_boundary_t4_bilayer = config->get_as<bool>("calc_phase_boundary_t4_bilayer").value_or(false);
+    calc_Raman_bilayer = config->get_as<bool>("calc_Raman_bilayer").value_or(false);
+    calc_two_site_problem = config->get_as<bool>("calc_two_site_problem").value_or(false);            
+    
     L = config->get_as<int64_t>("L").value_or(16);
-    Lk = config->get_as<int64_t>("Lk").value_or(L);
+    Lx = config->get_as<int64_t>("Lx").value_or(4);
+    Ly = config->get_as<int64_t>("Ly").value_or(4);
+    Lz = config->get_as<int64_t>("Lz").value_or(4);    
+    Lk = config->get_as<int64_t>("Lk").value_or(L);    
     wave_vector_type = config->get_as<std::string>("wave_vector_type").value_or("high_symmetry1");
     relative_temperature = config->get_as<bool>("relative_temperature").value_or(false);
     if ( relative_temperature ) {
@@ -53,7 +69,8 @@ namespace rpa {
     eta = config->get_as<double>("eta").value_or(0.001);
     U = config->get_as<double>("U").value_or(1.0);
 
-    /* Hopping amplitudes */    
+    /* Hopping amplitudes */
+    t = config->get_as<double>("t").value_or(0);    
     t1 = config->get_as<double>("t1").value_or(0);
     t1_bar = config->get_as<double>("t1_bar").value_or(0);
     t2 = config->get_as<double>("t2").value_or(0);
@@ -68,6 +85,7 @@ namespace rpa {
     t6_bar = config->get_as<double>("t6_bar").value_or(0);
 
     /* Hopping phases */
+    phase = config->get_as<double>("phase").value_or(0);    
     phase1 = config->get_as<double>("phase1").value_or(0);
     phase2 = config->get_as<double>("phase2").value_or(0);
     phase3 = config->get_as<double>("phase3").value_or(0);
@@ -109,7 +127,12 @@ namespace rpa {
     U_min = config->get_as<double>("U_min").value_or(0);
     U_max = config->get_as<double>("U_max").value_or(1.0);
     U_delta = config->get_as<double>("U_delta").value_or(0.1);
-    init_value = config->get_as<double>("init_value").value_or(std::numeric_limits<double>::quiet_NaN());        
+    init_value = config->get_as<double>("init_value").value_or(std::numeric_limits<double>::quiet_NaN());
+
+    /* Parameters for the Raman scattering */
+    omega_i = config->get_as<double>("omega_i").value_or(532.0);  // (nm)
+    omega_i = planck_h * c_light / (omega_i * 1e-9);  // (eV)
+    n_ex = config->get_as<int64_t>("n_ex").value_or(1);
   }
   
   double parameters::calc_T(double Tc) const {

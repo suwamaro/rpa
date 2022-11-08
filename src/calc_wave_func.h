@@ -55,6 +55,7 @@ public:
   void set_parameters(hoppings_bilayer2 const& h, bool largeUlimit, double scaling_prefactor, int spin, double omega, double psider, double delta, int *diff_r, int sublattice, double min_bk_sq);
   int calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const;
   cx_double integrand(cx_double xk, double zk, cx_double bk, double ek_plus, double ek_minus, cx_double phase) const;
+  cx_double integrand(cx_double xk, double zk, cx_double bk, double ek_plus, double ek_minus, cx_double phase, int sublattice) const;  
   bool largeUlimit() const { return largeUlimit_; }
   double scaling_prefactor() const { return scaling_prefactor_; }
   int spin() const { return spin_; }
@@ -78,10 +79,13 @@ private:
   double min_bk_sq_;
 };
 
+std::tuple<double, double, double> calc_gap_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, bool return_upper = false, bool verbose = false);
+double calc_Psider(int L, hoppings_bilayer2 const& ts, double mu, double omega, double delta, CubaParam const& cbp, bool continuous_k);
+  
 /* For bilayer lattices */
+double calc_min_bk_sq_bilayer(int L, hoppings2 const& ts);
 double pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double omega, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode);
-double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode, double upper);
-std::tuple<double, double, double> calc_gap_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k);
+double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode, double upper, bool return_upper = false, bool verbose = false);
 
 void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr);
 void check_wave_func_bilayer(path& base_dir, rpa::parameters const& pr);

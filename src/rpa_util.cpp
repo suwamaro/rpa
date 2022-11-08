@@ -94,7 +94,12 @@ double zk_over_delta(cx_double ek1, cx_double tz, double kz, double delta){
 
 cx_double xk(int spin, cx_double ek1, cx_double tz, double kz, double delta){
   cx_double bki = bk(spin, ek1, tz, kz);
-  return bki / std::abs(bki);
+  double bk_abs = std::abs(bki);
+  if ( bk_abs < 1e-12 ) {
+    return 1.0;
+  } else {
+    return bki / std::abs(bki);
+  }
 }
 
 double eigenenergy_HF(double sign, cx_double ek1, cx_double ek23, cx_double ekz, cx_double tz, double kz, double delta){

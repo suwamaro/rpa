@@ -3,6 +3,7 @@ parameters.cpp
 rpa_util.cpp
 cuba_helper.cpp
 find_root.cpp
+Hartree_Fock.cpp
 find_critical_U.cpp
 find_critical_U_bilayer.cpp
 find_critical_T.cpp
@@ -15,10 +16,13 @@ self_consistent_eq.cpp
 self_consistent_eq_square.cpp
 self_consistent_eq_bilayer.cpp
 self_consistent_eq_cubic.cpp
+self_consistent_eq_two_site.cpp
 #plot_self_consistent_eq_square.cpp
 calc_gap.cpp
 calc_gap_square.cpp
 calc_gap_cubic.cpp
+calc_gap_bilayer.cpp
+calc_gap_two_site.cpp
 calc_dispersion_square.cpp
 calc_dispersion_cubic.cpp
 calc_velocity.cpp
@@ -37,7 +41,10 @@ calc_wave_func_bilayer.cpp
 calc_binding_energy_bilayer.cpp
 calc_phase_boundary_bilayer.cpp
 calc_current_bilayer.cpp
+calc_Raman_bilayer.cpp
+calc_two_site.cpp
 mean_field_bilayer.cpp
+particle_hole1.cpp
 )
 
 # rpa

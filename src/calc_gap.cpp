@@ -101,16 +101,6 @@ cx_double larger_eigenvalue(cx_double A, cx_double B, cx_double D){
   return 0.5 * ( A + D + sqrt( std::conj( A - D ) * ( A - D ) + 4. * std::conj(B) * B ) );
 }
 
-double wave_vector_in_BZ(double k){
-  /* Returning - M_PI <= k < M_PI */
-  double k_eps = 1e-12;
-  while( k > M_PI - k_eps ) k -= 2. * M_PI;
-  while( k < - M_PI - k_eps ) k += 2. * M_PI;
-  if ( std::abs( k ) < k_eps ) k = 0;
-  if ( std::abs( k + M_PI ) < k_eps ) k = - M_PI;
-  return k;
-}
-
 void add_to_sus_mat(cx_double& A, cx_double& B, cx_double& D, double e_free, double e_free2, double delta, cx_double omega){
   double e_eps = 1e-12;
   double E1 = eigenenergy_HF_plus( e_free2, delta );
@@ -225,24 +215,6 @@ void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, 
   }
 }
 
-cx_vec gs_HF1(int spin, int sign, cx_double ek1, cx_double tz, double kz, double delta){
-  /* In the case where the Hamiltonian is block-diagonalized for each spin in the presence of the U(1) symmetry. */
-  cx_double xki = xk(spin, ek1, tz, kz, delta);
-  double zki = zk(ek1, tz, kz, delta);
-  cx_double coef1 = xki*sqrt(0.5*(1+sign*spin*zki));
-  cx_double coef2 = sign*sqrt(0.5*(1-sign*spin*zki));  
-  
-  cx_vec gs_HF(NSUBL*NSUBL, arma::fill::zeros);
-  if ( spin == up_spin ) {
-    gs_HF(0) = coef1;
-    gs_HF(2) = coef2;    
-  } else {
-    gs_HF(1) = coef1;
-    gs_HF(3) = coef2;
-  }
-  return gs_HF;
-}
-
 /* Operators */
 struct OperatorK {
   OperatorK():Gamma_1plus(NSUBL*NSUBL, NSUBL*NSUBL),
@@ -328,7 +300,7 @@ void Polarization::calc_polarization(hoppings2 const& ts, double delta, double k
   // cx_vec X1down = gs_HF1(down_spin, sg1, ek1, tz, kz, delta);
   cx_vec X2up = gs_HF1(up_spin, sg2, ek_q1, tz, kz2, delta);
   cx_vec X2down = gs_HF1(down_spin, sg2, ek_q1, tz, kz2, delta);
-    
+  
   cx_double F_zu_g1 = arma::cdot(X1up, opek.Gamma_1z * X2up);
   cx_double F_zu_gm1 = arma::cdot(X1up, opek.Gamma_2z * X2up);
 	    
