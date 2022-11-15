@@ -30,6 +30,7 @@ namespace rpa {
     bool calc_binding_energy_bilayer;
     bool calc_phase_boundary_U_bilayer;
     bool calc_phase_boundary_t4_bilayer;
+    bool calc_current_bilayer;    
     bool calc_Raman_bilayer;
     bool calc_two_site_problem;
     

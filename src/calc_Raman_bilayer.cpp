@@ -25,21 +25,6 @@
 // PhiDerIntegrandBilayer pdib;
 extern WaveFuncIntegrandBilayer wfib;
 
-/* Considered bonds: +x, +y, +x+y, +x-y, +z */
-struct BondDelta {
-  int x; int y; int z;
-  BondDelta(int dir){
-    if ( dir == 0 ) { x = 1; y = 0; z = 0; }
-    else if ( dir == 1 ) { x = 0; y = 1; z = 0; }
-    else if ( dir == 2 ) { x = 0; y = 0; z = 1; }
-    else {
-      std::cerr << "Not supported dir value." << std::endl;
-      std::exit(EXIT_FAILURE);
-    }
-  }
-  BondDelta(int _x, int _y, int _z):x(_x),y(_y),z(_z){}
-};
-
 int inner_prod(BondDelta const& d1, BondDelta const& d2){
   return d1.x * d2.x + d1.y * d2.y + d1.z * d2.z;
 }
@@ -265,7 +250,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	double ky = k1 * y;
 	  
 	/* Checking if the wavevector is inside the BZ. */
-	double factor = BZ_factor(kx, ky);
+	double factor = BZ_factor_square_half_filling(kx, ky);
 	if ( std::abs(factor) < 1e-12 ) { continue; }
 
 	/* Eigenenergy */
@@ -325,7 +310,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	double ky = k1 * y;
 	  
 	/* Checking if the wavevector is inside the BZ. */
-	double factor = BZ_factor(kx, ky);
+	double factor = BZ_factor_square_half_filling(kx, ky);
 	if ( std::abs(factor) < 1e-12 ) { continue; }
 
 	for(int sigma: {up_spin, down_spin}){	
@@ -413,7 +398,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	    double ky = k1 * y;
 
 	    /* Checking if the wavevector is inside the BZ. */
-	    double factor = BZ_factor(kx, ky);
+	    double factor = BZ_factor_square_half_filling(kx, ky);
 	    if ( std::abs(factor) < 1e-12 ) { continue; }
 
 	    cx_double ek1 = ts->ek1(kx, ky, kz);
@@ -492,10 +477,10 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 			int g4 = gamma_pair34.second;
 			int sigma_bar = sigma == up_spin ? down_spin : up_spin;			    
 			cx_double v_b2_34_pp = velocity_U1(*ts, *Udg_kf, Uk, kx, ky, kz, bond2, g3, g4, 1, 1, sigma, sigma);
-			cx_double v_b2_34_mm = velocity_U1(*ts, *Udg_kf, Uk, kx, ky, kz, bond2, g3, g4, -1, -1, sigma_bar, sigma_bar);
+			// cx_double v_b2_34_mm = velocity_U1(*ts, *Udg_kf, Uk, kx, ky, kz, bond2, g3, g4, -1, -1, sigma_bar, sigma_bar);
 			cx_double v_b1_12_pm = velocity_U1(*ts, Uk_dg, *U_ki, kx, ky, kz, bond1, g1, g2,  1, -1, sigma, sigma);
 			cx_double v_b1_12_pp = velocity_U1(*ts, *Udg_ki, Uk, kx, ky, kz, bond1, g1, g2,  1,  1, sigma, sigma);
-			cx_double v_b1_12_mm = velocity_U1(*ts, *Udg_ki, Uk, kx, ky, kz, bond1, g1, g2, -1, -1, sigma_bar, sigma_bar);
+			// cx_double v_b1_12_mm = velocity_U1(*ts, *Udg_ki, Uk, kx, ky, kz, bond1, g1, g2, -1, -1, sigma_bar, sigma_bar);
 			cx_double v_b2_34_pm = velocity_U1(*ts, Uk_dg, *U_kf, kx, ky, kz, bond2, g3, g4,  1, -1, sigma, sigma);
 			// v1 += dir_comp * (v_b2_34_pp + v_b2_34_mm) * v_b1_12_pm;
 			// v2 += dir_comp * (v_b1_12_pp + v_b1_12_mm) * v_b2_34_pm;
@@ -584,16 +569,17 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	      weight_minus2_comp.push_back(mat_elem2_minus);
 
 	      // // for check
+	      if ( mu == 0 && nu == 0 ) {	      
 	      // if ( (mu == 0 && nu == 1) || (mu == 1 && nu == 0) ) {
 	      // 	// if ( mu == 0 && nu == 1 ) {
 		
-	      // 	double w1_Re = std::real(mat_elem1_minus);
-	      // 	double w1_Im = std::imag(mat_elem1_minus);
-	      // 	double w2_Re = std::real(mat_elem2_minus);
-	      // 	double w2_Im = std::imag(mat_elem2_minus);				
+	      	double w1_Re = std::real(mat_elem1_minus);
+	      	double w1_Im = std::imag(mat_elem1_minus);
+	      	double w2_Re = std::real(mat_elem2_minus);
+	      	double w2_Im = std::imag(mat_elem2_minus);				
 
-	      // 	std::cout << mu << "  " << nu << "  " << kx << "  " << ky << "  " << kz << "  " << w1_Re << "  " << w1_Im << "  " << w2_Re << "  " << w2_Im << std::endl;
-	      // }
+		// std::cout << mu << "  " << nu << "  " << x << "  " << y << "  " << z << "  " << sigma << "  " << w1_Re << "  " << w1_Im << "  " << w2_Re << "  " << w2_Im << std::endl;
+	      }
 		
 	      ++idx_k_sigma;
 	    } /* end for sigma */	      
@@ -625,9 +611,13 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	      double ky = k1 * y;
 
 	      /* Checking if the wavevector is inside the BZ. */
-	      double factor = BZ_factor(kx, ky);
+	      double factor = BZ_factor_square_half_filling(kx, ky);
 	      if ( std::abs(factor) < 1e-12 ) { continue; }
 
+	      double e_gap = gap_L[idx_k_sigma];
+	      
+	      cx_double weight_minus_sum = 0;
+	      double down_sign = 1.0;   // Linear combination
 	      for(int sigma: {up_spin, down_spin}){
 		/* Mean field eigenenergy */
 		double ek_plus = E_k_plus[idx_k_sigma];
@@ -636,15 +626,17 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 		
 		cx_double weight1_minus = weight_minus1[idx_comp][idx_k_sigma] / (ek_diff - pr.omega_i);	      
 		cx_double weight2_minus = weight_minus2[idx_comp][idx_k_sigma] / (ek_diff + omega_f);
-		cx_double weight_minus_sum = weight1_minus + weight2_minus;
+		weight_minus_sum += (weight1_minus + weight2_minus) * (sigma == up_spin ? 1.0 : down_sign) / sqrt(2.0);
+
+		// // for check
+		// std::cout << z << " " << x << " " << y << " " << sigma << "  " << weight1_minus << "  " << weight2_minus << std::endl;
 		
-		// Zero temperature
-		double Ei = 0;
-		double e_gap = gap_L[idx_k_sigma];	      		
-		sum += factor * exp(- beta * Ei) * std::norm(g_photon * weight_minus_sum) / (e_gap - omega_shifted);
-	      
 		++idx_k_sigma;
 	      } /* end for sigma */
+
+	      // Zero temperature
+	      double Ei = 0;
+	      sum += factor * exp(- beta * Ei) * std::norm(g_photon * weight_minus_sum) / (e_gap - omega_shifted);	      
 	    } /* end for y */
 	  } /* end for x */
 	} /* end for z */

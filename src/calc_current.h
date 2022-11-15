@@ -29,25 +29,34 @@ private:
 
 class CurrentIntegrandBilayer : public CurrentIntegrand {
 public:
-  CurrentIntegrandBilayer():CurrentIntegrand(&hb_),mfb_(), J_(4,4){}
-  void set_parameters(hoppings_bilayer2 const& h, double kT, double mu_, double delta, int dir_, double *Qvec);
+  CurrentIntegrandBilayer():CurrentIntegrand(&hb_),mfb_(){}
+  void set_parameters(hoppings_bilayer2 const& h, double kT, double mu_, double delta, BondDelta bd, int g1, int g2, double *Qvec);
   int calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata);
-  void set_current_matrix(double *kvec, int dir);
-  cx_double integrand(double kx, double ky, double kz);
+  void set_variables(double *ks);
+  cx_double integrand(double *ks);
   double kT() const { return kT_; }
   double mu() const { return mu_; }
   double delta() const { return delta_; }
-  int dir() const { return dir_; }
-
+  int gamma1() const { return gamma1_; }
+  int gamma2() const { return gamma2_; }
+  cx_double t() const { return t_; }
+  cx_double phase() const { return phase_; }
+  cx_double epsilon(int m) const { return epsilon_[m]; }
+  bool no_contribution() const { return std::abs(t()) < 1e-12; };
+  
 private:
   hoppings_bilayer2 hb_;
   MeanFieldBilayer mfb_;
   double kT_;
   double mu_;
   double delta_;
-  int dir_;
+  BondDelta bond_;
+  int gamma1_, gamma2_;    
   double Qvec_[3];
-  cx_mat J_;
+  cx_double t_;
+  cx_double phase_;
+  cx_double epsilon_[2];  // Sublattice factor for the two terms.
+  cx_mat UfUd_;
 };
 
 /* For bilayer lattices */

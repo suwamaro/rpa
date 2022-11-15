@@ -24,7 +24,7 @@ double wave_vector_in_BZ(double k){
   return k;
 }
 
-double BZ_factor(double kx, double ky){  
+double BZ_factor_square_half_filling(double kx, double ky){  
   double mu_free = 0;  /* Assume at half filling */
   double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc: t=1 */
   double factor = 0.0;

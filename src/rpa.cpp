@@ -74,6 +74,11 @@ int main(int argc, char **argv){
   if ( p.calc_phase_boundary_t4_bilayer ) {    
     calc_phase_boundary_t4_bilayer(base_dir, p);
   }
+
+  /* Raman scattering */
+  if ( p.calc_current_bilayer ) {    
+    calc_current_bilayer(base_dir, p);
+  }
   
   /* Raman scattering */
   if ( p.calc_Raman_bilayer ) {    

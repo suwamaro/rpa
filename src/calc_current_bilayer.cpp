@@ -11,6 +11,7 @@
 #ifdef WITH_OpenMP
 #include <omp.h>
 #endif
+#include "rpa_util.h"
 #include "calc_intensity.h"
 #include "calc_spectrum.h"
 #include "self_consistent_eq.h"
@@ -23,28 +24,38 @@
 CurrentIntegrandBilayer cuib;
 
 /* Member functions of CurrentIntegrandBilayer */
-cx_double CurrentIntegrandBilayer::integrand(double kx, double ky, double kz){    
-  double kvec[3] = {kx, ky, kz};
-  set_current_matrix(kvec, dir());
+cx_double CurrentIntegrandBilayer::integrand(double *ks){
+  set_variables(ks);
+  
+  if ( no_contribution() ) { return 0.0; }
+  
+  cx_double current1 = 0, current2 = 0;
+  for(int sigma1: {up_spin, down_spin}){    
+    for(int sigma2: {up_spin, down_spin}){
+      if ( sigma1 != sigma2 ) { continue; }  // U(1) symmetry
+      
+      int g1s1 = sublattice_spin_index(gamma1(), sigma1);
+      int g1s2 = sublattice_spin_index(gamma1(), sigma2);
+      int g2s1 = sublattice_spin_index(gamma2(), sigma1);
+      int g2s2 = sublattice_spin_index(gamma2(), sigma2);
 
-  cx_double current = 0;
-  for(std::size_t n=0; n < 4; n++){
-    double E = mfb_.E(n);
-    double f = fermi_density(E, kT(), mu());
-    if ( f > 1e-14 ) {
-      current += arma::cdot(mfb_.U()->col(n), J_ * mfb_.U()->col(n)) * f;
+      cx_double t_spin = sigma1 == up_spin ? t() : std::conj(t());
+      current1 += 1i * t_spin * UfUd_(g1s2, g2s1) * epsilon(0) * phase();
+      current2 += 1i * std::conj(t_spin) * UfUd_(g2s2, g1s1) * epsilon(1) * std::conj(phase());
     }
   }
   
-  return current;
+  return current1 - current2;  
 }
 
-void CurrentIntegrandBilayer::set_parameters(hoppings_bilayer2 const& h, double kT, double mu, double delta, int dir, double *Qvec){
+void CurrentIntegrandBilayer::set_parameters(hoppings_bilayer2 const& h, double kT, double mu, double delta, BondDelta bd, int g1, int g2, double *Qvec){
   hb_ = h;
   kT_ = kT;
   mu_ = mu;
   delta_ = delta;
-  dir_ = dir;
+  bond_ = bd;
+  gamma1_ = g1;
+  gamma2_ = g2;
   for(int d=0; d<3; d++){ Qvec_[d] = Qvec[d]; }
 }
 
@@ -61,59 +72,86 @@ int CurrentIntegrandBilayer::calc(const int *ndim, const cubareal xx[], const in
   
   /* Sum over kz */
   for(int z=0; z < 2; z++){       
-    double kz = M_PI * z;	  
-    sum += integrand(kx, ky, kz);
+    double kz = M_PI * z;
+    double ks[3] = {kx, ky, kz};
+    sum += integrand(ks);
   }
 
   ff[0] = std::real(sum);
   ff[1] = std::imag(sum);
   
-  return 0;   
+  return 0;
 }
 
-void CurrentIntegrandBilayer::set_current_matrix(double* kvec, int dir){
-  mfb_.set_parameters(hb_, delta_, kvec);
-  mfb_.set_eigen_energies();
-  mfb_.set_eigen_vectors();
-
-  cx_double t = 0;
-  double r_diff[3] = {0, 0, 0};
-  if ( dir == x_dir() ) {
-    r_diff[0] = 1.;    
-    t = - hb_.t;
-  } else if ( dir == y_dir() ) {
-    r_diff[1] = 1.;
-    t = - hb_.t;
-  } else if ( dir == z_dir() ) {
-    r_diff[2] = 1.;
-    t = - hb_.tz;
+void CurrentIntegrandBilayer::set_variables(double* ks){
+  /* Setting the hopping parameter. */
+  if ( bond_ == BondDelta(1, 0, 0) || bond_ == BondDelta(0, 1, 0) ) {
+    if ( gamma1() == gamma2() ) {
+      t_ = 0;
+    } else {
+      t_ = - hb_.t;
+    }
+  } else if ( bond_ == BondDelta(1, 1, 0) || bond_ == BondDelta(1, -1, 0) ) {
+    if ( gamma1() == gamma2() ) {
+      t_ = - hb_.tp;
+    } else {
+      t_ = 0;
+    }
+  } else if ( bond_ == BondDelta(0, 0, 1) ) {
+    if ( gamma1() == gamma2() ) {
+      t_ = 0;
+    } else {
+      if ( gamma2() == 0 ) {
+	t_ = - hb_.tz;
+      } else {
+	t_ = - std::conj(hb_.tz);
+      }
+    }    
   } else {
-    std::cerr << "\"dir\" has to be x, y, or z." << std::endl;
+    std::cerr << "This type of \"BondDelta\" is not supported in " << __func__ << "." << std::endl;
     std::exit(EXIT_FAILURE);
   }
 
-  double inner_prod = 0;
-  for(int d=0; d < 3; d++){ inner_prod += kvec[d] * r_diff[d]; }
-  cx_double pure_i(0,1);
-  cx_double phase = std::exp( pure_i * inner_prod );
-  cx_double elem = pure_i * (t * phase - t * std::conj(phase));
+  if ( no_contribution() ) { return; }
   
-  double Qinner_prod = 0;
-  for(int d=0; d < 3; d++){ Qinner_prod += Qvec_[d] * r_diff[d]; }
-  cx_double Qphase = std::exp( pure_i * Qinner_prod );
+  /* Setting the unitary matrix for k - Q/2. */
+  double ks2[3] = {ks[0] - Qvec_[0]/2, ks[1] - Qvec_[1]/2, ks[2] - Qvec_[2]/2};
+  mfb_.set_parameters(hb_, delta(), ks2);
+  mfb_.set_eigen_energies();
+  mfb_.set_eigen_vectors();
 
-  /* Assume the U(1) symmetry */  
-  J_.zeros();
-  J_(2,0) = elem;
-  J_(0,2) = std::conj(elem) * Qphase;
-  J_(3,1) = std::conj(elem);
-  J_(1,3) = elem * Qphase;
+  /* Setting UfUd matrix. */
+  UfUd_.zeros(4, 4);
+  for(int i=0; i < 4; ++i){
+    for(int j=0; j < 4; ++j){
+      for(int n=0; n < 4; ++n){      
+	double E = mfb_.E(n);
+	double f = fermi_density(E, kT(), mu());
+	UfUd_(i,j) += (*mfb_.U())(i,n) * f * std::conj((*mfb_.U())(j,n));
+      }
+    }
+  }
+
+  /* Setting the epsilon. */
+  if ( Qvec_[0] == 0 && Qvec_[1] == 0 && Qvec_[2] == 0 ) {
+    epsilon_[0] = 1.0;
+    epsilon_[1] = 1.0;
+  } else {
+    /* Assume Qvec == (pi, pi, pi) */
+    epsilon_[0] = gamma2() == 0 ? - 1.0 : 1.0;
+    epsilon_[1] = gamma1() == 0 ? - 1.0 : 1.0;
+  }
+  
+  /* Setting the phase. */
+  double inner_prod = ks[0] * bond_.x + ks[1] * bond_.y + ks[2] * bond_.z;
+  phase_ = std::exp(1i * inner_prod);
 }
 
 int current_integrand_bilayer(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata){
   return cuib.calc(ndim, xx, ncomp, ff, userdata);
 }
 
+ 
 void calc_current_bilayer(path& base_dir, rpa::parameters const& pr){
   /* Getting parameters */
   int L = pr.L;
@@ -147,89 +185,84 @@ void calc_current_bilayer(path& base_dir, rpa::parameters const& pr){
   out_gap << "mu = " << mu << std::endl;
   out_gap.close();
     
-  /* Calculating electronic current */
-  cx_double current[3] = {0, 0, 0};
-
   /* Output */
   ofstream out_current;
   out_current.open(base_dir / "electronic_current.out");
+
+  std::vector<BondDelta> bonds {
+    {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, -1, 0},  {0, 0, 1}
+  };
   
   double Qvec[3];
   for(int Qidx=0; Qidx < 2; Qidx++){
     if ( Qidx == 0 ) {
-      for(int d=0; d < 3; d++){ Qvec[d] = 0; }
+      for(int d=0; d < 3; d++){ Qvec[d] = 0; }  // Q=(0,0,0)      
     } else {
-      for(int d=0; d < 3; d++){ Qvec[d] = M_PI; }      
-    }
-    
-    for(int dir=0; dir < 3; dir++){    
-      /* Setting the parameters */  
-      cuib.set_parameters(*ts, kB*T, mu, delta, dir, Qvec);
-    
-      /* Calculating the weight distribution */
-      if ( continuous_k ) {
-	/* For Cuba */
-	double epsrel = 1e-10;
-	double epsabs = 1e-10;    
-	int ncomp = 2;
-	int nregions, neval, fail;
-	cubareal integral[ncomp], error[ncomp], prob[ncomp];
-
-	/* Cuhre */
-	Cuhre(cbp.NDIM, ncomp, current_integrand_bilayer, cbp.userdata, cbp.nvec, epsrel, epsabs, cbp.flags, cbp.mineval, cbp.maxeval, cbp.key, cbp.statefile, cbp.spin, &nregions, &neval, &fail, integral, error, prob);
-    
-	// for check
-	printf("CUHRE RESULT:\tnregions %d\tneval %d\tfail %d\n", nregions, neval, fail);    
-	// for(int comp = 0; comp < ncomp; comp++ )
-	//   printf("CUHRE RESULT:\t%.8f +- %.8f\tp = %.3f\n",
-	// 	     (double)integral[comp], (double)error[comp], (double)prob[comp]);
-
-	current[dir] = { integral[0] / 2., integral[1] / 2. };
-      } else {
-	double eps = 1e-12;
-	double k1 = 2. * M_PI / (double)L;
-
-	cx_double current_k = 0;
-	for(int z=0; z < 2; z++){    
-	  double kz = M_PI * z;
-	  for(int x=-L/2; x < L/2; x++){
-	    double kx = k1 * x;
-	    for(int y=-L/2; y < L/2; y++){
-	      double ky = k1 * y;      
-	
-	      /* Checking if k is inside/outside the BZ. */
-	      double mu_free = 0;  /* Assume at half filling */
-	      double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc */
-	      if ( e_free > mu_free + eps ) continue;
-
-	      /* Prefactor */
-	      double factor = 1.;
-	
-	      /* On the zone boundary */
-	      if ( std::abs(e_free - mu_free) < eps ) {	
-		factor = 0.5;
-	      }
-	  
-	      current_k += factor * cuib.integrand(kx, ky, kz);
-	    } /* end for y */
-	  } /* end for x */
-	} /* end for z */
-
-	int n_sites = L * L * 2;
-	int n_unit_cell = n_sites / 2;
-	current_k /=  (double)n_unit_cell;
-	current[dir] = current_k;
-      }
+      for(int d=0; d < 3; d++){ Qvec[d] = M_PI; }  // Q=(pi,pi,pi)
     }
 
-    /* Output */
-    out_current << std::setprecision(8);    
-    out_current << "# q = ( " << Qvec[0] << " " << Qvec[1] << " " << Qvec[2] << " )" << std::endl;
+    out_current << std::setprecision(8);
+    out_current << std::endl << "# q = ( " << Qvec[0] << " " << Qvec[1] << " " << Qvec[2] << " )" << std::endl;
+    out_current << "# delta_x  delta_y  delta_z  gamma1  gamma2   Re[J]   Im[J]" << std::endl;    
     out_current << std::setprecision(prec);
-    for(int dir=0; dir < 3; dir++){
-      out_current << dir << std::setw(prec+10) << current[dir] * e_over_hbar << std::endl;
-    }
-    out_current << std::endl;
+  
+    for(BondDelta bond: bonds){
+      std::vector<std::pair<int,int>> sublattice_pairs{{0,0}, {0,1}, {1,0}, {1,1}};
+      for(std::pair<int,int> gamma_pair12: sublattice_pairs){		      
+	int g1 = gamma_pair12.first;
+	int g2 = gamma_pair12.second;
+
+	/* Calculating electronic current */
+	cx_double current = 0;
+  
+	/* Setting the parameters */  
+	cuib.set_parameters(*ts, kB*T, mu, delta, bond, g1, g2, Qvec);
+    
+	/* Calculating the weight distribution */
+	if ( continuous_k ) {
+	  /* For Cuba */
+	  double epsrel = 1e-10;
+	  double epsabs = 1e-10;    
+	  int ncomp = 2;
+	  int nregions, neval, fail;
+	  cubareal integral[ncomp], error[ncomp], prob[ncomp];
+
+	  /* Cuhre */
+	  Cuhre(cbp.NDIM, ncomp, current_integrand_bilayer, cbp.userdata, cbp.nvec, epsrel, epsabs, cbp.flags, cbp.mineval, cbp.maxeval, cbp.key, cbp.statefile, cbp.spin, &nregions, &neval, &fail, integral, error, prob);
+    
+	  // for check
+	  printf("CUHRE RESULT:\tnregions %d\tneval %d\tfail %d\n", nregions, neval, fail);    
+	  // for(int comp = 0; comp < ncomp; comp++ )
+	  //   printf("CUHRE RESULT:\t%.8f +- %.8f\tp = %.3f\n",
+	  // 	     (double)integral[comp], (double)error[comp], (double)prob[comp]);
+
+	  current = { integral[0] / 2., integral[1] / 2. };
+	} else {
+	  double eps = 1e-12;
+	  double k1 = 2. * M_PI / (double)L;
+
+	  for(int z=0; z < 2; z++){    
+	    double kz = M_PI * z;
+	    for(int x=-L/2; x < L/2; x++){
+	      double kx = k1 * x;
+	      for(int y=-L/2; y < L/2; y++){
+		double ky = k1 * y;
+
+		/* Checking if the wavevector is inside the BZ. */
+		double factor = BZ_factor_square_half_filling(kx, ky);
+		if ( std::abs(factor) < 1e-12 ) { continue; }
+
+		double ks[3] = {kx, ky, kz};
+		current += factor * cuib.integrand(ks);		
+	      } /* end for y */
+	    } /* end for x */
+	  } /* end for z */
+	}
+
+	/* Output */
+	out_current << bond.x << "  " << bond.y << "  " << bond.z << "  " << g1 << "  " << g2 << std::setw(prec+10) << std::real(current) << std::setw(prec+10) << std::imag(current) << std::endl;
+      }  /* end for gamma_pair12 */
+    }  /* end for bond */
   }  /* End for Qidx */
   
   out_current.close();

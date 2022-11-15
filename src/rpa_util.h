@@ -7,8 +7,31 @@
 *
 *****************************************************************************/
 
+#ifndef _RPA_UTIL_H
+#define _RPA_UTIL_H
+
 #include "rpa.h"
 #include "hoppings.h"
+
+/* Considered bonds: +x, +y, +x+y, +x-y, +z */
+struct BondDelta {
+  int x; int y; int z;
+  BondDelta():x(0),y(0),z(0){}
+  explicit BondDelta(int dir){
+    if ( dir == 0 ) { x = 1; y = 0; z = 0; }
+    else if ( dir == 1 ) { x = 0; y = 1; z = 0; }
+    else if ( dir == 2 ) { x = 0; y = 0; z = 1; }
+    else {
+      std::cerr << "Not supported dir value." << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+  }
+  BondDelta(int _x, int _y, int _z):x(_x),y(_y),z(_z){}
+  bool operator ==(BondDelta const& bd) const {
+    if ( this->x == bd.x && this->y == bd.y && this->z == bd.z ) { return true; }
+    else { return false; }
+  }
+};
 
 double energy_free_electron(double t, double mu, double kx, double ky, double kz);
 double energy_free_electron(double t, double mu, double kx, double ky);
@@ -29,3 +52,5 @@ cx_double xk(int spin, cx_double ek1, cx_double tz, double kz, double delta);
 double eigenenergy_HF(double sign, cx_double ek1, cx_double ek23, cx_double ekz, cx_double tz, double kz, double delta);
 double fermi_density(double x, double kT, double mu);
 double compressibility(double x, double kT, double mu);
+
+#endif // _RPA_UTIL_H

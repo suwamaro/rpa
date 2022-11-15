@@ -121,7 +121,7 @@ void make_wave_vector_tables(rpa::parameters const& pr, std::vector<std::size_t>
     for(double ky: kys){
       for(double kx: kxs){	
 	/* Checking if the wavevector is inside the BZ. */
-	double factor = BZ_factor(kx, ky);
+	double factor = BZ_factor_square_half_filling(kx, ky);
 	
 	if ( std::abs(factor) < 1e-12 ) { continue; }
 	

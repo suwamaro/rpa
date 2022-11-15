@@ -25,6 +25,7 @@ namespace rpa {
     calc_binding_energy_bilayer = config->get_as<bool>("calc_binding_energy_bilayer").value_or(false);
     calc_phase_boundary_U_bilayer = config->get_as<bool>("calc_phase_boundary_U_bilayer").value_or(false);
     calc_phase_boundary_t4_bilayer = config->get_as<bool>("calc_phase_boundary_t4_bilayer").value_or(false);
+    calc_current_bilayer = config->get_as<bool>("calc_current_bilayer").value_or(false);    
     calc_Raman_bilayer = config->get_as<bool>("calc_Raman_bilayer").value_or(false);
     calc_two_site_problem = config->get_as<bool>("calc_two_site_problem").value_or(false);            
     
