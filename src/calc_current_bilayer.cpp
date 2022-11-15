@@ -25,23 +25,23 @@ CurrentIntegrandBilayer cuib;
 
 /* Member functions of CurrentIntegrandBilayer */
 cx_double CurrentIntegrandBilayer::integrand(double *ks){
-  set_variables(ks);
-  
   if ( no_contribution() ) { return 0.0; }
   
+  set_variables(ks);
+    
   cx_double current1 = 0, current2 = 0;
   for(int sigma1: {up_spin, down_spin}){    
-    for(int sigma2: {up_spin, down_spin}){
-      if ( sigma1 != sigma2 ) { continue; }  // U(1) symmetry
-      
+    for(int sigma2: {up_spin, down_spin}){      
       int g1s1 = sublattice_spin_index(gamma1(), sigma1);
       int g1s2 = sublattice_spin_index(gamma1(), sigma2);
       int g2s1 = sublattice_spin_index(gamma2(), sigma1);
       int g2s2 = sublattice_spin_index(gamma2(), sigma2);
 
-      cx_double t_spin = sigma1 == up_spin ? t() : std::conj(t());
-      current1 += 1i * t_spin * UfUd_(g1s2, g2s1) * epsilon(0) * phase();
-      current2 += 1i * std::conj(t_spin) * UfUd_(g2s2, g1s1) * epsilon(1) * std::conj(phase());
+      cx_double t1 = hopping_U1(gamma2(), gamma1(), sigma1, sigma2);
+      current1 += 1i * t1 * UfUd_(g1s2, g2s1) * epsilon(0) * phase();
+      
+      cx_double t2 = hopping_U1(gamma2(), gamma1(), sigma2, sigma1);      
+      current2 += 1i * std::conj(t2) * UfUd_(g2s2, g1s1) * epsilon(1) * std::conj(phase());
     }
   }
   
@@ -83,37 +83,27 @@ int CurrentIntegrandBilayer::calc(const int *ndim, const cubareal xx[], const in
   return 0;
 }
 
-void CurrentIntegrandBilayer::set_variables(double* ks){
-  /* Setting the hopping parameter. */
+bool CurrentIntegrandBilayer::no_contribution() const {
   if ( bond_ == BondDelta(1, 0, 0) || bond_ == BondDelta(0, 1, 0) ) {
     if ( gamma1() == gamma2() ) {
-      t_ = 0;
-    } else {
-      t_ = - hb_.t;
+      return true;
     }
   } else if ( bond_ == BondDelta(1, 1, 0) || bond_ == BondDelta(1, -1, 0) ) {
-    if ( gamma1() == gamma2() ) {
-      t_ = - hb_.tp;
-    } else {
-      t_ = 0;
+    if ( gamma1() != gamma2() ) {
+      return true;
     }
   } else if ( bond_ == BondDelta(0, 0, 1) ) {
     if ( gamma1() == gamma2() ) {
-      t_ = 0;
-    } else {
-      if ( gamma2() == 0 ) {
-	t_ = - hb_.tz;
-      } else {
-	t_ = - std::conj(hb_.tz);
-      }
+      return true;
     }    
   } else {
     std::cerr << "This type of \"BondDelta\" is not supported in " << __func__ << "." << std::endl;
     std::exit(EXIT_FAILURE);
-  }
+  }  
+  return false;
+}
 
-  if ( no_contribution() ) { return; }
-  
+void CurrentIntegrandBilayer::set_variables(double* ks){
   /* Setting the unitary matrix for k - Q/2. */
   double ks2[3] = {ks[0] - Qvec_[0]/2, ks[1] - Qvec_[1]/2, ks[2] - Qvec_[2]/2};
   mfb_.set_parameters(hb_, delta(), ks2);
@@ -145,6 +135,46 @@ void CurrentIntegrandBilayer::set_variables(double* ks){
   /* Setting the phase. */
   double inner_prod = ks[0] * bond_.x + ks[1] * bond_.y + ks[2] * bond_.z;
   phase_ = std::exp(1i * inner_prod);
+}
+
+cx_double CurrentIntegrandBilayer::hopping_U1(int g1, int g2, int sigma1, int sigma2){
+  /* U(1) symmetric case */
+  if ( sigma1 != sigma2 ) { return 0; }
+  
+  if ( bond_ == BondDelta(1, 0, 0) || bond_ == BondDelta(0, 1, 0) ) {
+    if ( g1 == g2 ) {
+      return 0;
+    } else {
+      return - hb_.t;
+    }
+  } else if ( bond_ == BondDelta(1, 1, 0) || bond_ == BondDelta(1, -1, 0) ) {
+    if ( g1 == g2 ) {
+      return - hb_.tp;
+    } else {
+      return 0;
+    }
+  } else if ( bond_ == BondDelta(0, 0, 1) ) {
+    if ( g1 == g2 ) {
+      return 0;
+    } else {
+      if ( g2 == 0 ) {
+	if ( sigma2 == up_spin ) {
+	  return - hb_.tz;
+	} else {
+	  return - std::conj(hb_.tz);
+	}
+      } else {
+	if ( sigma2 == up_spin ) {
+	  return - std::conj(hb_.tz);
+	} else {
+	  return - hb_.tz;
+	}
+      }
+    }    
+  } else {
+    std::cerr << "This type of \"BondDelta\" is not supported in " << __func__ << "." << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
 }
 
 int current_integrand_bilayer(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata){

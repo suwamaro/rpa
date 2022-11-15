@@ -33,16 +33,17 @@ public:
   void set_parameters(hoppings_bilayer2 const& h, double kT, double mu_, double delta, BondDelta bd, int g1, int g2, double *Qvec);
   int calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata);
   void set_variables(double *ks);
+  cx_double hopping_U1(int g1, int g2, int sigma1, int sigma2);
   cx_double integrand(double *ks);
   double kT() const { return kT_; }
   double mu() const { return mu_; }
   double delta() const { return delta_; }
   int gamma1() const { return gamma1_; }
   int gamma2() const { return gamma2_; }
-  cx_double t() const { return t_; }
+  // cx_double t() const { return t_; }
   cx_double phase() const { return phase_; }
   cx_double epsilon(int m) const { return epsilon_[m]; }
-  bool no_contribution() const { return std::abs(t()) < 1e-12; };
+  bool no_contribution() const;
   
 private:
   hoppings_bilayer2 hb_;
@@ -53,7 +54,7 @@ private:
   BondDelta bond_;
   int gamma1_, gamma2_;    
   double Qvec_[3];
-  cx_double t_;
+  // cx_double t_;
   cx_double phase_;
   cx_double epsilon_[2];  // Sublattice factor for the two terms.
   cx_mat UfUd_;
