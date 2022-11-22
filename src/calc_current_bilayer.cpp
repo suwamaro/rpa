@@ -31,17 +31,23 @@ cx_double CurrentIntegrandBilayer::integrand(double *ks){
     
   cx_double current1 = 0, current2 = 0;
   for(int sigma1: {up_spin, down_spin}){    
-    for(int sigma2: {up_spin, down_spin}){      
+    for(int sigma2: {up_spin, down_spin}){
       int g1s1 = sublattice_spin_index(gamma1(), sigma1);
       int g1s2 = sublattice_spin_index(gamma1(), sigma2);
       int g2s1 = sublattice_spin_index(gamma2(), sigma1);
       int g2s2 = sublattice_spin_index(gamma2(), sigma2);
 
       cx_double t1 = hopping_U1(gamma2(), gamma1(), sigma1, sigma2);
-      current1 += 1i * t1 * UfUd_(g1s2, g2s1) * epsilon(0) * phase();
+      double ks1[3] = {ks[0] + Qvec_[0]/2, ks[1] + Qvec_[1]/2, ks[2] + Qvec_[2]/2};  
+      double inner_prod1 = ks1[0] * bond_.x + ks1[1] * bond_.y + ks1[2] * bond_.z;
+      cx_double phase1 = std::exp(1i * inner_prod1);
+      current1 += 1i * t1 * UfUd_(g1s2, g2s1) * epsilon() * phase1;
       
-      cx_double t2 = hopping_U1(gamma2(), gamma1(), sigma2, sigma1);      
-      current2 += 1i * std::conj(t2) * UfUd_(g2s2, g1s1) * epsilon(1) * std::conj(phase());
+      cx_double t2 = hopping_U1(gamma2(), gamma1(), sigma2, sigma1);
+      double ks2[3] = {- ks[0] + Qvec_[0]/2, - ks[1] + Qvec_[1]/2, - ks[2] + Qvec_[2]/2};  
+      double inner_prod2 = ks2[0] * bond_.x + ks2[1] * bond_.y + ks2[2] * bond_.z;
+      cx_double phase2 = std::exp(1i * inner_prod2);      
+      current2 += 1i * std::conj(t2) * UfUd_(g2s2, g1s1) * epsilon() * phase2;
     }
   }
   
@@ -104,9 +110,8 @@ bool CurrentIntegrandBilayer::no_contribution() const {
 }
 
 void CurrentIntegrandBilayer::set_variables(double* ks){
-  /* Setting the unitary matrix for k - Q/2. */
-  double ks2[3] = {ks[0] - Qvec_[0]/2, ks[1] - Qvec_[1]/2, ks[2] - Qvec_[2]/2};
-  mfb_.set_parameters(hb_, delta(), ks2);
+  /* Setting the unitary matrix for k. */
+  mfb_.set_parameters(hb_, delta(), ks);
   mfb_.set_eigen_energies();
   mfb_.set_eigen_vectors();
 
@@ -114,7 +119,7 @@ void CurrentIntegrandBilayer::set_variables(double* ks){
   UfUd_.zeros(4, 4);
   for(int i=0; i < 4; ++i){
     for(int j=0; j < 4; ++j){
-      for(int n=0; n < 4; ++n){      
+      for(int n=0; n < 4; ++n){
 	double E = mfb_.E(n);
 	double f = fermi_density(E, kT(), mu());
 	UfUd_(i,j) += (*mfb_.U())(i,n) * f * std::conj((*mfb_.U())(j,n));
@@ -124,17 +129,11 @@ void CurrentIntegrandBilayer::set_variables(double* ks){
 
   /* Setting the epsilon. */
   if ( Qvec_[0] == 0 && Qvec_[1] == 0 && Qvec_[2] == 0 ) {
-    epsilon_[0] = 1.0;
-    epsilon_[1] = 1.0;
+    epsilon_ = 1.0;
   } else {
     /* Assume Qvec == (pi, pi, pi) */
-    epsilon_[0] = gamma2() == 0 ? - 1.0 : 1.0;
-    epsilon_[1] = gamma1() == 0 ? - 1.0 : 1.0;
+    epsilon_ = gamma2() == 0 ? - 1.0 : 1.0;
   }
-  
-  /* Setting the phase. */
-  double inner_prod = ks[0] * bond_.x + ks[1] * bond_.y + ks[2] * bond_.z;
-  phase_ = std::exp(1i * inner_prod);
 }
 
 cx_double CurrentIntegrandBilayer::hopping_U1(int g1, int g2, int sigma1, int sigma2){

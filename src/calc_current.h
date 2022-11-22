@@ -40,9 +40,7 @@ public:
   double delta() const { return delta_; }
   int gamma1() const { return gamma1_; }
   int gamma2() const { return gamma2_; }
-  // cx_double t() const { return t_; }
-  cx_double phase() const { return phase_; }
-  cx_double epsilon(int m) const { return epsilon_[m]; }
+  cx_double epsilon() const { return epsilon_; }
   bool no_contribution() const;
   
 private:
@@ -54,9 +52,7 @@ private:
   BondDelta bond_;
   int gamma1_, gamma2_;    
   double Qvec_[3];
-  // cx_double t_;
-  cx_double phase_;
-  cx_double epsilon_[2];  // Sublattice factor for the two terms.
+  cx_double epsilon_;  // Sublattice factor
   cx_mat UfUd_;
 };
 
