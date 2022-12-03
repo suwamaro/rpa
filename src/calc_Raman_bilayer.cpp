@@ -11,6 +11,7 @@
 #ifdef WITH_OpenMP
 #include <omp.h>
 #endif
+#include "array3.h"
 #include "calc_intensity.h"
 #include "calc_spectrum.h"
 #include "self_consistent_eq.h"
@@ -24,6 +25,8 @@
 /* Creating an instance */
 // PhiDerIntegrandBilayer pdib;
 extern WaveFuncIntegrandBilayer wfib;
+
+typedef rpa::array3 vec3;
 
 int inner_prod(BondDelta const& d1, BondDelta const& d2){
   return d1.x * d2.x + d1.y * d2.y + d1.z * d2.z;
@@ -81,33 +84,92 @@ cx_double bond_to_hopping_bilayer(hoppings_bilayer2 const& ts, BondDelta const& 
   }
 }
 
-cx_double velocity_U1(hoppings_bilayer2 const& ts, cx_mat const& Udg, cx_mat const& U, double kx, double ky, double kz, BondDelta _bond, int g1, int g2, int sign_m, int sign_n, int sigma_m, int sigma_n){
-  int m_idx = sign_spin_index(sign_m, sigma_m);
-  int n_idx = sign_spin_index(sign_n, sigma_n);		      
-  double inner_prod = kx * _bond.x + ky * _bond.y + kz * _bond.z;
-  cx_double phase = exp(1i*inner_prod);
-		      
-  cx_double v = 0;
-  /* Assume there is no hopping with spin flip. */
-  for(int _spin: {up_spin, down_spin}){
-    int g1_idx = sublattice_spin_index(g1, _spin);
-    int g2_idx = sublattice_spin_index(g2, _spin);
+cx_double velocity_U1(hoppings_bilayer2 const& ts, cx_mat const& Udg, cx_mat const& U, cx_mat const& U_bar, double kx, double ky, double kz, vec3 const& photon_q, BondDelta const& e_mu, std::vector<BondDelta> const& bonds, int sign_m, int sign_n, int sigma_m, int sigma_n){
+  cx_double v_tot = 0;
+  for(BondDelta bond: bonds){  
+    int inner_prodbond = inner_prod(e_mu, bond);
+    if ( inner_prodbond == 0 ) { continue; }
     
-    cx_double t_21 = bond_to_hopping_bilayer(ts, _bond, g2, g1, _spin); // from g1 to g2
-    cx_double Umg2 = Udg(m_idx, g2_idx);
-    cx_double Ug1n = U(g1_idx, n_idx);      
-    v += t_21 * Umg2 * Ug1n * phase;
-    
-    cx_double t_12 = bond_to_hopping_bilayer(ts, _bond, g1, g2, _spin); // from g2 to g1
-    cx_double Umg1 = Udg(m_idx, g1_idx);
-    cx_double Ug2n = U(g2_idx, n_idx);  
-    v += - t_12 * Umg1 * Ug2n * std::conj(phase);
-  }
-
-  // // for check
-  // std::cout << "velocity = " << 1i * v << std::endl;
+    cx_double v = 0;  
+		
+    /* Checking if q == 0. */
+    bool q_pi = false;
+    if ( photon_q.norm2() > 1e-20 ) { q_pi = true; }   // Assume q = 0 or Q
   
-  return 1i * v;
+    /* Phases */
+    double inner_prod_k = kx * bond.x + ky * bond.y + kz * bond.z;
+    cx_double phase1 = exp(1i*inner_prod_k);
+    cx_double phase_delta = 0;
+    if ( q_pi ) {
+      double inner_prod_pi_delta = photon_q[0] * bond.x + photon_q[1] * bond.y + photon_q[2] * bond.z;
+      phase_delta = exp(1i*0.5*inner_prod_pi_delta);
+    } else {
+      phase_delta = 1.0;
+    }
+  
+    /* Assume there is no hopping with spin flip [U(1) symmetry]. */  
+    int m_idx = sign_spin_index(sign_m, sigma_m);
+    int n_idx = sign_spin_index(sign_n, sigma_n);  
+  
+    if ( (bond.x + bond.y) & 1 ) {
+      /* Different sublattices in the plane */
+      for(int _spin: {up_spin, down_spin}){
+	int A_idx = sublattice_spin_index(0, _spin);
+	int B_idx = sublattice_spin_index(1, _spin);
+	cx_double UdmA = Udg(m_idx, A_idx);      
+	cx_double UdmB = Udg(m_idx, B_idx);
+	cx_double UAn = U(A_idx, n_idx);    
+	cx_double UBn = U(B_idx, n_idx);
+	cx_double t = bond_to_hopping_bilayer(ts, bond, 0, 1, _spin);
+	
+	if ( q_pi ) {
+	  cx_double epsilon = 2.0 * std::real(t * phase1);
+	  v += - 1i * phase_delta * epsilon * (UdmA * UBn - UdmB * UAn);
+	} else {
+	  cx_double vel = - 2.0 * std::imag(t * phase1);
+	  v += vel * (UdmA * UBn + UdmB * UAn);	
+	}
+      }
+    } else if (bond.z == 1) {
+      /* Vertical bonds */
+      for(int _spin: {up_spin, down_spin}){
+	int A_idx = sublattice_spin_index(0, _spin);
+	int B_idx = sublattice_spin_index(1, _spin);
+	cx_double UdmA = Udg(m_idx, A_idx);      
+	cx_double UdmB = Udg(m_idx, B_idx);
+	cx_double UAn = U_bar(A_idx, n_idx);    
+	cx_double UBn = U_bar(B_idx, n_idx);
+	cx_double tz = bond_to_hopping_bilayer(ts, bond, 0, 1, _spin);  // From B to A
+
+	cx_double phase_z = exp(1i*kz);
+	cx_double v0 = - 1i * phase_z * (tz * UdmA * UBn + std::conj(tz) * UdmB * UAn);
+	if ( q_pi ) {
+	  v += - 1i * v0;
+	} else {
+	  v += v0;
+	}
+      }    
+    } else {
+      /* Same sublattices */
+      for(int _spin: {up_spin, down_spin}){
+	int A_idx = sublattice_spin_index(0, _spin);
+	int B_idx = sublattice_spin_index(1, _spin);
+	cx_double UdmA = Udg(m_idx, A_idx);      
+	cx_double UdmB = Udg(m_idx, B_idx);
+	cx_double UAn = U(A_idx, n_idx);    
+	cx_double UBn = U(B_idx, n_idx);
+	cx_double t = bond_to_hopping_bilayer(ts, bond, 0, 0, _spin);
+	cx_double vel = - 2.0 * std::imag(t * phase1);
+	if ( q_pi ) {
+	  v += - phase_delta * vel * (UdmA * UAn - UdmB * UBn);
+	} else {
+	  v += vel * (UdmA * UAn + UdmB * UBn);
+	}      
+      }
+    }
+    v_tot += (double)inner_prodbond * v;
+  }
+  return v_tot;
 }
 
 void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
@@ -210,15 +272,11 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   // calc_particle_hole1(pr, *ts, delta, vals, Uph1);
       
   std::vector<BondDelta> bonds {
-    // {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {1, 1, 0}, {1, -1, 0}, {-1, 1, 0}, {-1, -1, 0}, {0, 0, 1}
+     {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, -1, 0},  {0, 0, 1}
     
-    {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, -1, 0},  {0, 0, 1}
-    
-    // // for check
-    // , {-1, 0, 0}, {0, -1, 0}
-    
-    // {-1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, -1, 0},  {0, 0, 1}            
-  };
+    // for check
+     // {1, 0, 0}, {0, 1, 0}
+   };
 
   auto wavefunc_sublattice_correction = [](int g1, int g2, cx_double psi){
     if (g1 == 0) {
@@ -300,8 +358,17 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   int spin = up_spin;  // Unused  
   int sublattice = 0;  // Unused
   int diff_r[] = {0,0,0};  // Unused
-		
-  std::size_t idx_k_sigma = 0;
+
+  /* Photon momenta */
+  std::vector<vec3> photon_Qs;
+  photon_Qs.push_back(vec3{0, 0, 0});    
+  photon_Qs.push_back(vec3{   M_PI,   M_PI,   M_PI });
+  // photon_Qs.push_back(vec3{ - M_PI, - M_PI, - M_PI });
+  // std::vector<std::pair<int,int>> photon_ks{{1,0}};
+  std::vector<std::pair<int,int>> photon_ks{{1,1}};  
+  // std::vector<std::pair<int,int>> photon_ks{{0,0},{0,1},{1,0},{1,1}};
+
+  std::size_t idx_k_sigma_ki_kf = 0;
   for(int z=0; z < 2; ++z){    
     double kz = M_PI * z;
     for(int x=-L/2; x < L/2; ++x){
@@ -313,38 +380,40 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	double factor = BZ_factor_square_half_filling(kx, ky);
 	if ( std::abs(factor) < 1e-12 ) { continue; }
 
-	for(int sigma: {up_spin, down_spin}){	
-	  /* Calculating the gaps */
-	  double gT = 0, gL = 0, gph = 0;
-	  std::tie(gT, gL, gph) = calc_gaps(kx, ky, kz);  // Solving the pole equation in RPA.
-	  gap_T.push_back(gT);
-	  gap_L.push_back(gL);
+	for(int sigma: {up_spin, down_spin}){
+	  for(std::pair<int,int> photon_k: photon_ks){	  
+	    /* Calculating the gaps */
+	    double gT = 0, gL = 0, gph = 0;
+	    std::tie(gT, gL, gph) = calc_gaps(kx, ky, kz);  // Solving the pole equation in RPA.
+	    gap_T.push_back(gT);
+	    gap_L.push_back(gL);
 
-	  /* Eigenenergy */
-	  cx_double ek1 = ts->ek1(kx, ky, kz);
-	  cx_double ek23 = ts->ek23(kx, ky, kz);
-	  cx_double ekz = ts->ekz(kx, ky, kz);	      
-	  double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, ts->tz, kz, delta);
-	  double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, ts->tz, kz, delta);
-	  E_k_plus.push_back(ek_plus);
-	  E_k_minus.push_back(ek_minus);
+	    /* Eigenenergy */
+	    cx_double ek1 = ts->ek1(kx, ky, kz);
+	    cx_double ek23 = ts->ek23(kx, ky, kz);
+	    cx_double ekz = ts->ekz(kx, ky, kz);	      
+	    double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, ts->tz, kz, delta);
+	    double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, ts->tz, kz, delta);
+	    E_k_plus.push_back(ek_plus);
+	    E_k_minus.push_back(ek_minus);
 
-	  /* For checking the wave functions. */
-	  wfib.set_parameters(*ts, pr.largeUlimit, pr.largeU_scaling_prefactor, sigma, omega_L, Psider, delta, diff_r, sublattice, min_bk_sq);	  
-	  cx_double xki = xk(wfib.spin(), ek1, ts->tz, kz, wfib.delta());
-	  double zki = zk(ek1, ts->tz, kz, wfib.delta());
-	  cx_double bki = bk(wfib.spin(), ek1, ts->tz, kz);
-	  cx_double wavefunc_AA = wfib.integrand(xki, zki, bki, ek_plus, ek_minus, 1., 0);
-	  cx_double wavefunc_AB = wfib.integrand(xki, zki, bki, ek_plus, ek_minus, 1., 1);	
+	    /* For checking the wave functions. */
+	    wfib.set_parameters(*ts, pr.largeUlimit, pr.largeU_scaling_prefactor, sigma, omega_L, Psider, delta, diff_r, sublattice, min_bk_sq);	  
+	    cx_double xki = xk(wfib.spin(), ek1, ts->tz, kz, wfib.delta());
+	    double zki = zk(ek1, ts->tz, kz, wfib.delta());
+	    cx_double bki = bk(wfib.spin(), ek1, ts->tz, kz);
+	    cx_double wavefunc_AA = wfib.integrand(xki, zki, bki, ek_plus, ek_minus, 1., 0);
+	    cx_double wavefunc_AB = wfib.integrand(xki, zki, bki, ek_plus, ek_minus, 1., 1);	
 		    
-	  /* Output */
-	  int npw = 12;
-	  out_dispersion_transverse << idx_k_sigma << std::setw(npw) << kx << std::setw(npw) << ky << std::setw(npw) << kz << std::setw(pw) << gT << std::endl;
-	  out_dispersion_longitudinal << idx_k_sigma << std::setw(npw) << kx << std::setw(npw) << ky << std::setw(npw) << kz << std::setw(pw) << gL << std::endl;
+	    /* Output */
+	    int npw = 12;
+	    out_dispersion_transverse << idx_k_sigma_ki_kf << std::setw(npw) << kx << std::setw(npw) << ky << std::setw(npw) << kz << std::setw(pw) << gT << std::endl;
+	    out_dispersion_longitudinal << idx_k_sigma_ki_kf << std::setw(npw) << kx << std::setw(npw) << ky << std::setw(npw) << kz << std::setw(pw) << gL << std::endl;
 
-	  out_wavefunc_k << idx_k_sigma << std::setw(npw) << kx << std::setw(npw) << ky << std::setw(npw) << kz << std::setw(pw) << std::real(wavefunc_AA) << std::setw(pw) << std::imag(wavefunc_AA) << std::setw(pw) << std::real(wavefunc_AB) << std::setw(pw) << std::imag(wavefunc_AB) << std::endl;;
+	    out_wavefunc_k << idx_k_sigma_ki_kf << std::setw(npw) << kx << std::setw(npw) << ky << std::setw(npw) << kz << std::setw(pw) << std::real(wavefunc_AA) << std::setw(pw) << std::imag(wavefunc_AA) << std::setw(pw) << std::real(wavefunc_AB) << std::setw(pw) << std::imag(wavefunc_AB) << std::endl;;
 	
-	  ++idx_k_sigma;
+	    ++idx_k_sigma_ki_kf;
+	  }
 	}
       }
     }
@@ -378,7 +447,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
     }
     return *spec;
   };
-  
+	      
   /* Calculating the spectral weights and the energies. */    
   // std::vector<std::vector<cx_double>> weight_plus;
   std::vector<std::vector<cx_double>> weight_minus1, weight_minus2;
@@ -389,7 +458,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
       // std::vector<cx_double> weight_plus_comp;
       std::vector<cx_double> weight_minus1_comp, weight_minus2_comp;
   
-      idx_k_sigma = 0;
+      idx_k_sigma_ki_kf = 0;
       for(int z=0; z < 2; ++z){    
 	double kz = M_PI * z;
 	for(int x=-L/2; x < L/2; ++x){
@@ -401,109 +470,33 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	    double factor = BZ_factor_square_half_filling(kx, ky);
 	    if ( std::abs(factor) < 1e-12 ) { continue; }
 
+	    // // for check
+	    // std::cout << "k: " << x << "  " << y << "  " << z << "  " << std::endl;
+	    
 	    cx_double ek1 = ts->ek1(kx, ky, kz);
 	    cx_mat Uk = gs_HF(ek1, ts->tz, kz, delta);
+	    cx_mat Uk_bar = gs_HF(ek1, ts->tz, kz + M_PI, delta);	    
 	    cx_mat Uk_dg = arma::trans(Uk);
 
-	    cx_double ek1_pi = ts->ek1(kx + M_PI, ky + M_PI, kz + M_PI);
-	    cx_mat Uk_pi = gs_HF(ek1_pi, ts->tz, kz + M_PI, delta);
-	    cx_mat Uk_pi_dg = arma::trans(Uk_pi);
-
-	    // // for check
-	    // std::cout << "Uk" << std::endl;
-	    // std::cout << Uk << std::endl;
-
 	    for(int sigma: {up_spin, down_spin}){  // Electron spin in the conduction band labeling the final state
-	      cx_double mat_elem1_minus = 0.0;
-	      cx_double mat_elem2_minus = 0.0;
-	      
-	      /* ki and kf take 0 and (pi,pi,pi) =: 1. */
-	      // std::vector<std::pair<int,int>> ks_photon{{1,0}};
-	      // std::vector<std::pair<int,int>> ks_photon{{0,0}};	      
-	      std::vector<std::pair<int,int>> ks_photon{{0,0}, {0,1}, {1,0}, {1,1}};
-	      
-	      for(std::pair<int,int> k_photon: ks_photon){
-		int ki = k_photon.first;
-		int kf = k_photon.second;
-		
-		cx_mat *U_ki, *Udg_ki;
-		if ( ki == 0 ) {
-		  U_ki = &Uk;
-		  Udg_ki = &Uk_dg;
-		} else {
-		  U_ki = &Uk_pi;
-		  Udg_ki = &Uk_pi_dg;
-		}
-		
-		cx_mat *U_kf, *Udg_kf;
-		if ( kf == 0 ) {
-		  U_kf = &Uk;
-		  Udg_kf = &Uk_dg;
-		} else {
-		  U_kf = &Uk_pi;
-		  Udg_kf = &Uk_pi_dg;
-		}
-	      
+	      for(std::pair<int,int> photon_k: photon_ks){
 		/* Velocity */
-		cx_double v1 = 0.0, v2 = 0.0;
-		for(BondDelta bond1: bonds){
-		  int inner_prod_bond1 = inner_prod(e_mu, bond1);
-		  if ( inner_prod_bond1 == 0 ) { continue; }
-			
-		  for(BondDelta bond2: bonds){
-		    int inner_prod_bond2 = inner_prod(e_nu, bond2);
-		    if ( inner_prod_bond2 == 0 ) { continue; }
-
-		    double dir_comp = (double)(inner_prod_bond1 * inner_prod_bond2);
-		  
-		    std::vector<std::pair<int,int>> sublattice_pairs{{0,0}, {0,1}, {1,0}, {1,1}};
-		    // std::vector<std::pair<int,int>> sublattice_pairs{{0,0}, {0,1}, {1,1}};
-		    std::vector<std::pair<int,int>> sublattice_pairs1{{0,1}};
-		    std::vector<std::pair<int,int>> sublattice_pairs2{{1,0}};
-		    // std::vector<std::pair<int,int>> sublattice_pairs1{{1,0},{0,1}};
-		    // std::vector<std::pair<int,int>> sublattice_pairs2{{0,1}, {1,0}};		    
+		int kii = photon_k.first;
+		int kfi = photon_k.second;
+		
+		vec3 ki = photon_Qs[kii];
+		vec3 kf = photon_Qs[kfi];
 		    
-		    // std::vector<std::pair<int,int>> sublattice_pairs{{0,1}};
-		    
-		    // for(std::pair<int,int> gamma_pair12: sublattice_pairs1){
-		    for(std::pair<int,int> gamma_pair12: sublattice_pairs){
-		      
-		      int g1 = gamma_pair12.first;
-		      int g2 = gamma_pair12.second;
-		      // for(std::pair<int,int> gamma_pair34: sublattice_pairs2){
-		      for(std::pair<int,int> gamma_pair34: sublattice_pairs){
+		cx_double v_b2_34_pp = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, e_nu, bonds, 1, 1, sigma, sigma);
+		cx_double v_b1_12_pm = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, - ki, e_mu, bonds, 1, -1, sigma, sigma);
+		cx_double v_b1_12_pp = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, - ki, e_mu, bonds, 1,  1, sigma, sigma);
+		cx_double v_b2_34_pm = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, e_nu, bonds, 1, -1, sigma, sigma);
 			
-			int g3 = gamma_pair34.first;
-			int g4 = gamma_pair34.second;
-			int sigma_bar = sigma == up_spin ? down_spin : up_spin;			    
-			cx_double v_b2_34_pp = velocity_U1(*ts, *Udg_kf, Uk, kx, ky, kz, bond2, g3, g4, 1, 1, sigma, sigma);
-			// cx_double v_b2_34_mm = velocity_U1(*ts, *Udg_kf, Uk, kx, ky, kz, bond2, g3, g4, -1, -1, sigma_bar, sigma_bar);
-			cx_double v_b1_12_pm = velocity_U1(*ts, Uk_dg, *U_ki, kx, ky, kz, bond1, g1, g2,  1, -1, sigma, sigma);
-			cx_double v_b1_12_pp = velocity_U1(*ts, *Udg_ki, Uk, kx, ky, kz, bond1, g1, g2,  1,  1, sigma, sigma);
-			// cx_double v_b1_12_mm = velocity_U1(*ts, *Udg_ki, Uk, kx, ky, kz, bond1, g1, g2, -1, -1, sigma_bar, sigma_bar);
-			cx_double v_b2_34_pm = velocity_U1(*ts, Uk_dg, *U_kf, kx, ky, kz, bond2, g3, g4,  1, -1, sigma, sigma);
-			// v1 += dir_comp * (v_b2_34_pp + v_b2_34_mm) * v_b1_12_pm;
-			// v2 += dir_comp * (v_b1_12_pp + v_b1_12_mm) * v_b2_34_pm;
-
-			cx_double v1i = dir_comp * v_b2_34_pp * v_b1_12_pm;
-			cx_double v2i = dir_comp * v_b1_12_pp * v_b2_34_pm;
-
-			// cx_double v1i = dir_comp * (v_b2_34_pp + v_b2_34_mm) * v_b1_12_pm;
-			// cx_double v2i = dir_comp * (v_b1_12_pp + v_b1_12_mm) * v_b2_34_pm;
-			
-
-			v1 += v1i;
-			v2 += v2i;
-			
-			// // for check
-			// std::cout << dir_comp << "  " << g1 << " " << g2 << " " << g3 << " " << g4 << " " << v_b2_34_pp << " " << v_b2_34_mm << " " << v_b1_12_pm << " " << v_b1_12_pp << " " << v_b1_12_mm << " " << v_b2_34_pm << "  " << v1i << " " << v2i << "   " << v1 << " " << v2 << std::endl;
-
-		      }  /* end for gamma_pair34 */			      
-		    }  /* end for gamma_pair12 */
-		  }  /* end for bond2 */
-		}  /* end for bond1 */
-
-		cx_double coef1 = 0.0, coef2 = 0.0;
+		cx_double v1 = v_b2_34_pp * v_b1_12_pm;
+		cx_double v2 = v_b1_12_pp * v_b2_34_pm;
+		
+		/* Matrix elements */
+		cx_double coef = 0.0;
 		for(int g5=0; g5 < 2; ++g5){
 		  int g5_idx = sublattice_spin_index(g5, sigma);
 		  cx_double U_5plus = Uk(g5_idx, sign_spin_index(1, sigma));
@@ -512,7 +505,6 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 		    int g6_idx = sublattice_spin_index(g6, sigma);
 		    // cx_double U6_plus = Uk(g6_idx, sign_spin_index(1, sigma));
 		    cx_double Udg_minus6 = Uk_dg(sign_spin_index(-1, sigma), g6_idx);
-
 		    
 		    /* Using the flipped spin for the wave-function calculation depending on the sublattices. */
 		    int sigma_psi = sigma;
@@ -535,8 +527,8 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 		    cx_double bki = bk(wfib.spin(), ek1, ts->tz, kz);
 
 		    /* Mean field eigenenergy */
-		    double ek_plus = E_k_plus[idx_k_sigma];
-		    double ek_minus = E_k_minus[idx_k_sigma];
+		    double ek_plus = E_k_plus[idx_k_sigma_ki_kf];
+		    double ek_minus = E_k_minus[idx_k_sigma_ki_kf];
 		  
 		    /* Psi(A, sigma_psi, A/B, sigma_psi) */
 		    cx_double wavefunc = wfib.integrand(xki, zki, bki, ek_plus, ek_minus, 1., sublattice);
@@ -548,40 +540,34 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 		    wavefunc = wavefunc_sublattice_correction(g6, g5, wavefunc);
 
 		    /* Adding the matrix elements. */
-		    coef1 += U_5plus * Udg_minus6 * std::conj(wavefunc);
-		    coef2 += U_5plus * Udg_minus6 * std::conj(wavefunc);		      
+		    coef += U_5plus * Udg_minus6 * std::conj(wavefunc);
 
-		    // // for check
+		    // for check
+		    // if ( true ) {
 		    // if (std::abs(v1) + std::abs(v2) > 1e-12) {
-		    //   std::cout << x << " " << y << " " << z << " " << sigma << " " << g5 << " " << g6 << " " << U5_plus << "  " << U6_minus << "  " << wavefunc << "  " << v1 << "  " << v2 << std::endl;
+		    // std::cout << g5 << " " << g6 << " " << U_5plus << "  " << Udg_minus6 << "  " << std::conj(wavefunc) << "    " << coef << std::endl;
 		    // }
 		  
 		  }  /* end for g6 */	    
 		}  /* end for g5 */
-
-		/* Matrix elements */
-		mat_elem1_minus += coef1 * v1;
-		mat_elem2_minus += coef2 * v2;
-		  
-	      }  /* end for k_photon */
 	      
-	      weight_minus1_comp.push_back(mat_elem1_minus);
-	      weight_minus2_comp.push_back(mat_elem2_minus);
+		// for check
+		// if ( true ) {
+		// if ( std::norm(v1i) + std::norm(v2i) > 1e-20 ) {
+		// std::cout << mu << " " << nu << " " << sigma << "  " << bond1.x << " " << bond1.y << " " << bond1.z << "  " << bond2.x << " " << bond2.y << " " << bond2.z << "  " << "  " << " " << v_b2_34_pp << " " << v_b1_12_pm << " " << v_b1_12_pp << " " << v_b2_34_pm << "  " << v1i << " " << v2i << "   " << v1 << " " << v2 << std::endl;
+		// }
+	      
+		cx_double mat_elem1_minus = coef * v1;
+		cx_double mat_elem2_minus = coef * v2;
+		  
+		weight_minus1_comp.push_back(mat_elem1_minus);
+		weight_minus2_comp.push_back(mat_elem2_minus);
 
-	      // // for check
-	      if ( mu == 0 && nu == 0 ) {	      
-	      // if ( (mu == 0 && nu == 1) || (mu == 1 && nu == 0) ) {
-	      // 	// if ( mu == 0 && nu == 1 ) {
-		
-	      	double w1_Re = std::real(mat_elem1_minus);
-	      	double w1_Im = std::imag(mat_elem1_minus);
-	      	double w2_Re = std::real(mat_elem2_minus);
-	      	double w2_Im = std::imag(mat_elem2_minus);				
+		++idx_k_sigma_ki_kf;
 
-		// std::cout << mu << "  " << nu << "  " << x << "  " << y << "  " << z << "  " << sigma << "  " << w1_Re << "  " << w1_Im << "  " << w2_Re << "  " << w2_Im << std::endl;
-	      }
-		
-	      ++idx_k_sigma;
+		// // for check
+		// std::cout << "idx_k_sigma_ki_kf = " << idx_k_sigma_ki_kf << std::endl;
+	      } /* end for photon_k */	      
 	    } /* end for sigma */	      
 	  } /* end for y */
 	} /* end for x */
@@ -601,7 +587,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
     int idx_comp = 0;    
     for(int mu=0; mu < 3; ++mu){
       for(int nu=0; nu < 3; ++nu){	
-	idx_k_sigma = 0;
+	idx_k_sigma_ki_kf = 0;
 	cx_double sum = 0.0;	
 	for(int z=0; z < 2; ++z){    
 	  double kz = M_PI * z;
@@ -614,25 +600,34 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	      double factor = BZ_factor_square_half_filling(kx, ky);
 	      if ( std::abs(factor) < 1e-12 ) { continue; }
 
-	      double e_gap = gap_L[idx_k_sigma];
+	      double e_gap = gap_L[idx_k_sigma_ki_kf];
 	      
 	      cx_double weight_minus_sum = 0;
 	      double down_sign = 1.0;   // Linear combination
-	      for(int sigma: {up_spin, down_spin}){
-		/* Mean field eigenenergy */
-		double ek_plus = E_k_plus[idx_k_sigma];
-		double ek_minus = E_k_minus[idx_k_sigma];		  
-		double ek_diff = ek_plus - ek_minus;
-		
-		cx_double weight1_minus = weight_minus1[idx_comp][idx_k_sigma] / (ek_diff - pr.omega_i);	      
-		cx_double weight2_minus = weight_minus2[idx_comp][idx_k_sigma] / (ek_diff + omega_f);
-		weight_minus_sum += (weight1_minus + weight2_minus) * (sigma == up_spin ? 1.0 : down_sign) / sqrt(2.0);
 
-		// // for check
-		// std::cout << z << " " << x << " " << y << " " << sigma << "  " << weight1_minus << "  " << weight2_minus << std::endl;
+	      /* Taking the sum over spins and photon momenta. */
+	      for(int sigma: {up_spin, down_spin}){
+		for(std::pair<int,int> photon_k: photon_ks){
+		  /* Factor */
+		  int kii = photon_k.first;
+		  int kfi = photon_k.second;		  
+		  double factor_q = kii - kfi == 0 ? 1.0 : 0.5;
+		  
+		  /* Mean field eigenenergy */
+		  double ek_plus = E_k_plus[idx_k_sigma_ki_kf];
+		  double ek_minus = E_k_minus[idx_k_sigma_ki_kf];		  
+		  double ek_diff = ek_plus - ek_minus;
 		
-		++idx_k_sigma;
-	      } /* end for sigma */
+		  cx_double weight1_minus = weight_minus1[idx_comp][idx_k_sigma_ki_kf] / (ek_diff - pr.omega_i);	      
+		  cx_double weight2_minus = weight_minus2[idx_comp][idx_k_sigma_ki_kf] / (ek_diff + omega_f);
+		  weight_minus_sum += factor_q * (weight1_minus + weight2_minus) * (sigma == up_spin ? 1.0 : down_sign) / sqrt(2.0);
+
+		  // // for check
+		  // std::cout << "k sum: " << mu << " " << nu << "   " << z << " " << x << " " << y << " " << sigma << "  " << weight1_minus << "  " << weight2_minus << "    " << weight_minus_sum << std::endl;
+		
+		  ++idx_k_sigma_ki_kf;
+		}  /* end for photon_k */
+	      }  /* end for sigma */
 
 	      // Zero temperature
 	      double Ei = 0;

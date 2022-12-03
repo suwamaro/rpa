@@ -1,5 +1,6 @@
 add_library(rpa_base OBJECT
 parameters.cpp
+array3.cpp
 rpa_util.cpp
 cuba_helper.cpp
 find_root.cpp
