@@ -380,11 +380,12 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	double factor = BZ_factor_square_half_filling(kx, ky);
 	if ( std::abs(factor) < 1e-12 ) { continue; }
 
+	/* Calculating the gaps */
+	double gT = 0, gL = 0, gph = 0;
+	std::tie(gT, gL, gph) = calc_gaps(kx, ky, kz);  // Solving the pole equation in RPA.
+	    
 	for(int sigma: {up_spin, down_spin}){
 	  for(std::pair<int,int> photon_k: photon_ks){	  
-	    /* Calculating the gaps */
-	    double gT = 0, gL = 0, gph = 0;
-	    std::tie(gT, gL, gph) = calc_gaps(kx, ky, kz);  // Solving the pole equation in RPA.
 	    gap_T.push_back(gT);
 	    gap_L.push_back(gL);
 
@@ -631,11 +632,21 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 
 	      // Zero temperature
 	      double Ei = 0;
-	      sum += factor * exp(- beta * Ei) * std::norm(g_photon * weight_minus_sum) / (e_gap - omega_shifted);	      
+	      sum += factor * exp(- beta * Ei) * std::norm(g_photon * weight_minus_sum) / (e_gap - omega_shifted);
+
+	      // for check
+	      double weight = 2.0 * std::imag(factor * exp(- beta * Ei) * std::norm(g_photon * weight_minus_sum) / (e_gap - omega_shifted));
+	      if ( weight > 1e-4 ) {
+		std::cout << mu << " " << nu << "  " << x << " " << y << " " << z << "  " << omega_f << "  " << omega_shifted << "  " << e_gap << "   " << e_gap - omega_shifted << "   " << weight_minus_sum << "   " << std::norm(g_photon * weight_minus_sum) / (e_gap - omega_shifted) << "    " << sum << std::endl;
+	      }
+	      
 	    } /* end for y */
 	  } /* end for x */
 	} /* end for z */
-  
+
+	// for check
+	std::cout << mu << " " << nu << " " << omega_shifted << "   Sum = " << 2.0 * std::imag(sum) << std::endl;
+	
 	spec_Raman(mu,nu)[o] = 2.0 * std::imag(sum);
   
 	++idx_comp;
@@ -672,6 +683,67 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
     } /* end for nu */
   } /* end for mu */
 
+  /* Output of the coefficient of the effective Raman operator. */
+  ofstream out_coef_Raman;
+  out_coef_Raman.open(base_dir/"coefficient_of_Raman_operator.text");
+  out_coef_Raman << "#  x  y  Coefficient" << std::endl;
+
+  for(int x0=-L/2; x0 <= L/2; ++x0){
+    for(int y0=-L/2; y0 <= L/2; ++y0){
+      if ( x0 + y0 & 1 ) { continue; }
+
+      cx_double sum = 0;
+      for(int z=0; z < 2; ++z){    
+	double kz = M_PI * z;
+	for(int x=-L/2; x < L/2; ++x){
+	  double kx = k1 * x;
+	  for(int y=-L/2; y < L/2; ++y){
+	    double ky = k1 * y;
+
+	    /* Checking if the wavevector is inside the BZ. */
+	    double factor = BZ_factor_square_half_filling(kx, ky);
+	    if ( std::abs(factor) < 1e-12 ) { continue; }
+
+	    /* Eigenenergy */
+	    cx_double ek1 = ts->ek1(kx, ky, kz);
+	    cx_double ek23 = ts->ek23(kx, ky, kz);
+	    cx_double ekz = ts->ekz(kx, ky, kz);	      
+	    double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, ts->tz, kz, delta);
+	    double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, ts->tz, kz, delta);
+
+	    /* Unitary matrix */
+	    cx_mat Uk = gs_HF(ek1, ts->tz, kz, delta);
+	    cx_mat Uk_bar = gs_HF(ek1, ts->tz, kz + M_PI, delta);	    
+	    cx_mat Uk_dg = arma::trans(Uk);
+
+	    /* Photon momenta */
+	    vec3 ki{0, 0, 0};
+	    vec3 kf{0, 0, 0};
+
+	    /* Delta */
+	    BondDelta e_mu(0);
+	    BondDelta e_nu(0);
+
+	    /* Spin */
+	    int sigma = up_spin;
+	    
+	    cx_double v1 = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, e_nu, bonds, 1, 1, sigma, sigma);
+	    cx_double v2 = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, - ki, e_mu, bonds, 1, -1, sigma, sigma);
+		
+	    cx_double coef_k = v1 * v2 / (ek_plus - ek_minus - pr.omega_i);
+	    double z = zk(ek1, ts->tz, kz, delta);
+	    double inner_prod_k = kx * x0 + ky * y0;
+	    cx_double phase = exp(1i*inner_prod_k);
+	    
+	    sum += factor * coef_k * 0.5 * sqrt(1. - z*z) * phase;
+	  }  /* end for y */
+	}  /* end for x */
+      }  /* end for z */
+
+      out_coef_Raman << x0 << "  " << y0 << "   " << std::real(sum) << "   " << std::imag(sum) << std::endl;
+    }  /* end for y0 */
+  }  /* end for x0 */
+  
   /* Deleting */
   delete[] spec_Raman_xx;
   delete[] spec_Raman_xy;
@@ -687,6 +759,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   out_gap.close();
   out_dispersion_transverse.close();
   out_dispersion_longitudinal.close();
+  out_coef_Raman.close();  
   out_MF_gap.close();
   out_wavefunc_k.close();
 }
