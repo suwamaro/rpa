@@ -470,9 +470,6 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	    /* Checking if the wavevector is inside the BZ. */
 	    double factor = BZ_factor_square_half_filling(kx, ky);
 	    if ( std::abs(factor) < 1e-12 ) { continue; }
-
-	    // // for check
-	    // std::cout << "k: " << x << "  " << y << "  " << z << "  " << std::endl;
 	    
 	    cx_double ek1 = ts->ek1(kx, ky, kz);
 	    cx_mat Uk = gs_HF(ek1, ts->tz, kz, delta);
@@ -703,7 +700,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	    /* Checking if the wavevector is inside the BZ. */
 	    double factor = BZ_factor_square_half_filling(kx, ky);
 	    if ( std::abs(factor) < 1e-12 ) { continue; }
-
+		  
 	    /* Eigenenergy */
 	    cx_double ek1 = ts->ek1(kx, ky, kz);
 	    cx_double ek23 = ts->ek23(kx, ky, kz);
@@ -729,8 +726,55 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	    
 	    cx_double v1 = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, e_nu, bonds, 1, 1, sigma, sigma);
 	    cx_double v2 = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, - ki, e_mu, bonds, 1, -1, sigma, sigma);
-		
-	    cx_double coef_k = v1 * v2 / (ek_plus - ek_minus - pr.omega_i);
+	    
+	    int sigma_bar = sigma == up_spin ? down_spin : up_spin;
+	    cx_double v3 = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, e_nu, bonds, -1, -1, sigma_bar, sigma_bar);
+
+	    cx_double vkp = 0;
+	    for(int zp=0; zp < 2; ++zp){
+	      double kzp = M_PI * zp;
+	      for(int xp=-L/2; xp < L/2; ++xp){
+		double kxp = k1 * xp;
+		for(int yp=-L/2; yp < L/2; ++yp){
+		  double kyp = k1 * yp;
+
+		  /* Checking if the wavevector is inside the BZ. */
+		  double factorp = BZ_factor_square_half_filling(kxp, kyp);
+		  if ( std::abs(factorp) < 1e-12 ) { continue; }
+		  
+		  /* Skip if k' == k. */
+		  if ( std::abs(kxp - kx) + std::abs(kyp - ky) + std::abs(kzp - kz) < 1e-12 ) { continue; }
+		  bool same_k = false;
+		  for(int dkzi: {-1, 1}){
+		    double kzp2 = kzp + (double)dkzi * M_PI;
+		    for(int dkxi: {-1, 1}){
+		      double kxp2 = kxp + (double)dkxi * M_PI;		      
+		      for(int dkyi: {-1, 1}){
+			double kyp2 = kyp + (double)dkyi * M_PI;
+			if ( std::abs(kxp2 - kx) + std::abs(kyp2 - ky) + std::abs(kzp2 - kz) < 1e-12 ) { same_k = true; }
+		      }
+		    }
+		  }
+		  if (same_k) { continue; }
+		  
+		  /* Eigenenergy */
+		  cx_double ekp1 = ts->ek1(kxp, kyp, kzp);
+		  cx_double ekp23 = ts->ek23(kxp, kyp, kzp);
+		  cx_double ekzp = ts->ekz(kxp, kyp, kzp);	      
+
+		  /* Unitary matrix */
+		  cx_mat Ukp = gs_HF(ekp1, ts->tz, kzp, delta);
+		  cx_mat Ukp_bar = gs_HF(ekp1, ts->tz, kzp + M_PI, delta);	    
+		  cx_mat Ukp_dg = arma::trans(Ukp);
+
+		  for(int sigmap: {up_spin, down_spin}){
+		    vkp += factorp * velocity_U1(*ts, Ukp_dg, Ukp, Ukp_bar, kxp, kyp, kzp, kf, e_nu, bonds, -1, -1, sigmap, sigmap);
+		  }
+		}  /* end for yp */
+	      }  /* end for xp */
+	    }  /* end for zp */
+	    
+	    cx_double coef_k = (v1+v3+vkp) * v2 / (ek_plus - ek_minus - pr.omega_i);
 	    double z = zk(ek1, ts->tz, kz, delta);
 	    double inner_prod_k = kx * x0 + ky * y0;
 	    cx_double phase = exp(1i*inner_prod_k);
