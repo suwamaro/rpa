@@ -13,6 +13,7 @@
 #include "calc_gap.h"
 #include "rpa_util.h"
 #include "calc_intensity.h"
+#include "mat_elem.h"
 
 /* Index: NCOMP = (ope * nelem + elem) | (real=0 or imag=1) */
 std::tuple<int, int> comp_to_ope_elem(int comp, int nelem){
@@ -23,19 +24,19 @@ std::tuple<int, int> comp_to_ope_elem(int comp, int nelem){
 }
 
 /* Member functions of ResponseFuncIntegrand */
-void ResponseFuncIntegrand::update_parameters(double _T, double _delta, double _mu, cx_double _omega, Polarization const& _Pz){
+void ResponseFuncIntegrand::update_parameters(double _T, double _delta, double _mu, cx_double _omega, MatElemF const& _me_F){
   T_ = _T;
   delta_ = _delta;
   mu_ = _mu;
   omega_ = _omega;
-  Pz_ = _Pz;  // without copying the tables
-  Pz_.is_table_set_ = false;
+  me_F_ = _me_F;  // without copying the tables
+  me_F_.is_table_set_ = false;
 };
 
 /* Member functions of ResponseFuncIntegrandBilayer */
-void ResponseFuncIntegrandBilayer::set_parameters(hoppings_bilayer2 const& h, double T, double delta, double mu, cx_double omega, Polarization const& Pz){
+void ResponseFuncIntegrandBilayer::set_parameters(hoppings_bilayer2 const& h, double T, double delta, double mu, cx_double omega, MatElemF const& me_F){
   hb_ = h;
-  ResponseFuncIntegrand::update_parameters(T, delta, mu, omega, Pz);
+  ResponseFuncIntegrand::update_parameters(T, delta, mu, omega, me_F);
 }
 
 int ResponseFuncIntegrandBilayer::calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const {
@@ -61,10 +62,10 @@ int ResponseFuncIntegrandBilayer::calc(const int *ndim, const cubareal xx[], con
      for(int sg1=-1; sg1<=1; sg1+=2){
        for(int sg2=-1; sg2<=1; sg2+=2){
 	 // int sg2 = - sg1; /* Opposite sign */
-	 cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, *ts(), T(), kx, ky, kz, Pz()->qx(), Pz()->qy(), Pz()->qz(), omega(), delta(), mu());
+	 cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, *ts(), T(), kx, ky, kz, me_F()->qx(), me_F()->qy(), me_F()->qz(), omega(), delta(), mu());
     
 	 /* Getting the polarization */
-	 Pz()->calc_polarization(hb_, delta(), kx, ky, kz, sg1, sg2, Ppmk, Pzzk);
+	 me_F()->calc_mat_elems(hb_, delta(), kx, ky, kz, sg1, sg2, Ppmk, Pzzk);
 
 	 /* Integrand */
 	 for(int comp=0; comp<*ncomp; comp+=2){
@@ -141,13 +142,13 @@ int integrand_wrapper(const int *ndim, const cubareal xx[], const int *ncomp, cu
   return rfib.calc(ndim, xx, ncomp, ff, userdata);
 }
 
-std::tuple<arma::cx_mat, arma::cx_mat> calc_bare_response_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, cx_double omega, bool continuous_k){
+std::tuple<arma::cx_mat, arma::cx_mat> calc_bare_response_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, cx_double omega, bool continuous_k){
   arma::cx_mat chi0_pm(NSUBL,NSUBL,arma::fill::zeros);
   arma::cx_mat chi0_zz_u(NSUBL,NSUBL,arma::fill::zeros);
   
   if ( continuous_k ) {
     /* Changing the parameters */
-    rfib.set_parameters(ts, T, delta, mu, omega, Pz);
+    rfib.set_parameters(ts, T, delta, mu, omega, me_F);
 
     /* For Cuba */
     int nregions, neval, fail;
@@ -171,7 +172,7 @@ std::tuple<arma::cx_mat, arma::cx_mat> calc_bare_response_bilayer(int L, hopping
       cx_double int_ope_elem(integral[comp], integral[comp+1]);
       if ( ope == 0 ) {  /* Ppmk */
 	chi0_pm(g1,g2) = int_ope_elem;
-      } else /* ope == 1 */ { /* Pzzk */	      
+      } else /* ope == 1 */ { /* me_Fzk */	      
 	chi0_zz_u(g1,g2) = int_ope_elem;
       }
     }
@@ -186,7 +187,7 @@ std::tuple<arma::cx_mat, arma::cx_mat> calc_bare_response_bilayer(int L, hopping
 	double kx = k1 * x;
 	for(int y=-L/2; y < L/2; y++){
 	  double ky = k1 * y;
-	  add_to_sus_mat4( ts, T, mu, chi0_pm, chi0_zz_u, kx, ky, kz, Pz, delta, omega );	  
+	  add_to_sus_mat4( ts, T, mu, chi0_pm, chi0_zz_u, kx, ky, kz, me_F, delta, omega );	  
 	}
       }
     }
@@ -210,12 +211,12 @@ std::tuple<arma::cx_mat, arma::cx_mat> calc_bare_response_bilayer(int L, hopping
   return std::make_tuple(chi0_pm, chi0_zz);
 }
 
-std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer2& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, cx_double omega, bool continuous_k){
+std::tuple<cx_double, cx_double> calc_intensity_bilayer2(int L, hoppings_bilayer2& ts, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, cx_double omega, bool continuous_k){
   arma::cx_mat chi0_pm(NSUBL,NSUBL,arma::fill::zeros);
   arma::cx_mat chi0_zz(NSUBL,NSUBL,arma::fill::zeros);
 
   /* Calculating the bare response functions */
-  std::tie(chi0_pm, chi0_zz) = calc_bare_response_bilayer(L, ts, mu, U, T, delta, cbp, Pz, omega, continuous_k);
+  std::tie(chi0_pm, chi0_zz) = calc_bare_response_bilayer(L, ts, mu, U, T, delta, cbp, me_F, omega, continuous_k);
   
   /* RPA */
   /* Transverse = < \sigma^- \sigma^+ >; Longitudinal (zz) = < \sigma^z \sigma^z > */

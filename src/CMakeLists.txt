@@ -5,6 +5,7 @@ rpa_util.cpp
 cuba_helper.cpp
 find_root.cpp
 Hartree_Fock.cpp
+mat_elem.cpp
 find_critical_U.cpp
 find_critical_U_bilayer.cpp
 find_critical_T.cpp

@@ -33,6 +33,31 @@ struct BondDelta {
   }
 };
 
+/* Operators */
+struct OperatorK {
+  OperatorK():Gamma_1plus(NSUBL*NSUBL, NSUBL*NSUBL),
+	      Gamma_1minus(NSUBL*NSUBL, NSUBL*NSUBL),	      
+	      Gamma_1z(NSUBL*NSUBL, NSUBL*NSUBL),
+	      Gamma_2plus(NSUBL*NSUBL, NSUBL*NSUBL),
+	      Gamma_2minus(NSUBL*NSUBL, NSUBL*NSUBL),
+	      Gamma_2z(NSUBL*NSUBL, NSUBL*NSUBL){
+    Gamma_1plus(0,1) = 1.;
+    Gamma_1minus(1,0) = 1.;
+    Gamma_1z(0,0) = 1.;
+    Gamma_1z(1,1) = -1.;
+    Gamma_2plus(2,3) = 1.;
+    Gamma_2minus(3,2) = 1.;    
+    Gamma_2z(2,2) = 1.;
+    Gamma_2z(3,3) = -1.;
+  }
+  sp_mat Gamma_1plus;
+  sp_mat Gamma_1minus;
+  sp_mat Gamma_1z;
+  sp_mat Gamma_2plus;
+  sp_mat Gamma_2minus;
+  sp_mat Gamma_2z;
+};
+
 double energy_free_electron(double t, double mu, double kx, double ky, double kz);
 double energy_free_electron(double t, double mu, double kx, double ky);
 // double energy_free_electron_bilayer(hoppings const& ts, double mu, double kx, double ky, double kz);

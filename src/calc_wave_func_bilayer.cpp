@@ -154,12 +154,12 @@ int wf_integrand_bilayer(const int *ndim, const cubareal xx[], const int *ncomp,
   return wfib.calc(ndim, xx, ncomp, ff, userdata);
 }
 
-double pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double omega, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode){
+double pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double omega, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, bool continuous_k, std::string const& mode){
   arma::cx_mat chi0_pm(NSUBL,NSUBL,arma::fill::zeros);
   arma::cx_mat chi0_zz(NSUBL,NSUBL,arma::fill::zeros);
 
   /* Calculating the bare response functions */
-  std::tie(chi0_pm, chi0_zz) = calc_bare_response_bilayer(L, ts, mu, U, T, delta, cbp, Pz, omega, continuous_k);
+  std::tie(chi0_pm, chi0_zz) = calc_bare_response_bilayer(L, ts, mu, U, T, delta, cbp, me_F, omega, continuous_k);
     
   cx_double det = 0;
   if ( mode == "transverse" ) {
@@ -174,7 +174,7 @@ double pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double omega, double 
   return std::real(det);  /* Assume that the imaginary part is 0. */
 }
 
-double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode, double upper, bool return_upper, bool verbose){
+double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, bool continuous_k, std::string const& mode, double upper, bool return_upper, bool verbose){
   if ( verbose ) {
     std::cout << "Solving the pole equation for U=" << U << std::endl;
     std::cout << "Upper = " << upper << std::endl;
@@ -184,7 +184,7 @@ double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, doub
   double omega = 0.5 * upper;
 
   using std::placeholders::_1;
-  auto pe = std::bind( pole_eq_bilayer, L, std::ref(ts), _1, mu, U, T, delta, std::ref(cbp), std::ref(Pz), continuous_k, mode );
+  auto pe = std::bind( pole_eq_bilayer, L, std::ref(ts), _1, mu, U, T, delta, std::ref(cbp), std::ref(me_F), continuous_k, mode );
   BinarySearch bs(continuous_k);
   bs.set_x_MIN(0);
   double omega_eps = 1e-5;
@@ -203,10 +203,10 @@ double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, doub
   }
 }
 
-std::tuple<double, double, double> calc_gap_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, bool return_upper, bool verbose){
-  double upper = calc_band_gap_bilayer(L, ts, delta, Pz.qx(), Pz.qy(), Pz.qz());
-  double omega_T = solve_pole_eq_bilayer(L, ts, mu, U, T, delta, cbp, Pz, continuous_k, "transverse", upper, return_upper, verbose);
-  double omega_L = solve_pole_eq_bilayer(L, ts, mu, U, T, delta, cbp, Pz, continuous_k, "longitudinal", upper, return_upper, verbose);
+std::tuple<double, double, double> calc_gap_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, bool continuous_k, bool return_upper, bool verbose){
+  double upper = calc_band_gap_bilayer(L, ts, delta, me_F.qx(), me_F.qy(), me_F.qz());
+  double omega_T = solve_pole_eq_bilayer(L, ts, mu, U, T, delta, cbp, me_F, continuous_k, "transverse", upper, return_upper, verbose);
+  double omega_L = solve_pole_eq_bilayer(L, ts, mu, U, T, delta, cbp, me_F, continuous_k, "longitudinal", upper, return_upper, verbose);
   return std::make_tuple(omega_T, omega_L, upper);
 }
 
@@ -308,7 +308,7 @@ double calc_min_bk_sq_bilayer(int L, hoppings2 const& ts){
   return min_bk_sq;
 }
  
-double calc_weight_distribution_bilayer(int L, hoppings_bilayer2 const& ts, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, int *diff_r){    
+double calc_weight_distribution_bilayer(int L, hoppings_bilayer2 const& ts, CubaParam const& cbp, MatElemF const& me_F, bool continuous_k, int *diff_r){    
   cx_double wavefunc = 0;  
   if ( continuous_k ) {
     /* For Cuba */
@@ -374,7 +374,7 @@ double calc_weight_distribution_bilayer(int L, hoppings_bilayer2 const& ts, Cuba
   }
 
   cx_double pure_i(0,1);
-  double inner_prod2 = Pz.qx() * diff_r[0] + Pz.qy() * diff_r[1] + Pz.qz() * diff_r[2];  // Assume that the origin is (0,0,0).
+  double inner_prod2 = me_F.qx() * diff_r[0] + me_F.qy() * diff_r[1] + me_F.qz() * diff_r[2];  // Assume that the origin is (0,0,0).
   cx_double phase2 = exp(0.5*pure_i*inner_prod2);
   wavefunc *= phase2;
   
@@ -413,19 +413,19 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
   /* Precision */
   int prec = 15;
 
-  /* Polarization */
-  Polarization Pz( L, L, 2, NSUBL );
+  /* MatElemF */
+  MatElemF me_F( L, L, 2, NSUBL );
   
   /* Setting the ordering vector */
-  Pz.set_q( M_PI, M_PI, M_PI );
+  me_F.set_q( M_PI, M_PI, M_PI );
   if ( !continuous_k ) {
     /* The polarizations are calculated in advance. */
-    Pz.set_table( *ts, delta );
+    me_F.set_table( *ts, delta );
   }
 
   /* Calculating gaps */
   double omega_T = 0, omega_L = 0, omega_ph = 0;
-  std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, mu, U, T, delta, cbp, Pz, continuous_k);
+  std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, mu, U, T, delta, cbp, me_F, continuous_k);
 
   /* Output */
   out_gap << "omega_T = " << omega_T << std::endl;
@@ -459,7 +459,7 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
 	wfib.set_parameters(*ts, pr.largeUlimit, pr.largeU_scaling_prefactor, spin, omega_L, Psider, delta, diff_r, sublattice, min_bk_sq);
 
 	/* Calculating the weight distribution */
-	double prob = calc_weight_distribution_bilayer(L, *ts, cbp, Pz, continuous_k, diff_r);
+	double prob = calc_weight_distribution_bilayer(L, *ts, cbp, me_F, continuous_k, diff_r);
 
 	/* Output */
 	out_prob << dx << std::setw(10) << dy << std::setw(10) << dz << std::setw(20) << prob << std::endl;
@@ -500,19 +500,19 @@ void check_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
   out_gap << "Charge gap = " << ch_gap << std::endl;
   out_gap << "mu = " << mu << std::endl;
   
-  /* Polarization */
-  Polarization Pz( L, L, 2, NSUBL );
+  /* MatElemF */
+  MatElemF me_F( L, L, 2, NSUBL );
   
   /* Setting the ordering vector */
-  Pz.set_q( M_PI, M_PI, M_PI );
+  me_F.set_q( M_PI, M_PI, M_PI );
   if ( !continuous_k ) {
     /* The polarizations are calculated in advance. */
-    Pz.set_table( *ts, delta );
+    me_F.set_table( *ts, delta );
   }
 
   /* Calculating gaps */
   double omega_T = 0, omega_L = 0, omega_ph = 0;
-  std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, mu, U, T, delta, cbp, Pz, continuous_k);
+  std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, mu, U, T, delta, cbp, me_F, continuous_k);
 
   /* Output */
   out_gap << "omega_T = " << omega_T << std::endl;

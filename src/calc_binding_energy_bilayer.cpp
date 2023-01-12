@@ -56,19 +56,19 @@ void calc_binding_energy_bilayer(path& base_dir, rpa::parameters const& pr){
     double ch_gap, mu;
     std::tie(ch_gap, mu) = calc_charge_gap_bilayer( L, *ts, delta );  /* Finite size */
 
-    /* Polarization */
-    Polarization Pz( L, L, 2, NSUBL );
+    /* MatElemF */
+    MatElemF me_F( L, L, 2, NSUBL );
   
     /* Setting the ordering vector */
-    Pz.set_q( M_PI, M_PI, M_PI );
+    me_F.set_q( M_PI, M_PI, M_PI );
     if ( !continuous_k ) {
       /* The polarizations are calculated in advance. */
-      Pz.set_table( *ts, delta );
+      me_F.set_table( *ts, delta );
     }
 
     /* Calculating gaps */    
     double omega_T, omega_L, omega_ph;
-    std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, mu, U, T, delta, cbp, Pz, continuous_k);
+    std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, mu, U, T, delta, cbp, me_F, continuous_k);
 
     /* Output */
     int space = prec + 8;

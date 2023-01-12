@@ -79,13 +79,13 @@ private:
   double min_bk_sq_;
 };
 
-std::tuple<double, double, double> calc_gap_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, bool return_upper = false, bool verbose = false);
+std::tuple<double, double, double> calc_gap_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, bool continuous_k, bool return_upper = false, bool verbose = false);
 double calc_Psider(int L, hoppings_bilayer2 const& ts, double mu, double omega, double delta, CubaParam const& cbp, bool continuous_k);
   
 /* For bilayer lattices */
 double calc_min_bk_sq_bilayer(int L, hoppings2 const& ts);
-double pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double omega, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode);
-double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, Polarization const& Pz, bool continuous_k, std::string const& mode, double upper, bool return_upper = false, bool verbose = false);
+double pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double omega, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, bool continuous_k, std::string const& mode);
+double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, bool continuous_k, std::string const& mode, double upper, bool return_upper = false, bool verbose = false);
 
 void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr);
 void check_wave_func_bilayer(path& base_dir, rpa::parameters const& pr);

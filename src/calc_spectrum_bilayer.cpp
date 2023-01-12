@@ -18,6 +18,7 @@
 #include "calc_single_particle_energy.h"
 #include "find_critical_T.h"
 #include "find_critical_U.h"
+#include "mat_elem.h"
 
 void calc_single_particle_energy_bilayer(hoppings const& ts, int L, double delta){
   /* Output */
@@ -462,8 +463,8 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
   /* Precision */
   int prec = 15;
 
-  /* Polarization */
-  Polarization Pz( L, L, 2, NSUBL );
+  /* MatElemF */
+  MatElemF me_F( L, L, 2, NSUBL );
     
   /* Results */
   double *spec_xy = new double[n_omegas];
@@ -481,14 +482,14 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
     //    std::cout << "( qidx, qx, qy, qz ) = ( " << q_idx << ", " << qx << ", " << qy << ", " << qz << " )" << std::endl;    
   
     /* Setting wavenumbers */
-    Pz.set_q( qx, qy, qz );
+    me_F.set_q( qx, qy, qz );
 
     if ( continuous_k ) {
       /* Single thread here, but Cuba functions will run in parallel automatically. */
       for(int o=0; o < n_omegas; o++){
 	/* Calculating the response (Green's) functions */
 	cx_double chi_xy, chi_z;	
-	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, T, delta, cbp, Pz, omegas[o]+1i*eta, continuous_k);
+	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, T, delta, cbp, me_F, omegas[o]+1i*eta, continuous_k);
 
 	/* A factor from the response function to the dynamical structure factor */
 	double factor_dsf = 0;
@@ -503,7 +504,7 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
       }
     } else {
       /* The polarizations are calculated in advance. */
-      Pz.set_table( *ts, delta );
+      me_F.set_table( *ts, delta );
     
 #ifdef WITH_OpenMP
 #pragma omp parallel
@@ -527,7 +528,7 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
 #endif
 	/* Calculating the response (Green's) functions */
 	cx_double chi_xy, chi_z;	
-	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, T, delta, cbp, Pz, omegas[o]+1i*eta, continuous_k);
+	std::tie(chi_xy, chi_z) = calc_intensity_bilayer2( L, *ts, mu, U, T, delta, cbp, me_F, omegas[o]+1i*eta, continuous_k);
 
 	/* A factor from the response function to the dynamical structure factor */
 	double factor_dsf = 0;

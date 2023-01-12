@@ -172,6 +172,79 @@ cx_double velocity_U1(hoppings_bilayer2 const& ts, cx_mat const& Udg, cx_mat con
   return v_tot;
 }
 
+cx_double Raman_K(int band1, int band2, int spin1, int spin2, vec3 k){
+  return 0;
+}
+
+cx_double Raman_P(int sublattice1, int sublattice2, int mode1, int mode2, int band1, int band2, int spin1, int spin2, vec3 k){
+  return 0;
+}
+
+cx_double Raman_F(int sublattice1, int sublattice2, int mode1, int mode2, int band1, int band2, int spin1, int spin2, vec3 k){
+  return 0;
+}
+
+cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, cx_double omega, bool continuous_k){
+  cx_double sum = 0;
+  if ( continuous_k ) {
+    std::cerr << "Function " << __func__ << " does not support continuous k.\n";
+    std::exit(EXIT_FAILURE);
+  } else { /* Integral for a finite-size system */
+    double k1 = 2. * M_PI / L;
+    for(int z=0; z < 2; z++){    
+      double kz = M_PI * z;
+      for(int x=-L/2; x < L/2; x++){    
+	double kx = k1 * x;
+	for(int y=-L/2; y < L/2; y++){
+	  double ky = k1 * y;
+
+	  /* Checking if the wavevector is inside the BZ. */
+	  double factor = BZ_factor_square_half_filling(kx, ky);
+	  if ( std::abs(factor) < 1e-12 ) { continue; }
+      
+	  for(int sg1=-1; sg1<=1; sg1+=2){
+	    for(int sg2=-1; sg2<=1; sg2+=2){
+	      // int sg2 = - sg1; /* Opposite sign */
+	      cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, ts, T, kx, ky, kz, 0., 0., 0., omega, delta, mu);
+	      prefactor *= factor;
+	      int sg1i = (sg1+1) >> 1;    
+	      int sg2i = (sg2+1) >> 1;    
+	      cx_double Ppm[NSUBL*NSUBL];
+	      cx_double Pzz[NSUBL*NSUBL];    
+
+	      if ( me_F.is_table_set() ) {
+		me_F.get_Ppm(kx, ky, kz, sg1i, sg2i, Ppm);
+		me_F.get_Pzz(kx, ky, kz, sg1i, sg2i, Pzz);
+	      } else {
+		me_F.calc_mat_elems(ts, delta, kx, ky, kz, sg1, sg2, Ppm, Pzz);
+	      }
+
+	      // chi_pm(0,0) += prefactor * Ppm[0];
+	    }
+	  }
+	}
+      }
+    }
+    
+    int n_units = L * L;  // Number of unit cells
+    sum /= (double)(n_units);
+  }
+  
+  return sum;
+}
+
+cx_double calc_Raman_Pi(int sublattice, int mode, int L, hoppings_bilayer2& ts, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, cx_double omega, bool continuous_k){
+  return 0;
+}
+
+cx_double calc_Raman_chi(int sublattice1, int sublattice2, int mode1, int mode2, int L, hoppings_bilayer2& ts, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, cx_double omega, bool continuous_k){
+  return 0;
+}
+
+cx_double calc_Raman_sigma1(int L, hoppings_bilayer2& ts, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, cx_double omega, bool continuous_k){
+  return 0;
+}
+
 void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   /* Getting parameters */
   int L = pr.L;
@@ -210,15 +283,15 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   out_gap << "Charge gap = " << ch_gap << std::endl;
   out_gap << "mu = " << mu << std::endl;
   
-  /* Polarization */
-  Polarization Pz( L, L, 2, NSUBL );
+  /* MatElemF */
+  MatElemF me_F( L, L, 2, NSUBL );
 
   auto calc_gaps = [&](double qx, double qy, double qz){
     /* Setting the ordering vector */
-    Pz.set_q(qx, qy, qz);
+    me_F.set_q(qx, qy, qz);
     if ( !continuous_k ) {
       /* The polarizations are calculated in advance. */
-      Pz.set_table( *ts, delta );
+      me_F.set_table( *ts, delta );
     }
     
     /* Calculating gaps */
@@ -226,14 +299,15 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
     bool return_upper = true;
     // bool verbose = true;
     bool verbose = false;    
-    std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, mu, U, T, delta, cbp, Pz, continuous_k, return_upper, verbose);
+    std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, mu, U, T, delta, cbp, me_F, continuous_k, return_upper, verbose);
     
     return std::make_tuple(omega_T, omega_L, omega_ph);
   };
 
   /* Calculating gaps at (pi, pi, pi)*/
   double omega_T = 0, omega_L = 0, omega_ph = 0;
-  std::tie(omega_T, omega_L, omega_ph) = calc_gaps(M_PI, M_PI, M_PI);
+  std::tie(omega_T, omega_L, omega_ph) = calc_gaps(0., 0., 0.);
+  // std::tie(omega_T, omega_L, omega_ph) = calc_gaps(M_PI, M_PI, M_PI);  
   
   /* Output */
   out_gap << "omega_T = " << omega_T << std::endl;
@@ -252,7 +326,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   double min_bk_sq = calc_min_bk_sq_bilayer(L, *ts);
     
   /* Constants */
-  double stag_rot_angle = 12.0 / 180.0 * M_PI;
+  // double stag_rot_angle = 12.0 / 180.0 * M_PI;
   double k1 = 2. * M_PI / (double)L;  
   double g_photon = 1.0;  // This factor does not matter to the result.
   // double g_photon = sqrt(planck_h * c_light * c_light / (pr.omega_i * 2. * M_PI / planck_h));  
@@ -273,9 +347,6 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
       
   std::vector<BondDelta> bonds {
      {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, -1, 0},  {0, 0, 1}
-    
-    // for check
-     // {1, 0, 0}, {0, 1, 0}
    };
 
   auto wavefunc_sublattice_correction = [](int g1, int g2, cx_double psi){
@@ -365,7 +436,8 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   photon_Qs.push_back(vec3{   M_PI,   M_PI,   M_PI });
   // photon_Qs.push_back(vec3{ - M_PI, - M_PI, - M_PI });
   // std::vector<std::pair<int,int>> photon_ks{{1,0}};
-  std::vector<std::pair<int,int>> photon_ks{{1,1}};  
+  std::vector<std::pair<int,int>> photon_ks{{0,0}};
+  // std::vector<std::pair<int,int>> photon_ks{{1,1}};    
   // std::vector<std::pair<int,int>> photon_ks{{0,0},{0,1},{1,0},{1,1}};
 
   std::size_t idx_k_sigma_ki_kf = 0;
@@ -456,9 +528,9 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
     BondDelta e_mu(mu);
     for(int nu=0; nu < 3; ++nu){
       BondDelta e_nu(nu);
+      
       // std::vector<cx_double> weight_plus_comp;
-      std::vector<cx_double> weight_minus1_comp, weight_minus2_comp;
-  
+      std::vector<cx_double> weight_minus1_comp, weight_minus2_comp;      
       idx_k_sigma_ki_kf = 0;
       for(int z=0; z < 2; ++z){    
 	double kz = M_PI * z;
@@ -531,29 +603,13 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 		    /* Psi(A, sigma_psi, A/B, sigma_psi) */
 		    cx_double wavefunc = wfib.integrand(xki, zki, bki, ek_plus, ek_minus, 1., sublattice);
 
-		    // // for check
-		    // std::cout << "wavefunc: " << ek_plus << "  " << ek_minus << "  " << xki << "  " << zki << "  " << bki << "  " << sublattice << "  " << wavefunc << std::endl;
-		  
 		    /* Transforming to Psi(g6, sigma, g5, sigma) */
 		    wavefunc = wavefunc_sublattice_correction(g6, g5, wavefunc);
 
 		    /* Adding the matrix elements. */
 		    coef += U_5plus * Udg_minus6 * std::conj(wavefunc);
-
-		    // for check
-		    // if ( true ) {
-		    // if (std::abs(v1) + std::abs(v2) > 1e-12) {
-		    // std::cout << g5 << " " << g6 << " " << U_5plus << "  " << Udg_minus6 << "  " << std::conj(wavefunc) << "    " << coef << std::endl;
-		    // }
-		  
 		  }  /* end for g6 */	    
 		}  /* end for g5 */
-	      
-		// for check
-		// if ( true ) {
-		// if ( std::norm(v1i) + std::norm(v2i) > 1e-20 ) {
-		// std::cout << mu << " " << nu << " " << sigma << "  " << bond1.x << " " << bond1.y << " " << bond1.z << "  " << bond2.x << " " << bond2.y << " " << bond2.z << "  " << "  " << " " << v_b2_34_pp << " " << v_b1_12_pm << " " << v_b1_12_pp << " " << v_b2_34_pm << "  " << v1i << " " << v2i << "   " << v1 << " " << v2 << std::endl;
-		// }
 	      
 		cx_double mat_elem1_minus = coef * v1;
 		cx_double mat_elem2_minus = coef * v2;
@@ -562,9 +618,6 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 		weight_minus2_comp.push_back(mat_elem2_minus);
 
 		++idx_k_sigma_ki_kf;
-
-		// // for check
-		// std::cout << "idx_k_sigma_ki_kf = " << idx_k_sigma_ki_kf << std::endl;
 	      } /* end for photon_k */	      
 	    } /* end for sigma */	      
 	  } /* end for y */
@@ -584,7 +637,44 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
     cx_double omega_shifted = cx_double(omegas[o], pr.eta);    
     int idx_comp = 0;    
     for(int mu=0; mu < 3; ++mu){
-      for(int nu=0; nu < 3; ++nu){	
+      for(int nu=0; nu < 3; ++nu){
+
+	cx_double sigma0 = calc_Raman_sigma0(L, *ts, mu, U, T, delta, cbp, me_F, omega_shifted, continuous_k);
+	cx_double sigma1 = calc_Raman_sigma1(L, *ts, mu, U, T, delta, cbp, me_F, omega_shifted, continuous_k);
+	cx_double Raman_sigma = sigma0 + sigma1;
+
+
+
+	
+	// arma::cx_mat chi0_00(NSUBL,NSUBL,arma::fill::zeros);
+	// arma::cx_mat chi0_zz(NSUBL,NSUBL,arma::fill::zeros);
+
+	// /* Calculating the internal vertex. */
+	// std::tie(chi0_00, chi0_zz) = calc_internal_bubble_bilayer(L, ts, mu, U, T, delta, cbp, me_F, omega_shifted, continuous_k);
+
+	// arma::cx_mat Pi_0(NSUBL,1,arma::fill::zeros);
+	// arma::cx_mat Pi_z(NSUBL,1,arma::fill::zeros);
+
+	// /* Calculating the external vertex. */
+	// std::tie(Pi_0, Pi_z) = calc_external_vertex_bilayer(L, ts, mu, U, T, delta, cbp, me_F, omega_shifted, continuous_k);
+      
+	// /* RPA */
+	// /* Transverse = < \sigma^- \sigma^+ >; Longitudinal (zz) = < \sigma^z \sigma^z > */
+	// /* Note that 2 < \sigma^- \sigma^+ > = < \sigma^z \sigma^z > (U -> 0 for the SU(2) case) */
+	// arma::cx_mat denom_00 = arma::eye<arma::cx_mat>(NSUBL,NSUBL) + 0.5 * U * chi0_00;        
+	// arma::cx_mat denom_zz = arma::eye<arma::cx_mat>(NSUBL,NSUBL) - 0.5 * U * chi0_zz;  
+	// arma::cx_mat chi_00 = arma::inv(denom_pm) * chi0_00;
+	// arma::cx_mat chi_zz = arma::inv(denom_zz) * chi0_zz;
+	
+	// // sigma-to-spin factor
+	// cx_double chi_xy = 0.5 * arma::accu(chi_pm);
+	// cx_double chi_z = 0.25 * arma::accu(chi_zz);
+
+	// cx_double sigma_omega0 = calc_Raman_sigma0();
+	// cx_double sigma_omega1 = calc_Raman_sigma1();	
+	// cx_double sigma_omega = sigma_omega0 + sigma_omega1;
+
+	
 	idx_k_sigma_ki_kf = 0;
 	cx_double sum = 0.0;	
 	for(int z=0; z < 2; ++z){    
@@ -619,30 +709,16 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 		  cx_double weight1_minus = weight_minus1[idx_comp][idx_k_sigma_ki_kf] / (ek_diff - pr.omega_i);	      
 		  cx_double weight2_minus = weight_minus2[idx_comp][idx_k_sigma_ki_kf] / (ek_diff + omega_f);
 		  weight_minus_sum += factor_q * (weight1_minus + weight2_minus) * (sigma == up_spin ? 1.0 : down_sign) / sqrt(2.0);
-
-		  // // for check
-		  // std::cout << "k sum: " << mu << " " << nu << "   " << z << " " << x << " " << y << " " << sigma << "  " << weight1_minus << "  " << weight2_minus << "    " << weight_minus_sum << std::endl;
-		
 		  ++idx_k_sigma_ki_kf;
 		}  /* end for photon_k */
 	      }  /* end for sigma */
 
 	      // Zero temperature
 	      double Ei = 0;
-	      sum += factor * exp(- beta * Ei) * std::norm(g_photon * weight_minus_sum) / (e_gap - omega_shifted);
-
-	      // for check
-	      double weight = 2.0 * std::imag(factor * exp(- beta * Ei) * std::norm(g_photon * weight_minus_sum) / (e_gap - omega_shifted));
-	      if ( weight > 1e-4 ) {
-		std::cout << mu << " " << nu << "  " << x << " " << y << " " << z << "  " << omega_f << "  " << omega_shifted << "  " << e_gap << "   " << e_gap - omega_shifted << "   " << weight_minus_sum << "   " << std::norm(g_photon * weight_minus_sum) / (e_gap - omega_shifted) << "    " << sum << std::endl;
-	      }
-	      
+	      sum += factor * exp(- beta * Ei) * std::norm(g_photon * weight_minus_sum) / (e_gap - omega_shifted);	      
 	    } /* end for y */
 	  } /* end for x */
 	} /* end for z */
-
-	// for check
-	std::cout << mu << " " << nu << " " << omega_shifted << "   Sum = " << 2.0 * std::imag(sum) << std::endl;
 	
 	spec_Raman(mu,nu)[o] = 2.0 * std::imag(sum);
   
@@ -807,4 +883,109 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   out_MF_gap.close();
   out_wavefunc_k.close();
 }
-			 
+
+// void calc_Raman_bilayer2(path& base_dir, rpa::parameters const& pr){
+//   /* Getting parameters */
+//   int L = pr.L;
+//   int Lk = pr.Lk;
+//   double U = pr.U;
+//   double filling = pr.filling;
+//   double T = pr.T;
+//   bool continuous_k = pr.continuous_k;
+
+//   /* Hopping parameters */
+//   std::unique_ptr<hoppings_bilayer2> ts = hoppings_bilayer2::mk_bilayer3(pr);
+
+//   /* Omegas */
+//   double omega_min = pr.omega_min;
+//   double omega_max = pr.omega_max;
+//   double omega_delta = pr.omega_delta;  
+  
+//   int n_omegas = int((omega_max - omega_min)/omega_delta+0.5);
+//   std::vector<double> omegas(n_omegas);
+//   for(int o=1; o <= n_omegas; ++o){ omegas[o-1] = omega_min + omega_delta * o; }
+  
+//   /* Parameters for Cuba */
+//   CubaParam cbp(pr);
+  
+//   /* Calculate the chemical potential and the charge gap. */
+//   double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, filling, T, cbp, continuous_k );  
+//   std::cout << "delta = " << delta << std::endl;  
+//   /* Assume that mu does not depend on L for integral over continuous k. */
+//   double ch_gap, mu;
+//   std::tie(ch_gap, mu) = calc_charge_gap_bilayer( L, *ts, delta );  /* Finite size */  
+//   // double mu = calc_chemical_potential_bilayer2( base_dir, L, *ts, delta );  /* Finite size */
+
+//   /* Output */
+//   ofstream out_gap;
+//   out_gap.open(base_dir / "gap.text");
+//   out_gap << "Charge gap = " << ch_gap << std::endl;
+//   out_gap << "mu = " << mu << std::endl;
+  
+//   /* MatElemF */
+//   MatElemF me_F( L, L, 2, NSUBL );
+
+//   // auto calc_gaps = [&](double qx, double qy, double qz){
+//   //   /* Setting the ordering vector */
+//   //   me_F.set_q(qx, qy, qz);
+//   //   if ( !continuous_k ) {
+//   //     /* The polarizations are calculated in advance. */
+//   //     me_F.set_table( *ts, delta );
+//   //   }
+    
+//   //   /* Calculating gaps */
+//   //   double omega_T = 0, omega_L = 0, omega_ph = 0;
+//   //   bool return_upper = true;
+//   //   // bool verbose = true;
+//   //   bool verbose = false;    
+//   //   std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, mu, U, T, delta, cbp, me_F, continuous_k, return_upper, verbose);
+    
+//   //   return std::make_tuple(omega_T, omega_L, omega_ph);
+//   // };
+
+//   // /* Calculating gaps at (pi, pi, pi)*/
+//   // double omega_T = 0, omega_L = 0, omega_ph = 0;
+//   // std::tie(omega_T, omega_L, omega_ph) = calc_gaps(M_PI, M_PI, M_PI);
+  
+//   // /* Output */
+//   // out_gap << "omega_T = " << omega_T << std::endl;
+//   // out_gap << "omega_L = " << omega_L << std::endl;
+//   // out_gap << "omega_ph = " << omega_ph << std::endl;
+  
+//   /* Calculating Psi'*/
+//   // double Psider = 1.0;
+//   // std::cout << "Setting Psider to one for simplicity." << std::endl;
+//   // double Psider = calc_Psider(L, *ts, mu, omega_L, delta, cbp, continuous_k);
+
+//   // /* Output */
+//   // out_gap << "Psider = " << Psider << std::endl;
+
+//   // /* Calculating the minimum bk square */
+//   // double min_bk_sq = calc_min_bk_sq_bilayer(L, *ts);
+    
+//   /* Constants */
+//   double k1 = 2. * M_PI / (double)L;  
+//   double g_photon = 1.0;  // This factor does not matter to the result.
+//   // double g_photon = sqrt(planck_h * c_light * c_light / (pr.omega_i * 2. * M_PI / planck_h));  
+//   double beta = 0;
+//   if ( !pr.T_equal_to_0 ) {
+//     beta = 1. / (kB * pr.T);
+//   }
+
+//   /* Precision */
+//   int prec = 10;
+//   int pw = prec + 10;
+
+//   // /* Calculating the scattering states of a single particle-hole pair. */
+//   // int N = 2 * L * L;
+//   // vec vals(N);
+//   // cx_mat Uph1(N, N);
+//   // calc_particle_hole1(pr, *ts, delta, vals, Uph1);
+      
+//   std::vector<BondDelta> bonds {
+//      {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, -1, 0},  {0, 0, 1}
+    
+//     // for check
+//      // {1, 0, 0}, {0, 1, 0}
+//    };
+// }

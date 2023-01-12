@@ -24,6 +24,7 @@ typedef arma::vec vec;
 typedef arma::cx_vec cx_vec;
 typedef arma::mat mat;
 typedef arma::cx_mat cx_mat;
+typedef arma::sp_mat sp_mat;
 
 #ifdef _USE_BOOST_FILESYSTEM_
 /* Using boost::filesystem */
