@@ -11,8 +11,8 @@
 #include "Hartree_Fock.h"
 #include "mat_elem.h"
 
-/* Member functions of MatElemF */
-MatElemF::MatElemF(int Lx, int Ly, int Lz, int nsub):opek(){
+/* Member functions of MatElem */
+MatElem::MatElem(int Lx, int Ly, int Lz, int nsub){
   is_table_set_ = false;
   Lx_ = Lx;
   Ly_ = Ly;
@@ -20,11 +20,35 @@ MatElemF::MatElemF(int Lx, int Ly, int Lz, int nsub):opek(){
   nsub_ = nsub;
 }
 
-void MatElemF::set_q(double qx, double qy, double qz){
+void MatElem::set_q(double qx, double qy, double qz){
   qx_ = qx;
   qy_ = qy;
   qz_ = qz;
 }
+
+/* Assume that k = 2pi / L * m, where m is an integer. */
+int MatElem::pullback(double k, int L) const {
+  int l = rint(k * L / (2.*M_PI));
+  while ( l < 0 ) l += L;
+  while ( l >= L ) l -= L;
+  /* Return 0 <= l < L */
+  return l;
+}
+  
+int MatElem::xyz_to_index(int x, int y, int z) const {
+  return z * Lx() * Ly() + y * Lx() + x;
+}
+  
+int MatElem::k_to_index(double kx, double ky, double kz) const {    
+  int lx = pullback(kx, Lx());
+  int ly = pullback(ky, Ly());
+  int lz = pullback(kz, Lz());    
+  return xyz_to_index(lx, ly, lz);
+}
+
+
+/* Member functions of MatElemF */
+MatElemF::MatElemF(int Lx, int Ly, int Lz, int nsub):MatElem(Lx, Ly, Lz, nsub){}
 
 void MatElemF::set_table(hoppings2 const& ts, double delta){
   F00_ = new cx_double[table_size()];  
@@ -36,26 +60,6 @@ void MatElemF::set_table(hoppings2 const& ts, double delta){
 
 std::size_t MatElemF::table_size() const { return Lx()*Ly()*Lz()*nbands()*nbands()*nsub()*nsub(); }
   
-/* Assume that k = 2pi / L * m, where m is an integer. */
-int MatElemF::pullback(double k, int L) const {
-  int l = rint(k * L / (2.*M_PI));
-  while ( l < 0 ) l += L;
-  while ( l >= L ) l -= L;
-  /* Return 0 <= l < L */
-  return l;
-}
-  
-int MatElemF::xyz_to_index(int x, int y, int z) const {
-    return z * Lx() * Ly() + y * Lx() + x;
-  }
-  
-int MatElemF::k_to_index(double kx, double ky, double kz) const {    
-    int lx = pullback(kx, Lx());
-    int ly = pullback(ky, Ly());
-    int lz = pullback(kz, Lz());    
-    return xyz_to_index(lx, ly, lz);
-  }
-
 void MatElemF::calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, int sg1, int sg2, cx_double* F00, cx_double* Fpm, cx_double* Fzz) const {
   /* Adding the results */
   cx_double ek1 = ts.ek1(kx, ky, kz);
