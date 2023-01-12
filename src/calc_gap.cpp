@@ -399,15 +399,16 @@ void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, arma::cx_mat& chi
       cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, ts, T, kx, ky, kz, me_F.qx(), me_F.qy(), me_F.qz(), omega, delta, mu);
       prefactor *= factor;
       int sg1i = (sg1+1) >> 1;    
-      int sg2i = (sg2+1) >> 1;    
+      int sg2i = (sg2+1) >> 1;
+      cx_double F00[NSUBL*NSUBL];      
       cx_double Fpm[NSUBL*NSUBL];
       cx_double Fzz[NSUBL*NSUBL];    
 
       if ( me_F.is_table_set() ) {
-	me_F.get_Ppm(kx, ky, kz, sg1i, sg2i, Fpm);
-	me_F.get_Pzz(kx, ky, kz, sg1i, sg2i, Fzz);
+	me_F.get_pm(kx, ky, kz, sg1i, sg2i, Fpm);
+	me_F.get_zz(kx, ky, kz, sg1i, sg2i, Fzz);
       } else {
-	me_F.calc_mat_elems(ts, delta, kx, ky, kz, sg1, sg2, Fpm, Fzz);
+	me_F.calc_mat_elems(ts, delta, kx, ky, kz, sg1, sg2, F00, Fpm, Fzz);
       }
 
       chi_pm(0,0) += prefactor * Fpm[0];

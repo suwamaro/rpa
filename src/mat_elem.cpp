@@ -27,8 +27,9 @@ void MatElemF::set_q(double qx, double qy, double qz){
 }
 
 void MatElemF::set_table(hoppings2 const& ts, double delta){
-  Ppm_ = new cx_double[table_size()];
-  Pzz_ = new cx_double[table_size()];  
+  F00_ = new cx_double[table_size()];  
+  Fpm_ = new cx_double[table_size()];
+  Fzz_ = new cx_double[table_size()];  
   build_table(ts, delta);
   is_table_set_ = true;
 }
@@ -55,7 +56,7 @@ int MatElemF::k_to_index(double kx, double ky, double kz) const {
     return xyz_to_index(lx, ly, lz);
   }
 
-void MatElemF::calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, int sg1, int sg2, cx_double* ppm, cx_double* pzz) const {
+void MatElemF::calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, int sg1, int sg2, cx_double* F00, cx_double* Fpm, cx_double* Fzz) const {
   /* Adding the results */
   cx_double ek1 = ts.ek1(kx, ky, kz);
   double kx2 = kx + qx();
@@ -79,41 +80,50 @@ void MatElemF::calc_mat_elems(hoppings2 const& ts, double delta, double kx, doub
   tau_A.set_size(2,2);  
   tau_B.set_size(2,2);
   
-  // cx_mat Pauli_0 = cx_mat({1., 0., 0., 1.});
+  cx_mat Pauli_0 = cx_mat({1., 0., 0., 1.});
   cx_mat Pauli_p = cx_mat({0., 0., 1., 0.});
   cx_mat Pauli_m = cx_mat({0., 1., 0., 0.});
   cx_mat Pauli_z = cx_mat({1., 0., 0., - 1.});
-  // Pauli_0.set_size(2,2);
+  Pauli_0.set_size(2,2);
   Pauli_p.set_size(2,2);
   Pauli_m.set_size(2,2);  
   Pauli_z.set_size(2,2);
   
-  // cx_mat Sigma_A0 = arma::kron(tau_A, Pauli_0);
+  cx_mat Sigma_A0 = arma::kron(tau_A, Pauli_0);
   cx_mat Sigma_Ap = arma::kron(tau_A, Pauli_p);
   cx_mat Sigma_Am = arma::kron(tau_A, Pauli_m);
   cx_mat Sigma_Az = arma::kron(tau_A, Pauli_z);
-  // cx_mat Sigma_B0 = arma::kron(tau_B, Pauli_0);
+  cx_mat Sigma_B0 = arma::kron(tau_B, Pauli_0);
   cx_mat Sigma_Bp = arma::kron(tau_B, Pauli_p);
   cx_mat Sigma_Bm = arma::kron(tau_B, Pauli_m);
   cx_mat Sigma_Bz = arma::kron(tau_B, Pauli_z);      
+
+  cx_double F_A0_A0 = arma::trace(P1up * Sigma_A0 * P2up * Sigma_A0);
+  cx_double F_A0_B0 = arma::trace(P1up * Sigma_A0 * P2up * Sigma_B0);
+  cx_double F_B0_A0 = arma::trace(P1up * Sigma_B0 * P2up * Sigma_A0);
+  cx_double F_B0_B0 = arma::trace(P1up * Sigma_B0 * P2up * Sigma_B0);    
+  F00[0] = F_A0_A0;
+  F00[1] = F_A0_B0;
+  F00[2] = F_B0_A0;
+  F00[3] = F_B0_B0;
   
   cx_double F_Az_Az = arma::trace(P1up * Sigma_Az * P2up * Sigma_Az);
   cx_double F_Az_Bz = arma::trace(P1up * Sigma_Az * P2up * Sigma_Bz);
   cx_double F_Bz_Az = arma::trace(P1up * Sigma_Bz * P2up * Sigma_Az);
   cx_double F_Bz_Bz = arma::trace(P1up * Sigma_Bz * P2up * Sigma_Bz);    
-  pzz[0] = F_Az_Az;
-  pzz[1] = F_Az_Bz;
-  pzz[2] = F_Bz_Az;
-  pzz[3] = F_Bz_Bz;
+  Fzz[0] = F_Az_Az;
+  Fzz[1] = F_Az_Bz;
+  Fzz[2] = F_Bz_Az;
+  Fzz[3] = F_Bz_Bz;
   
   cx_double F_Ap_Am = arma::trace(P1up * Sigma_Ap * P2down * Sigma_Am);
   cx_double F_Ap_Bm = arma::trace(P1up * Sigma_Ap * P2down * Sigma_Bm);
   cx_double F_Bp_Am = arma::trace(P1up * Sigma_Bp * P2down * Sigma_Am);
   cx_double F_Bp_Bm = arma::trace(P1up * Sigma_Bp * P2down * Sigma_Bm);  
-  ppm[0] = F_Ap_Am;
-  ppm[1] = F_Ap_Bm;
-  ppm[2] = F_Bp_Am;
-  ppm[3] = F_Bp_Bm;
+  Fpm[0] = F_Ap_Am;
+  Fpm[1] = F_Ap_Bm;
+  Fpm[2] = F_Bp_Am;
+  Fpm[3] = F_Bp_Bm;
   
   // cx_vec X1up = gs_HF1(up_spin, sg1, ek1, tz, kz, delta);
   // // cx_vec X1down = gs_HF1(down_spin, sg1, ek1, tz, kz, delta);
@@ -146,8 +156,9 @@ void MatElemF::calc_mat_elems(hoppings2 const& ts, double delta, double kx, doub
 }
 
 void MatElemF::build_table(hoppings2 const& ts, double delta){
-  cx_double ppm[nsub()*nsub()];
-  cx_double pzz[nsub()*nsub()];
+  cx_double F00[nsub()*nsub()];  
+  cx_double Fpm[nsub()*nsub()];
+  cx_double Fzz[nsub()*nsub()];
   for(int x=0; x < Lx(); x++){    
     double kx = 2. * M_PI / Lx() * x;
     for(int y=0; y < Ly(); y++){    
@@ -159,14 +170,15 @@ void MatElemF::build_table(hoppings2 const& ts, double delta){
 	for(int sg1=-1; sg1<=1; sg1+=2){
 	  for(int sg2=-1; sg2<=1; sg2+=2){
 	    // int sg2 = - sg1; /* Opposite sign */
-	    calc_mat_elems(ts, delta, kx, ky, kz, sg1, sg2, ppm, pzz);
+	    calc_mat_elems(ts, delta, kx, ky, kz, sg1, sg2, F00, Fpm, Fzz);
 	  
 	    int sg1i = (sg1+1) >> 1;
 	    int sg2i = (sg2+1) >> 1;
 	    std::size_t bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
-	    std::size_t xyz_bands_idx = xyz_idx + bands_idx;	  	
-	    memcpy(Ppm_ + xyz_bands_idx, ppm, sizeof(cx_double)*nsub()*nsub() );
-	    memcpy(Pzz_ + xyz_bands_idx, pzz, sizeof(cx_double)*nsub()*nsub() );
+	    std::size_t xyz_bands_idx = xyz_idx + bands_idx;
+	    memcpy(F00_ + xyz_bands_idx, F00, sizeof(cx_double)*nsub()*nsub() );	    
+	    memcpy(Fpm_ + xyz_bands_idx, Fpm, sizeof(cx_double)*nsub()*nsub() );
+	    memcpy(Fzz_ + xyz_bands_idx, Fzz, sizeof(cx_double)*nsub()*nsub() );
 	  }
 	}
       }
@@ -174,26 +186,37 @@ void MatElemF::build_table(hoppings2 const& ts, double delta){
   }
 }
 
-void MatElemF::get_Ppm(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Ppmk) const {
+void MatElemF::get_00(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* F00k) const {
   std::size_t xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
   std::size_t bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
   std::size_t xyz_bands_idx = xyz_idx + bands_idx;    
-  memcpy( Ppmk, Ppm_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
+  memcpy( F00k, F00_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
 }
-  
-void MatElemF::get_Pzz(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Pzzk) const {    
+
+void MatElemF::get_pm(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Fpmk) const {
   std::size_t xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
   std::size_t bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
   std::size_t xyz_bands_idx = xyz_idx + bands_idx;    
-  memcpy( Pzzk, Pzz_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
+  memcpy( Fpmk, Fpm_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
+}
+
+void MatElemF::get_zz(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Fzzk) const {    
+  std::size_t xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
+  std::size_t bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+  std::size_t xyz_bands_idx = xyz_idx + bands_idx;    
+  memcpy( Fzzk, Fzz_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
 }
   
 MatElemF::~MatElemF(){
-  if ( Ppm_ != nullptr ) {
-    delete[] Ppm_;
+  if ( F00_ != nullptr ) {
+    delete[] F00_;
+  }
+  
+  if ( Fpm_ != nullptr ) {
+    delete[] Fpm_;
   }
 
-  if ( Pzz_ != nullptr ) {
-    delete[] Pzz_;
+  if ( Fzz_ != nullptr ) {
+    delete[] Fzz_;
   }
 }

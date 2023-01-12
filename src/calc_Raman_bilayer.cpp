@@ -208,15 +208,16 @@ cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double mu, double U, d
 	      cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, ts, T, kx, ky, kz, 0., 0., 0., omega, delta, mu);
 	      prefactor *= factor;
 	      int sg1i = (sg1+1) >> 1;    
-	      int sg2i = (sg2+1) >> 1;    
+	      int sg2i = (sg2+1) >> 1;
+	      cx_double P00[NSUBL*NSUBL];	      
 	      cx_double Ppm[NSUBL*NSUBL];
 	      cx_double Pzz[NSUBL*NSUBL];    
 
 	      if ( me_F.is_table_set() ) {
-		me_F.get_Ppm(kx, ky, kz, sg1i, sg2i, Ppm);
-		me_F.get_Pzz(kx, ky, kz, sg1i, sg2i, Pzz);
+		me_F.get_pm(kx, ky, kz, sg1i, sg2i, Ppm);
+		me_F.get_zz(kx, ky, kz, sg1i, sg2i, Pzz);
 	      } else {
-		me_F.calc_mat_elems(ts, delta, kx, ky, kz, sg1, sg2, Ppm, Pzz);
+		me_F.calc_mat_elems(ts, delta, kx, ky, kz, sg1, sg2, P00, Ppm, Pzz);
 	      }
 
 	      // chi_pm(0,0) += prefactor * Ppm[0];

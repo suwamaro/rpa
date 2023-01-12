@@ -51,8 +51,9 @@ int ResponseFuncIntegrandBilayer::calc(const int *ndim, const cubareal xx[], con
    double ky = 0.5 * (k2 - k1);
 
    /* Polarizaiton */
-   cx_double Ppmk[NSUBL*NSUBL];
-   cx_double Pzzk[NSUBL*NSUBL];
+   cx_double F00k[NSUBL*NSUBL];   
+   cx_double Fpmk[NSUBL*NSUBL];
+   cx_double Fzzk[NSUBL*NSUBL];
        
    /* Sum over kz */
    for(int z=0; z < 2; z++){       
@@ -65,18 +66,18 @@ int ResponseFuncIntegrandBilayer::calc(const int *ndim, const cubareal xx[], con
 	 cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, *ts(), T(), kx, ky, kz, me_F()->qx(), me_F()->qy(), me_F()->qz(), omega(), delta(), mu());
     
 	 /* Getting the polarization */
-	 me_F()->calc_mat_elems(hb_, delta(), kx, ky, kz, sg1, sg2, Ppmk, Pzzk);
+	 me_F()->calc_mat_elems(hb_, delta(), kx, ky, kz, sg1, sg2, F00k, Fpmk, Fzzk);
 
 	 /* Integrand */
 	 for(int comp=0; comp<*ncomp; comp+=2){
 	   int ope, elem;
 	   std::tie(ope, elem) = comp_to_ope_elem(comp, NSUBL*NSUBL);
-	   if ( ope == 0 ) {  /* Ppmk */
-	     ff[comp] += std::real(prefactor * Ppmk[elem]);
-	     ff[comp+1] += std::imag(prefactor * Ppmk[elem]);
-	   } else /* ope == 1 */ { /* Pzzk */	      
-	     ff[comp] += std::real(prefactor * Pzzk[elem]);
-	     ff[comp+1] += std::imag(prefactor * Pzzk[elem]);
+	   if ( ope == 0 ) {  /* Fpmk */
+	     ff[comp] += std::real(prefactor * Fpmk[elem]);
+	     ff[comp+1] += std::imag(prefactor * Fpmk[elem]);
+	   } else /* ope == 1 */ { /* Fzzk */	      
+	     ff[comp] += std::real(prefactor * Fzzk[elem]);
+	     ff[comp+1] += std::imag(prefactor * Fzzk[elem]);
 	   }
 	 }
        }

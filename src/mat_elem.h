@@ -32,17 +32,19 @@ struct MatElemF {
   int pullback(double k, int L) const;
   int xyz_to_index(int x, int y, int z) const;
   int k_to_index(double kx, double ky, double kz) const;
-  void calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, int sg1, int sg2, cx_double* ppm, cx_double* pzz) const;  
+  void calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, int sg1, int sg2, cx_double* p00, cx_double* ppm, cx_double* pzz) const;  
   void build_table(hoppings2 const& ts, double delta);
-  void get_Ppm(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Ppmk) const;
-  void get_Pzz(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Pzzk) const;  
+  void get_00(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* F00k) const;  
+  void get_pm(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Fpmk) const;
+  void get_zz(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Fzzk) const;  
   ~MatElemF();
 
   OperatorK opek;
   int nbands_ = NSUBL;
   bool is_table_set_;
-  cx_double *Ppm_ = nullptr;
-  cx_double *Pzz_ = nullptr;
+  cx_double *F00_ = nullptr;  
+  cx_double *Fpm_ = nullptr;
+  cx_double *Fzz_ = nullptr;
   int Lx_;
   int Ly_;
   int Lz_;
