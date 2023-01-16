@@ -51,9 +51,11 @@ int ResponseFuncIntegrandBilayer::calc(const int *ndim, const cubareal xx[], con
    double ky = 0.5 * (k2 - k1);
 
    /* Polarizaiton */
-   cx_double F00k[NSUBL*NSUBL];   
+   cx_double F00k_up[NSUBL*NSUBL];
+   cx_double F00k_down[NSUBL*NSUBL];      
    cx_double Fpmk[NSUBL*NSUBL];
-   cx_double Fzzk[NSUBL*NSUBL];
+   cx_double Fzzk_up[NSUBL*NSUBL];
+   cx_double Fzzk_down[NSUBL*NSUBL];   
        
    /* Sum over kz */
    for(int z=0; z < 2; z++){       
@@ -66,7 +68,7 @@ int ResponseFuncIntegrandBilayer::calc(const int *ndim, const cubareal xx[], con
 	 cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, *ts(), T(), kx, ky, kz, me_F()->qx(), me_F()->qy(), me_F()->qz(), omega(), delta(), mu());
     
 	 /* Getting the polarization */
-	 me_F()->calc_mat_elems(hb_, delta(), kx, ky, kz, sg1, sg2, F00k, Fpmk, Fzzk);
+	 me_F()->calc_mat_elems(hb_, delta(), kx, ky, kz, sg1, sg2, F00k_up, F00k_down, Fpmk, Fzzk_up, Fzzk_down);
 
 	 /* Integrand */
 	 for(int comp=0; comp<*ncomp; comp+=2){
@@ -76,8 +78,8 @@ int ResponseFuncIntegrandBilayer::calc(const int *ndim, const cubareal xx[], con
 	     ff[comp] += std::real(prefactor * Fpmk[elem]);
 	     ff[comp+1] += std::imag(prefactor * Fpmk[elem]);
 	   } else /* ope == 1 */ { /* Fzzk */	      
-	     ff[comp] += std::real(prefactor * Fzzk[elem]);
-	     ff[comp+1] += std::imag(prefactor * Fzzk[elem]);
+	     ff[comp] += std::real(prefactor * Fzzk_up[elem]);
+	     ff[comp+1] += std::imag(prefactor * Fzzk_up[elem]);
 	   }
 	 }
        }
@@ -145,7 +147,8 @@ int integrand_wrapper(const int *ndim, const cubareal xx[], const int *ncomp, cu
 
 std::tuple<arma::cx_mat, arma::cx_mat> calc_bare_response_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, cx_double omega, bool continuous_k){
   arma::cx_mat chi0_pm(NSUBL,NSUBL,arma::fill::zeros);
-  arma::cx_mat chi0_zz_u(NSUBL,NSUBL,arma::fill::zeros);
+  arma::cx_mat chi0_zz_up(NSUBL,NSUBL,arma::fill::zeros);
+  arma::cx_mat chi0_zz_down(NSUBL,NSUBL,arma::fill::zeros);  
   
   if ( continuous_k ) {
     /* Changing the parameters */
@@ -174,12 +177,12 @@ std::tuple<arma::cx_mat, arma::cx_mat> calc_bare_response_bilayer(int L, hopping
       if ( ope == 0 ) {  /* Ppmk */
 	chi0_pm(g1,g2) = int_ope_elem;
       } else /* ope == 1 */ { /* me_Fzk */	      
-	chi0_zz_u(g1,g2) = int_ope_elem;
+	chi0_zz_up(g1,g2) = int_ope_elem;
       }
     }
 
     chi0_pm /= 2; /* A factor (2*M_PI) cancels because of the scale change of the integration variables. */
-    chi0_zz_u /= 2;
+    chi0_zz_up /= 2;
   } else { /* Integral for a finite-size system */
     double k1 = 2. * M_PI / L;
     for(int z=0; z < 2; z++){    
@@ -188,27 +191,30 @@ std::tuple<arma::cx_mat, arma::cx_mat> calc_bare_response_bilayer(int L, hopping
 	double kx = k1 * x;
 	for(int y=-L/2; y < L/2; y++){
 	  double ky = k1 * y;
-	  add_to_sus_mat4( ts, T, mu, chi0_pm, chi0_zz_u, kx, ky, kz, me_F, delta, omega );	  
+	  add_to_sus_mat4( ts, T, mu, chi0_pm, chi0_zz_up, chi0_zz_down, kx, ky, kz, me_F, delta, omega );
+	  // add_to_sus_mat4( ts, T, mu, chi0_pm, chi0_zz_up, kx, ky, kz, me_F, delta, omega );	  	  
 	}
       }
     }
     
     int n_units = L * L;  // Number of unit cells
     chi0_pm /= (double)(n_units);
-    chi0_zz_u /= (double)(n_units);
+    chi0_zz_up /= (double)(n_units);
+    chi0_zz_down /= (double)(n_units);    
   }
 
-  /* Adding the contribution from the down spin */
-  arma::cx_mat chi0_zz_d(chi0_zz_u);
-  /* Assume NSUBL == 2. */  
-  if ( NSUBL == 2 ) {
-    chi0_zz_d.swap_rows( 0, 1 );
-    chi0_zz_d.swap_cols( 0, 1 );
-  } else {
-    std::cerr << "NSUBL is not 2.\n";
-    std::exit(EXIT_FAILURE);
-  }
-  arma::cx_mat chi0_zz = chi0_zz_u + chi0_zz_d;
+  // /* Using the spin symmetry */
+  // arma::cx_mat chi0_zz_down2(chi0_zz_up);
+  // /* Assume NSUBL == 2. */  
+  // if ( NSUBL == 2 ) {
+  //   chi0_zz_down2.swap_rows( 0, 1 );
+  //   chi0_zz_down2.swap_cols( 0, 1 );
+  // } else {
+  //   std::cerr << "NSUBL is not 2.\n";
+  //   std::exit(EXIT_FAILURE);
+  // }
+    
+  cx_mat chi0_zz = chi0_zz_up + chi0_zz_down;
   return std::make_tuple(chi0_pm, chi0_zz);
 }
 

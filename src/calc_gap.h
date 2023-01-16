@@ -10,7 +10,7 @@
 #ifndef __CALC_GAP__
 #define __CALC_GAP__
 
-#include <armadillo>
+// #include <armadillo>
 #include "rpa.h"
 #include "rpa_util.h"
 #include "hoppings.h"
@@ -30,7 +30,7 @@ cx_double calc_ak_down_in_minus(double ek1, double ek2, double ek3, double delta
 cx_double larger_eigenvalue(cx_double A, cx_double B, cx_double D);
 void add_to_sus_mat(cx_double& A, cx_double& B, cx_double& D, double e_free, double e_free2, double delta, cx_double omega);
 void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, cx_double& C, cx_double& D, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega, bool zz);
-void add_to_sus_mat3(hoppings2 const& ts, double mu, arma::cx_mat& chi, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega, bool zz);
+void add_to_sus_mat3(hoppings2 const& ts, double mu, cx_mat& chi, double qx, double qy, double qz, double kx, double ky, double kz, double delta, cx_double omega, bool zz);
 
 /* Polarization is depreciated: Use MatElemF instead defined in mat_elem.h. */
 struct Polarization {
@@ -73,7 +73,8 @@ struct Polarization {
   double qz_;
 };
 
-void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz, double kx, double ky, double kz, MatElemF const& me_F, double delta, cx_double omega);
+void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, cx_mat& chi_pm, cx_mat& chi_zz_up, cx_mat& chi_zz_down, double kx, double ky, double kz, MatElemF const& me_F, double delta, cx_double omega);
+// void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, cx_mat& chi_pm, cx_mat& chi_zz, double kx, double ky, double kz, MatElemF const& me_F, double delta, cx_double omega);
 
 /* For a square lattice */
 double calc_eigval_square(int L, double t, double mu, double U, double delta, double qx, double qy, double omega);

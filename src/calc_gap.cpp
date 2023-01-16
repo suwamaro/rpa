@@ -383,7 +383,9 @@ cx_double calc_prefactor_bare_res_func_bilayer(int sg1, int sg2, hoppings2 const
   return prefactor;
 }
 
-void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz_u, double kx, double ky, double kz, MatElemF const& me_F, double delta, cx_double omega){  
+void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz_up, arma::cx_mat& chi_zz_down, double kx, double ky, double kz, MatElemF const& me_F, double delta, cx_double omega){
+// void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz_up, double kx, double ky, double kz, MatElemF const& me_F, double delta, cx_double omega){  
+  
   /* Checking if the wavevector is inside the BZ. */
   double mu_free = 0;  /* Assume at half filling */
   double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc: t=1 */
@@ -400,15 +402,18 @@ void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, arma::cx_mat& chi
       prefactor *= factor;
       int sg1i = (sg1+1) >> 1;    
       int sg2i = (sg2+1) >> 1;
-      cx_double F00[NSUBL*NSUBL];      
+      cx_double F00_up[NSUBL*NSUBL];
+      cx_double F00_down[NSUBL*NSUBL];            
       cx_double Fpm[NSUBL*NSUBL];
-      cx_double Fzz[NSUBL*NSUBL];    
+      cx_double Fzz_up[NSUBL*NSUBL];
+      cx_double Fzz_down[NSUBL*NSUBL];          
 
       if ( me_F.is_table_set() ) {
 	me_F.get_pm(kx, ky, kz, sg1i, sg2i, Fpm);
-	me_F.get_zz(kx, ky, kz, sg1i, sg2i, Fzz);
+	me_F.get_zz_up(kx, ky, kz, sg1i, sg2i, Fzz_up);
+	me_F.get_zz_down(kx, ky, kz, sg1i, sg2i, Fzz_down);	
       } else {
-	me_F.calc_mat_elems(ts, delta, kx, ky, kz, sg1, sg2, F00, Fpm, Fzz);
+	me_F.calc_mat_elems(ts, delta, kx, ky, kz, sg1, sg2, F00_up, F00_down, Fpm, Fzz_up, Fzz_down);
       }
 
       chi_pm(0,0) += prefactor * Fpm[0];
@@ -416,10 +421,15 @@ void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, arma::cx_mat& chi
       chi_pm(1,0) += prefactor * Fpm[2];
       chi_pm(1,1) += prefactor * Fpm[3];
     
-      chi_zz_u(0,0) += prefactor * Fzz[0];
-      chi_zz_u(0,1) += prefactor * Fzz[1];
-      chi_zz_u(1,0) += prefactor * Fzz[2];
-      chi_zz_u(1,1) += prefactor * Fzz[3];
+      chi_zz_up(0,0) += prefactor * Fzz_up[0];
+      chi_zz_up(0,1) += prefactor * Fzz_up[1];
+      chi_zz_up(1,0) += prefactor * Fzz_up[2];
+      chi_zz_up(1,1) += prefactor * Fzz_up[3];
+
+      chi_zz_down(0,0) += prefactor * Fzz_down[0];
+      chi_zz_down(0,1) += prefactor * Fzz_down[1];
+      chi_zz_down(1,0) += prefactor * Fzz_down[2];
+      chi_zz_down(1,1) += prefactor * Fzz_down[3];      
     }
   }
 }
