@@ -47,10 +47,37 @@ int MatElem::k_to_index(double kx, double ky, double kz) const {
 }
 
 
-/* Member functions of MatElemF */
-MatElemF::MatElemF(int Lx, int Ly, int Lz, int nsub):MatElem(Lx, Ly, Lz),nsub_(nsub){}
+/* Member functions of BasicMatrix */
+BasicMatrix::BasicMatrix(){
+  tau_A = mat({1., 0., 0., 0.});
+  tau_B = mat({0., 0., 0., 1.});
+  tau_A.set_size(2,2);  
+  tau_B.set_size(2,2);
+  
+  Pauli_0 = cx_mat({1., 0., 0., 1.});
+  Pauli_p = cx_mat({0., 0., 1., 0.});
+  Pauli_m = cx_mat({0., 1., 0., 0.});
+  Pauli_z = cx_mat({1., 0., 0., - 1.});
+  Pauli_0.set_size(2,2);
+  Pauli_p.set_size(2,2);
+  Pauli_m.set_size(2,2);  
+  Pauli_z.set_size(2,2);
+  
+  Sigma_A0 = arma::kron(tau_A, Pauli_0);
+  Sigma_Ap = arma::kron(tau_A, Pauli_p);
+  Sigma_Am = arma::kron(tau_A, Pauli_m);
+  Sigma_Az = arma::kron(tau_A, Pauli_z);
+  Sigma_B0 = arma::kron(tau_B, Pauli_0);
+  Sigma_Bp = arma::kron(tau_B, Pauli_p);
+  Sigma_Bm = arma::kron(tau_B, Pauli_m);
+  Sigma_Bz = arma::kron(tau_B, Pauli_z);
+}
 
-void MatElemF::set_table(hoppings_bilayer2 const& ts, double delta){
+
+/* Member functions of MatElemF */
+MatElemF::MatElemF(int Lx, int Ly, int Lz, int nsub):MatElem(Lx, Ly, Lz),BasicMatrix(),nsub_(nsub){}
+
+void MatElemF::set_table(hoppings2 const& ts, double delta){
   if ( F00_up_ != nullptr ) {
     delete[] F00_up_;
   }
@@ -77,7 +104,7 @@ void MatElemF::set_table(hoppings_bilayer2 const& ts, double delta){
   Fzz_down_ = new cx_double[table_size()];  
   
   build_table(ts, delta);
-  is_table_set_ = true;
+  assign_is_table_set(true);
 }
 
 std::size_t MatElemF::table_size() const { return Lx()*Ly()*Lz()*nbands()*nbands()*nsub()*nsub(); }
@@ -88,7 +115,7 @@ void MatElemF::calc_mat_elems(hoppings2 const& ts, double delta, double kx, doub
   double kx2 = kx + qx();
   double ky2 = ky + qy();
   double kz2 = kz + qz();
-  cx_double ek_q1 = ts.ek1( kx2, ky2, kz2 );
+  cx_double ek_q1 = ts.ek1(kx2, ky2, kz2);
   cx_double tz = ts.tz;
 
   cx_vec X1up = gs_HF1(up_spin, sg1, ek1, tz, kz, delta);
@@ -96,34 +123,11 @@ void MatElemF::calc_mat_elems(hoppings2 const& ts, double delta, double kx, doub
   cx_vec X2up = gs_HF1(up_spin, sg2, ek_q1, tz, kz2, delta);
   cx_vec X2down = gs_HF1(down_spin, sg2, ek_q1, tz, kz2, delta);
 
-  cx_mat P1up = arma::kron(arma::trans(arma::cx_mat(X1up)), X1up);
-  cx_mat P1down = arma::kron(arma::trans(arma::cx_mat(X1down)), X1down);
-  cx_mat P2up = arma::kron(arma::trans(arma::cx_mat(X2up)), X2up);
-  cx_mat P2down = arma::kron(arma::trans(arma::cx_mat(X2down)), X2down);    
+  cx_mat P1up = arma::kron(arma::trans(X1up), X1up);
+  cx_mat P1down = arma::kron(arma::trans(X1down), X1down);
+  cx_mat P2up = arma::kron(arma::trans(X2up), X2up);
+  cx_mat P2down = arma::kron(arma::trans(X2down), X2down);    
   
-  mat tau_A = mat({1., 0., 0., 0.});
-  mat tau_B = mat({0., 0., 0., 1.});
-  tau_A.set_size(2,2);  
-  tau_B.set_size(2,2);
-  
-  cx_mat Pauli_0 = cx_mat({1., 0., 0., 1.});
-  cx_mat Pauli_p = cx_mat({0., 0., 1., 0.});
-  cx_mat Pauli_m = cx_mat({0., 1., 0., 0.});
-  cx_mat Pauli_z = cx_mat({1., 0., 0., - 1.});
-  Pauli_0.set_size(2,2);
-  Pauli_p.set_size(2,2);
-  Pauli_m.set_size(2,2);  
-  Pauli_z.set_size(2,2);
-  
-  cx_mat Sigma_A0 = arma::kron(tau_A, Pauli_0);
-  cx_mat Sigma_Ap = arma::kron(tau_A, Pauli_p);
-  cx_mat Sigma_Am = arma::kron(tau_A, Pauli_m);
-  cx_mat Sigma_Az = arma::kron(tau_A, Pauli_z);
-  cx_mat Sigma_B0 = arma::kron(tau_B, Pauli_0);
-  cx_mat Sigma_Bp = arma::kron(tau_B, Pauli_p);
-  cx_mat Sigma_Bm = arma::kron(tau_B, Pauli_m);
-  cx_mat Sigma_Bz = arma::kron(tau_B, Pauli_z);      
-
   cx_double F_A0_A0_up = arma::trace(P1up * Sigma_A0 * P2up * Sigma_A0);
   cx_double F_A0_B0_up = arma::trace(P1up * Sigma_A0 * P2up * Sigma_B0);
   cx_double F_B0_A0_up = arma::trace(P1up * Sigma_B0 * P2up * Sigma_A0);
@@ -199,7 +203,7 @@ void MatElemF::calc_mat_elems(hoppings2 const& ts, double delta, double kx, doub
   // ppm[ 3 ] = std::norm(F_p_gm1);
 }
 
-void MatElemF::build_table(hoppings_bilayer2 const& ts, double delta){
+void MatElemF::build_table(hoppings2 const& ts, double delta){
   cx_double F00_up[nsub()*nsub()];
   cx_double F00_down[nsub()*nsub()];    
   cx_double Fpm[nsub()*nsub()];
@@ -295,22 +299,22 @@ MatElemF::~MatElemF(){
 /* Member functions of MatElemK */
 MatElemK::MatElemK(int Lx, int Ly, int Lz, int mu, int nu, std::vector<BondDelta> const& bonds):MatElem(Lx, Ly, Lz),mu_(mu),nu_(nu),bonds_(bonds){}
 
-void MatElemK::set_table(hoppings_bilayer2 const& ts, double delta){
+void MatElemK::set_table(hoppings2 const& ts, double delta){
   if ( R_up_ != nullptr ) {
     delete[] R_up_;
   }
   R_up_ = new cx_double[table_size()];
   
   build_table(ts, delta);
-  is_table_set_ = true;
+  assign_is_table_set(true);
 }
 
 std::size_t MatElemK::table_size() const { return Lx()*Ly()*Lz()*2; }  // A factor of 2 comes from the two cases of the perturbation.
-  
-void MatElemK::calc_mat_elems(hoppings_bilayer2 const& ts, double delta, double kx, double ky, double kz, cx_double* R) const {
+
+void MatElemK::calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double* R) const {
   /* The photon momenta are approximately set to zero. */
   vec3 ki {0, 0, 0}, kf {0, 0, 0};
-
+  
   /* Formulation using up spin */
   int spin = up_spin;
   
@@ -320,9 +324,19 @@ void MatElemK::calc_mat_elems(hoppings_bilayer2 const& ts, double delta, double 
   
   R[0] = R1;
   R[1] = R2;
+
+  // // for check
+  // if ( mu_.z == 1 && nu_.z == 1 ) {
+  //   cx_double R1_up = calc_coef_eff_Raman(Lx(), ts, delta, kx, ky, kz, up_spin, bonds_, mu_, nu_, ki, kf);
+  //   cx_double R2_up = calc_coef_eff_Raman(Lx(), ts, delta, kx, ky, kz, up_spin, bonds_, nu_, mu_, - kf, - ki);
+  //   cx_double R1_down = calc_coef_eff_Raman(Lx(), ts, delta, kx, ky, kz, down_spin, bonds_, mu_, nu_, ki, kf);
+  //   cx_double R2_down = calc_coef_eff_Raman(Lx(), ts, delta, kx, ky, kz, down_spin, bonds_, nu_, mu_, - kf, - ki);
+
+  //   std::cout << kx << "  " << ky << "  " << kz << "     " << R1_up << "   " << R1_down << "     " << R2_up << "   " << R2_down << std::endl;
+  // }
 }
 
-void MatElemK::build_table(hoppings_bilayer2 const& ts, double delta){
+void MatElemK::build_table(hoppings2 const& ts, double delta){
   for(int z=0; z < Lz(); ++z){    
     double kz = 2. * M_PI / Lz() * z;  
     for(int y=0; y < Ly(); ++y){    

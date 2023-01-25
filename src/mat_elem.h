@@ -15,10 +15,12 @@
 
 typedef rpa::array3 vec3;
 
-struct MatElem {
+class MatElem {
+public:
   MatElem(){};
   explicit MatElem(int Lx, int Ly, int Lz);
   void set_q(double qx, double qy, double qz);
+  void assign_is_table_set(bool b) { is_table_set_ = b; }
   int nbands() const { return nbands_; }
   bool is_table_set() const { return is_table_set_; }
   int Lx() const { return Lx_; }
@@ -32,9 +34,10 @@ struct MatElem {
   int pullback(double k, int L) const;
   int xyz_to_index(int x, int y, int z) const;
   int k_to_index(double kx, double ky, double kz) const;
-  void build_table(hoppings_bilayer2 const& ts, double delta);
+  void build_table(hoppings2 const& ts, double delta);
   ~MatElem(){};
-  
+
+private:
   // OperatorK opek;
   int nbands_ = NSUBL;
   bool is_table_set_;
@@ -46,14 +49,25 @@ struct MatElem {
   double qz_;
 };
 
-struct MatElemF : public MatElem {
+class BasicMatrix {
+public:
+  BasicMatrix();
+  mat tau_A, tau_B;
+  cx_mat Pauli_0, Pauli_p, Pauli_m, Pauli_z;  
+  cx_mat Sigma_A0, Sigma_Ap, Sigma_Am, Sigma_Az;
+  cx_mat Sigma_B0, Sigma_Bp, Sigma_Bm, Sigma_Bz;  
+};
+
+/* Matrix elements for the charge and magnetic susceptibility */
+class MatElemF : public MatElem, public BasicMatrix {
+public:
   MatElemF(){};
   explicit MatElemF(int Lx, int Ly, int Lz, int nsub);
   int nsub() const { return nsub_; }  
-  void set_table(hoppings_bilayer2 const& ts, double delta);
+  void set_table(hoppings2 const& ts, double delta);
   std::size_t table_size() const;  
   void calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, int sg1, int sg2, cx_double* F00_up, cx_double* F00_down, cx_double* Fpm, cx_double* Fzz_up, cx_double* Fzz_down) const;  
-  void build_table(hoppings_bilayer2 const& ts, double delta);
+  void build_table(hoppings2 const& ts, double delta);
   void get_00_up(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* F00k) const;
   void get_00_down(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* F00k) const;  
   void get_pm(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Fpmk) const;
@@ -61,6 +75,7 @@ struct MatElemF : public MatElem {
   void get_zz_down(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Fzzk) const;    
   ~MatElemF();
 
+private:
   int nsub_;  
   // OperatorK opek;
   cx_double *F00_up_ = nullptr;
@@ -70,16 +85,19 @@ struct MatElemF : public MatElem {
   cx_double *Fzz_down_ = nullptr;  
 };
 
-struct MatElemK : public MatElem {
+/* Matrix elements for the effective Raman operator */
+class MatElemK : public MatElem {
+public:
   MatElemK(){};
   explicit MatElemK(int Lx, int Ly, int Lz, int mu, int nu, std::vector<BondDelta> const& bonds);
-  void set_table(hoppings_bilayer2 const& ts, double delta);
+  void set_table(hoppings2 const& ts, double delta);
   std::size_t table_size() const;
-  void calc_mat_elems(hoppings_bilayer2 const& ts, double delta, double kx, double ky, double kz, cx_double* R) const;  
-  void build_table(hoppings_bilayer2 const& ts, double delta);
+  void calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double* R) const;  
+  void build_table(hoppings2 const& ts, double delta);
   void get_elem(double kx, double ky, double kz, cx_double* R) const;
   ~MatElemK();
 
+private:
   BondDelta mu_;
   BondDelta nu_;  
   std::vector<BondDelta> bonds_;

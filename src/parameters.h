@@ -32,6 +32,7 @@ namespace rpa {
     bool calc_phase_boundary_t4_bilayer;
     bool calc_current_bilayer;    
     bool calc_Raman_bilayer;
+    bool calc_Raman_bilayer_coefficient;    
     bool calc_two_site_problem;
     
     int L;  // System size
@@ -108,6 +109,7 @@ namespace rpa {
     /* Parameters for the Raman scattering */
     double omega_i;  // Energy of the initial photon state
     int n_ex;  // Maximum number of excitons in the initial state.
+    double Omega;  // Energy in the spectrum for the coefficient calculation.
   };
 
   std::tuple<path, rpa::parameters> extract_parameters(const char* dirn);

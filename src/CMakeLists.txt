@@ -44,9 +44,9 @@ calc_binding_energy_bilayer.cpp
 calc_phase_boundary_bilayer.cpp
 calc_current_bilayer.cpp
 calc_Raman_bilayer.cpp
-calc_two_site.cpp
+#calc_two_site.cpp
 mean_field_bilayer.cpp
-particle_hole1.cpp
+#particle_hole1.cpp
 )
 
 # rpa

@@ -30,7 +30,7 @@ void ResponseFuncIntegrand::update_parameters(double _T, double _delta, double _
   mu_ = _mu;
   omega_ = _omega;
   me_F_ = _me_F;  // without copying the tables
-  me_F_.is_table_set_ = false;
+  me_F_.assign_is_table_set(false);
 };
 
 /* Member functions of ResponseFuncIntegrandBilayer */

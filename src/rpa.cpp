@@ -25,7 +25,7 @@
 #include "calc_phase_boundary.h"
 #include "calc_current.h"
 #include "calc_Raman.h"
-#include "calc_two_site.h"
+// #include "calc_two_site.h"
 
 int main(int argc, char **argv){
   path base_dir;
@@ -85,10 +85,14 @@ int main(int argc, char **argv){
     calc_Raman_bilayer(base_dir, p);
   }
 
-  /* Two-site problem */
-  if ( p.calc_two_site_problem ) {    
-    calc_two_site(base_dir, p);
-  }  
+  if ( p.calc_Raman_bilayer_coefficient ) {
+    calc_coef_eff_Raman_real_space(base_dir, p);
+  }
+  
+  // /* Two-site problem */
+  // if ( p.calc_two_site_problem ) {    
+  //   calc_two_site(base_dir, p);
+  // }
   
   return 0;
 }

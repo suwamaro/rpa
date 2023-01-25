@@ -5,6 +5,7 @@
 *
 *****************************************************************************/
 #include <cmath>
+#include <cassert>
 #include "array3.h"
 
 namespace rpa {

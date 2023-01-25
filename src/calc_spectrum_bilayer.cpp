@@ -514,7 +514,6 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
       int nt = n_omegas / n_threads;
       int rem = n_omegas % n_threads;      
       int thread_id = omp_get_thread_num();
-      int oi, of;
       if ( thread_id < rem ) { nt += 1; }
 
       /* Results for each thread */
@@ -566,7 +565,7 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
       out_xy << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_xy[o] << std::setw( prec ) << U << std::setw( prec ) << T << std::endl;
       out_z << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_z[o] << std::setw( prec ) << U << std::setw( prec ) << T << std::endl;
     }
-  };
+  }
 
   delete[] spec_xy;
   delete[] spec_z;

@@ -27,6 +27,7 @@ namespace rpa {
     calc_phase_boundary_t4_bilayer = config->get_as<bool>("calc_phase_boundary_t4_bilayer").value_or(false);
     calc_current_bilayer = config->get_as<bool>("calc_current_bilayer").value_or(false);    
     calc_Raman_bilayer = config->get_as<bool>("calc_Raman_bilayer").value_or(false);
+    calc_Raman_bilayer_coefficient = config->get_as<bool>("calc_Raman_bilayer_coefficient").value_or(false);    
     calc_two_site_problem = config->get_as<bool>("calc_two_site_problem").value_or(false);            
     
     L = config->get_as<int64_t>("L").value_or(16);
@@ -134,6 +135,7 @@ namespace rpa {
     omega_i = config->get_as<double>("omega_i").value_or(532.0);  // (nm)
     omega_i = planck_h * c_light / (omega_i * 1e-9);  // (eV)
     n_ex = config->get_as<int64_t>("n_ex").value_or(1);
+    Omega = config->get_as<double>("Omega").value_or(0.1);  // (nm)    
   }
   
   double parameters::calc_T(double Tc) const {

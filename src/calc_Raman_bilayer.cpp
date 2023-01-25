@@ -20,10 +20,9 @@
 #include "calc_wave_func.h"
 #include "BinarySearch.h"
 #include "calc_Raman.h"
-#include "particle_hole1.h"
+// #include "particle_hole1.h"
 
 /* Creating an instance */
-// PhiDerIntegrandBilayer pdib;
 extern WaveFuncIntegrandBilayer wfib;
 
 typedef rpa::array3 vec3;
@@ -32,7 +31,7 @@ int inner_prod(BondDelta const& d1, BondDelta const& d2){
   return d1.x * d2.x + d1.y * d2.y + d1.z * d2.z;
 }
 
-cx_double bond_to_hopping_bilayer(hoppings_bilayer2 const& ts, BondDelta const& b, int g1, int g2, int sigma){
+cx_double bond_to_hopping_bilayer(hoppings2 const& ts, BondDelta const& b, int g1, int g2, int sigma){
   /* Hopping amplitude from g2 to g1 */
   if (g1 == g2) {
     if (b.x + b.y + b.z & 1) {
@@ -45,19 +44,9 @@ cx_double bond_to_hopping_bilayer(hoppings_bilayer2 const& ts, BondDelta const& 
       }
     }
   } else {
-    // cx_double rot_phase = exp(cx_double(0,stag_rot_angle));
-    // if (g1 == 1 && g2 == 0) {
-    // 	rot_phase = std::conj(rot_phase);	
-    // }
-    // if ( sigma == down_spin ) {
-    // 	rot_phase = std::conj(rot_phase);
-    // }
-      
     if (b.x + b.y + b.z & 1) {
       if ( std::abs(b.x + b.y) == 1 ) {
 	return cx_double(ts.t);
-	// return rot_phase * cx_double(ts.t);
-	  
       } else if ( std::abs(b.z) == 1 ) {
 	if (g2 == 0) {
 	  if ( sigma == up_spin ) {
@@ -65,14 +54,12 @@ cx_double bond_to_hopping_bilayer(hoppings_bilayer2 const& ts, BondDelta const& 
 	  } else {
 	    return std::conj(ts.tz);
 	  }
-	  // return rot_phase * ts.tz;	    
 	} else {
 	  if ( sigma == up_spin ) {
 	    return std::conj(ts.tz);
 	  } else {
 	    return ts.tz;
 	  }
-	  // return std::conj(rot_phase * ts.tz);
 	}
       } else {
 	std::cerr << "Not supported hopping case." << std::endl;
@@ -84,7 +71,7 @@ cx_double bond_to_hopping_bilayer(hoppings_bilayer2 const& ts, BondDelta const& 
   }
 }
 
-cx_double velocity_U1(hoppings_bilayer2 const& ts, cx_mat const& Udg, cx_mat const& U, cx_mat const& U_bar, double kx, double ky, double kz, vec3 const& photon_q, BondDelta const& e_mu, std::vector<BondDelta> const& bonds, int sign_m, int sign_n, int sigma_m, int sigma_n){
+cx_double velocity_U1(hoppings2 const& ts, cx_mat const& Udg, cx_mat const& U, cx_mat const& U_bar, double kx, double ky, double kz, vec3 const& photon_q, BondDelta const& e_mu, std::vector<BondDelta> const& bonds, int sign_m, int sign_n, int sigma_m, int sigma_n){
   cx_double v_tot = 0;
   for(BondDelta bond: bonds){  
     int inner_prodbond = inner_prod(e_mu, bond);
@@ -121,12 +108,11 @@ cx_double velocity_U1(hoppings_bilayer2 const& ts, cx_mat const& Udg, cx_mat con
 	cx_double UAn = U(A_idx, n_idx);    
 	cx_double UBn = U(B_idx, n_idx);
 	cx_double t = bond_to_hopping_bilayer(ts, bond, 0, 1, _spin);
-	
 	if ( q_pi ) {
-	  cx_double epsilon = 2.0 * std::real(t * phase1);
+	  cx_double epsilon = 2.0 * std::real(- t * phase1);
 	  v += - 1i * phase_delta * epsilon * (UdmA * UBn - UdmB * UAn);
 	} else {
-	  cx_double vel = - 2.0 * std::imag(t * phase1);
+	  cx_double vel = - 2.0 * std::imag(- t * phase1);  // Negative sign for the hopping amplitude.
 	  v += vel * (UdmA * UBn + UdmB * UAn);	
 	}
       }
@@ -137,12 +123,11 @@ cx_double velocity_U1(hoppings_bilayer2 const& ts, cx_mat const& Udg, cx_mat con
 	int B_idx = sublattice_spin_index(1, _spin);
 	cx_double UdmA = Udg(m_idx, A_idx);      
 	cx_double UdmB = Udg(m_idx, B_idx);
-	cx_double UAn = U_bar(A_idx, n_idx);    
+	cx_double UAn = U_bar(A_idx, n_idx);
 	cx_double UBn = U_bar(B_idx, n_idx);
-	cx_double tz = bond_to_hopping_bilayer(ts, bond, 0, 1, _spin);  // From B to A
-
+	cx_double tz = bond_to_hopping_bilayer(ts, bond, 1, 0, _spin);  // From B to A
 	cx_double phase_z = exp(1i*kz);
-	cx_double v0 = - 1i * phase_z * (tz * UdmA * UBn + std::conj(tz) * UdmB * UAn);
+	cx_double v0 = - 1i * phase_z * (std::conj(tz) * UdmA * UBn + tz * UdmB * UAn);
 	if ( q_pi ) {
 	  v += - 1i * v0;
 	} else {
@@ -159,7 +144,7 @@ cx_double velocity_U1(hoppings_bilayer2 const& ts, cx_mat const& Udg, cx_mat con
 	cx_double UAn = U(A_idx, n_idx);    
 	cx_double UBn = U(B_idx, n_idx);
 	cx_double t = bond_to_hopping_bilayer(ts, bond, 0, 0, _spin);
-	cx_double vel = - 2.0 * std::imag(t * phase1);
+	cx_double vel = - 2.0 * std::imag(- t * phase1);  // Negative sign for the hopping amplitude.
 	if ( q_pi ) {
 	  v += - phase_delta * vel * (UdmA * UAn - UdmB * UBn);
 	} else {
@@ -172,81 +157,33 @@ cx_double velocity_U1(hoppings_bilayer2 const& ts, cx_mat const& Udg, cx_mat con
   return v_tot;
 }
 
-cx_double calc_coef_eff_Raman(int L, hoppings_bilayer2 const& ts, double delta, double kx, double ky, double kz, int sigma, std::vector<BondDelta> const& bonds, BondDelta mu, BondDelta nu, vec3 const& ki, vec3 const& kf){
+cx_double calc_coef_eff_Raman(int L, hoppings2 const& ts, double delta, double kx, double ky, double kz, int sigma, std::vector<BondDelta> const& bonds, BondDelta mu, BondDelta nu, vec3 const& ki, vec3 const& kf){
   /* Eigenenergy */
   cx_double ek1 = ts.ek1(kx, ky, kz);
-  cx_double ek23 = ts.ek23(kx, ky, kz);
-  cx_double ekz = ts.ekz(kx, ky, kz);	      
-
-  /* Unitary matrix */
   cx_mat Uk = gs_HF(ek1, ts.tz, kz, delta);
-  cx_mat Uk_bar = gs_HF(ek1, ts.tz, kz + M_PI, delta);	    
+  cx_mat Uk_bar = gs_HF(ek1, ts.tz, kz + M_PI, delta);   // kz + M_PI
   cx_mat Uk_dg = Uk.t();
 
   /* Velocity */
-  cx_double v1 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, nu, bonds, 1, 1, sigma, sigma);
-  cx_double v2 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, - ki, mu, bonds, 1, -1, sigma, sigma);
-	    
-  int sigma_bar = sigma == up_spin ? down_spin : up_spin;
-  cx_double v3 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, nu, bonds, -1, -1, sigma_bar, sigma_bar);
-
-  cx_double vkp = 0;
-  double k1 = 2. * M_PI / L;
-  for(int zp=0; zp < 2; ++zp){
-    double kzp = M_PI * zp;
-    for(int xp=-L/2; xp < L/2; ++xp){
-      double kxp = k1 * xp;
-      for(int yp=-L/2; yp < L/2; ++yp){
-	double kyp = k1 * yp;
-
-	/* Checking if the wavevector is inside the BZ. */
-	double factorp = BZ_factor_square_half_filling(kxp, kyp);
-	if ( std::abs(factorp) < 1e-12 ) { continue; }
-		  
-	/* Skip if k' == k. */
-	if ( std::abs(kxp - kx) + std::abs(kyp - ky) + std::abs(kzp - kz) < 1e-12 ) { continue; }
-	bool same_k = false;
-	for(int dkzi: {-1, 1}){
-	  double kzp2 = kzp + (double)dkzi * M_PI;
-	  for(int dkxi: {-1, 1}){
-	    double kxp2 = kxp + (double)dkxi * M_PI;		      
-	    for(int dkyi: {-1, 1}){
-	      double kyp2 = kyp + (double)dkyi * M_PI;
-	      if ( std::abs(kxp2 - kx) + std::abs(kyp2 - ky) + std::abs(kzp2 - kz) < 1e-12 ) { same_k = true; }
-	    }
-	  }
-	}
-	if (same_k) { continue; }
-		  
-	/* Eigenenergy */
-	cx_double ekp1 = ts.ek1(kxp, kyp, kzp);
-	cx_double ekp23 = ts.ek23(kxp, kyp, kzp);
-	cx_double ekzp = ts.ekz(kxp, kyp, kzp);	      
-
-	/* Unitary matrix */
-	cx_mat Ukp = gs_HF(ekp1, ts.tz, kzp, delta);
-	cx_mat Ukp_bar = gs_HF(ekp1, ts.tz, kzp + M_PI, delta);	    
-	cx_mat Ukp_dg = Ukp.t();
-
-	for(int sigmap: {up_spin, down_spin}){
-	  vkp += factorp * velocity_U1(ts, Ukp_dg, Ukp, Ukp_bar, kxp, kyp, kzp, kf, nu, bonds, -1, -1, sigmap, sigmap);
-	}
-      }  /* end for yp */
-    }  /* end for xp */
-  }  /* end for zp */
-
-  // double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, ts.tz, kz, delta);
-  // double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, ts.tz, kz, delta);
-  
-  cx_double coef = (v1+v3+vkp) * v2;
-  // cx_double coef = (v1+v3+vkp) * v2 / (ek_plus - ek_minus - omega);
-  
+  cx_double coef = 0.;
+  if ( mu.z == 1 && nu.z == 1 ) {
+    /* zz */
+    double kz_bar = kz + M_PI;
+    cx_double v1 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, nu, bonds, 1, 1, sigma, sigma);
+    cx_double v2 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz_bar, - ki, mu, bonds, 1, -1, sigma, sigma);
+    
+    cx_double v3 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz_bar, kf, nu, bonds, -1, -1, sigma, sigma);
+    cx_double v4 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, - ki, mu, bonds, 1, -1, sigma, sigma);
+    
+    coef = v1 * v2 + v3 * v4;
+  } else {
+    cx_double v1 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, nu, bonds, 1, 1, sigma, sigma);
+    cx_double v2 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, nu, bonds, -1, -1, sigma, sigma);  
+    cx_double v3 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, - ki, mu, bonds, 1, -1, sigma, sigma);	    
+    
+    coef = (v1 - v2) * v3;
+  }
   return coef;
-  // double z = zk(ek1, ts.tz, kz, delta);
-  // double inner_prod_k = kx * x0 + ky * y0;
-  // cx_double phase = exp(1i*inner_prod_k);
-	    
-  // sum += factor * coef_k * 0.5 * sqrt(1. - z*z) * phase;
 }
 
 cx_mat calc_eff_Raman_operator(hoppings_bilayer2& ts, double delta, double kx, double ky, double kz, cx_double omega, double omega_i, cx_double *R){
@@ -258,29 +195,25 @@ cx_mat calc_eff_Raman_operator(hoppings_bilayer2& ts, double delta, double kx, d
   double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, tz, kz, delta);
   double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, tz, kz, delta);
 
-  /* Shifted omegas */  
-  cx_double omega_i_shifted(omega_i, 0.5 * std::imag(omega));
-  cx_double omega_f_shifted(omega_i - std::real(omega), - 0.5 * std::imag(omega));
+  /* Shifted omegas */
+  // cx_double omega_i_shifted(omega_i, 0.5 * std::imag(omega));
+  // cx_double omega_f_shifted(omega_i - std::real(omega), - 0.5 * std::imag(omega));
+  double omega_f = omega_i - std::real(omega);
   
   /* Coefficients */
-  cx_double denom1 = ek_plus - ek_minus - omega_i_shifted;
-  cx_double denom2 = ek_plus - ek_minus + omega_f_shifted;
-
-  /* Formulation using up spin */
-  int spin = up_spin;
+  // cx_double denom1 = ek_plus - ek_minus - omega_i_shifted;
+  // cx_double denom2 = ek_plus - ek_minus + omega_f_shifted;  
+  cx_double denom1 = ek_plus - ek_minus - omega_i;
+  cx_double denom2 = ek_plus - ek_minus + omega_f;
   
-  cx_double x_k = xk(spin, ek1, tz, kz, delta);
+  /* Formulation using up spin */
+  cx_double x_k = xk(up_spin, ek1, tz, kz, delta);
   double z_k = zk(ek1, tz, kz, delta);
-  cx_double uk1 = - 0.5 * x_k * z_k * R[0] / denom1;
-  cx_double uk2 = - 0.5 * x_k * z_k * R[1] / denom2;
-  cx_double uk = uk1 + uk2;
-  cx_double vk1 = - 0.5 * x_k * R[0] / denom1;
-  cx_double vk2 = - 0.5 * x_k * R[1] / denom2;
-  cx_double vk = vk1 + vk2;
-  cx_double wk1 = 0.5 * sqrt(1. - z_k * z_k) * R[0] / denom1;
-  cx_double wk2 = 0.5 * sqrt(1. - z_k * z_k) * R[1] / denom2;
-  cx_double wk = wk1 + wk2;
-
+  
+  cx_double uk = - 0.5 * x_k * z_k;
+  cx_double vk = - 0.5 * x_k;
+  cx_double wk = 0.5 * sqrt(1. - z_k * z_k);
+  
   /* Effective Raman operator */
   mat tau_p = mat({0., 0., 1., 0.});
   mat tau_m = mat({0., 1., 0., 0.});
@@ -293,9 +226,9 @@ cx_mat calc_eff_Raman_operator(hoppings_bilayer2& ts, double delta, double kx, d
   cx_mat Pauli_z = cx_mat({1., 0., 0., - 1.});
   Pauli_0.set_size(2,2);
   Pauli_z.set_size(2,2);
-	  
-  cx_mat Mk = arma::kron(uk * tau_p + std::conj(uk) * tau_m, Pauli_0) + arma::kron(vk * tau_p - std::conj(vk) * tau_m + wk * tau_z, Pauli_z);
 
+  cx_double rk = R[0] / denom1 + R[1] / denom2;
+  cx_mat Mk = rk * (arma::kron(uk * tau_p + std::conj(uk) * tau_m, Pauli_0) + arma::kron(vk * tau_p - std::conj(vk) * tau_m + wk * tau_z, Pauli_z));
   return Mk;
 }
 
@@ -306,11 +239,11 @@ cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double 
     std::exit(EXIT_FAILURE);
   } else { /* Integral for a finite-size system */
     double k1 = 2. * M_PI / L;
-    for(int z=0; z < 2; z++){    
+    for(int z=0; z < 2; ++z){    
       double kz = M_PI * z;
-      for(int x=-L/2; x < L/2; x++){    
+      for(int x=-L/2; x < L/2; ++x){    
 	double kx = k1 * x;
-	for(int y=-L/2; y < L/2; y++){
+	for(int y=-L/2; y < L/2; ++y){
 	  double ky = k1 * y;
 
 	  /* Checking if the wavevector is inside the BZ. */
@@ -327,7 +260,9 @@ cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double 
 
 	  /* Effective Raman operator */	  
 	  cx_mat Mk = calc_eff_Raman_operator(ts, delta, kx, ky, kz, omega, omega_i, R);	  
-	      
+
+	  cx_double ek1 = ts.ek1(kx, ky, kz);
+	  cx_double tz = ts.tz;	  
 	  for(int sg1=-1; sg1<=1; sg1+=2){
 	    for(int sg2=-1; sg2<=1; sg2+=2){
 	      /* Prefactor */
@@ -335,16 +270,14 @@ cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double 
 	      if ( std::abs(prefactor) < 1e-12 ) { continue; }
 	      
 	      /* Constructing projection operators */
-	      cx_double ek1 = ts.ek1(kx, ky, kz);
-	      cx_double tz = ts.tz;
 	      cx_vec X1up = gs_HF1(up_spin, sg1, ek1, tz, kz, delta);
 	      cx_vec X2up = gs_HF1(up_spin, sg2, ek1, tz, kz, delta);	      
 	      cx_vec X1down = gs_HF1(down_spin, sg1, ek1, tz, kz, delta);
 	      cx_vec X2down = gs_HF1(down_spin, sg2, ek1, tz, kz, delta);	      	      
-	      cx_mat P1up = arma::kron(arma::trans(arma::cx_mat(X1up)), X1up);
-	      cx_mat P2up = arma::kron(arma::trans(arma::cx_mat(X2up)), X2up);	      
-	      cx_mat P1down = arma::kron(arma::trans(arma::cx_mat(X1down)), X1down);
-	      cx_mat P2down = arma::kron(arma::trans(arma::cx_mat(X2down)), X2down);	      
+	      cx_mat P1up = arma::kron(arma::trans(X1up), X1up);
+	      cx_mat P2up = arma::kron(arma::trans(X2up), X2up);	      
+	      cx_mat P1down = arma::kron(arma::trans(X1down), X1down);
+	      cx_mat P2down = arma::kron(arma::trans(X2down), X2down);	      
 
 	      /* Matrix element */
 	      cx_double Kup = arma::trace(P1up * Mk * P2up * Mk.t());
@@ -367,8 +300,8 @@ cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double 
   return sum;
 }
 
-cx_double calc_Raman_sigma1(int L, hoppings_bilayer2& ts, double ch_pot, double U, double T, double delta, CubaParam const& cbp, MatElemK const& me_K, MatElemF const& me_F, cx_double omega, double omega_i, bool continuous_k){
-  cx_double sum = 0;
+std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts, double ch_pot, double U, double T, double delta, CubaParam const& cbp, MatElemK const& me_K, MatElemF const& me_F, cx_double omega, double omega_i, bool continuous_k){
+  cx_double sigma1_00 = 0, sigma1_zz = 0;
   if ( continuous_k ) {
     std::cerr << "Function " << __func__ << " does not support continuous k.\n";
     std::exit(EXIT_FAILURE);
@@ -380,11 +313,11 @@ cx_double calc_Raman_sigma1(int L, hoppings_bilayer2& ts, double ch_pot, double 
     cx_mat chi0_00_down(NSUBL, NSUBL, arma::fill::zeros);    
     cx_mat chi0_zz_up(NSUBL, NSUBL, arma::fill::zeros);
     cx_mat chi0_zz_down(NSUBL, NSUBL, arma::fill::zeros);        
-    for(int z=0; z < 2; z++){    
+    for(int z=0; z < 2; ++z){    
       double kz = M_PI * z;
-      for(int x=-L/2; x < L/2; x++){    
+      for(int x=-L/2; x < L/2; ++x){    
 	double kx = k1 * x;
-	for(int y=-L/2; y < L/2; y++){
+	for(int y=-L/2; y < L/2; ++y){
 	  double ky = k1 * y;
 
 	  /* Checking if the wavevector is inside the BZ. */
@@ -416,26 +349,16 @@ cx_double calc_Raman_sigma1(int L, hoppings_bilayer2& ts, double ch_pot, double 
 	      }
 
 	      prefactor *= factor;
-	      
-	      chi0_00_up(0,0) += prefactor * F00_up[0];
-	      chi0_00_up(0,1) += prefactor * F00_up[1];
-	      chi0_00_up(1,0) += prefactor * F00_up[2];
-	      chi0_00_up(1,1) += prefactor * F00_up[3];
 
-	      chi0_00_down(0,0) += prefactor * F00_down[0];
-	      chi0_00_down(0,1) += prefactor * F00_down[1];
-	      chi0_00_down(1,0) += prefactor * F00_down[2];
-	      chi0_00_down(1,1) += prefactor * F00_down[3];	      
-	      
-	      chi0_zz_up(0,0) += prefactor * Fzz_up[0];
-	      chi0_zz_up(0,1) += prefactor * Fzz_up[1];
-	      chi0_zz_up(1,0) += prefactor * Fzz_up[2];
-	      chi0_zz_up(1,1) += prefactor * Fzz_up[3];
-
-	      chi0_zz_down(0,0) += prefactor * Fzz_down[0];
-	      chi0_zz_down(0,1) += prefactor * Fzz_down[1];
-	      chi0_zz_down(1,0) += prefactor * Fzz_down[2];
-	      chi0_zz_down(1,1) += prefactor * Fzz_down[3];      	      
+	      for(int i=0; i < 2; ++i){
+		for(int j=0; j < 2; ++j){
+		  int k = (i << 1) | j;
+		  chi0_00_up(i,j) += prefactor * F00_up[k];
+		  chi0_00_down(i,j) += prefactor * F00_down[k];
+		  chi0_zz_up(i,j) += prefactor * Fzz_up[k];
+		  chi0_zz_down(i,j) += prefactor * Fzz_down[k];
+		}
+	      }		  
 	    }
 	  }
 	}
@@ -452,7 +375,7 @@ cx_double calc_Raman_sigma1(int L, hoppings_bilayer2& ts, double ch_pot, double 
     /* RPA */
     cx_mat denom_00 = arma::eye<arma::cx_mat>(NSUBL, NSUBL) + 0.5 * U * chi0_00;
     cx_mat denom_zz = arma::eye<arma::cx_mat>(NSUBL, NSUBL) - 0.5 * U * chi0_zz;    
-    cx_mat U_eff_00 = 0.5 * U * arma::inv(denom_00);
+    cx_mat U_eff_00 = - 0.5 * U * arma::inv(denom_00);   // Negative sign
     cx_mat U_eff_zz = 0.5 * U * arma::inv(denom_zz);
     
     /* Calculating the bubble of the internal and external vertices. */
@@ -460,11 +383,11 @@ cx_double calc_Raman_sigma1(int L, hoppings_bilayer2& ts, double ch_pot, double 
     cx_vec Pi_0_down(NSUBL, arma::fill::zeros);    
     cx_vec Pi_z_up(NSUBL, arma::fill::zeros);
     cx_vec Pi_z_down(NSUBL, arma::fill::zeros);            
-    for(int z=0; z < 2; z++){    
+    for(int z=0; z < 2; ++z){    
       double kz = M_PI * z;
-      for(int x=-L/2; x < L/2; x++){    
+      for(int x=-L/2; x < L/2; ++x){    
 	double kx = k1 * x;
-	for(int y=-L/2; y < L/2; y++){
+	for(int y=-L/2; y < L/2; ++y){
 	  double ky = k1 * y;
 
 	  /* Checking if the wavevector is inside the BZ. */
@@ -481,7 +404,7 @@ cx_double calc_Raman_sigma1(int L, hoppings_bilayer2& ts, double ch_pot, double 
 
 	  /* Effective Raman operator */	  
 	  cx_mat Mk = calc_eff_Raman_operator(ts, delta, kx, ky, kz, omega, omega_i, Rup);
-
+	  
 	  /* Sigma matrices */
 	  mat tau_A = mat({1., 0., 0., 0});
 	  mat tau_B = mat({0., 0., 0., 1});	  
@@ -511,10 +434,10 @@ cx_double calc_Raman_sigma1(int L, hoppings_bilayer2& ts, double ch_pot, double 
 	      cx_vec X2up = gs_HF1(up_spin, sg2, ek1, tz, kz, delta);
 	      cx_vec X1down = gs_HF1(down_spin, sg1, ek1, tz, kz, delta);
 	      cx_vec X2down = gs_HF1(down_spin, sg2, ek1, tz, kz, delta);	      
-	      cx_mat P1up = arma::kron(arma::trans(arma::cx_mat(X1up)), X1up);
-	      cx_mat P2up = arma::kron(arma::trans(arma::cx_mat(X2up)), X2up);	      
-	      cx_mat P1down = arma::kron(arma::trans(arma::cx_mat(X1down)), X1down);
-	      cx_mat P2down = arma::kron(arma::trans(arma::cx_mat(X2down)), X2down);	      
+	      cx_mat P1up = arma::kron(arma::trans(X1up), X1up);
+	      cx_mat P2up = arma::kron(arma::trans(X2up), X2up);	      
+	      cx_mat P1down = arma::kron(arma::trans(X1down), X1down);
+	      cx_mat P2down = arma::kron(arma::trans(X2down), X2down);	      
 
 	      /* Matrix element */
 	      cx_double P_0_A_up = arma::trace(P1up * Sigma_A0 * P2up * Mk.t());
@@ -535,12 +458,12 @@ cx_double calc_Raman_sigma1(int L, hoppings_bilayer2& ts, double ch_pot, double 
 	      Pi_z_up(0) += prefactor * P_z_A_up;
 	      Pi_z_up(1) += prefactor * P_z_B_up;
 	      Pi_z_down(0) += prefactor * P_z_A_down;
-	      Pi_z_down(1) += prefactor * P_z_B_down;	      
+	      Pi_z_down(1) += prefactor * P_z_B_down;
 	    }
 	  }
 	}
       }
-    }
+    }    
     Pi_0_up /= (double)(n_units);
     Pi_0_down /= (double)(n_units);    
     Pi_z_up /= (double)(n_units);
@@ -549,10 +472,13 @@ cx_double calc_Raman_sigma1(int L, hoppings_bilayer2& ts, double ch_pot, double 
     cx_vec Pi_z = Pi_z_up + Pi_z_down;
     
     /* Total contributions */
-    sum = (Pi_0.t() * U_eff_00 * Pi_0 + Pi_z.t() * U_eff_zz * Pi_z)[0];
+    cx_mat sigma1_00_ = Pi_0.st() * U_eff_00 * arma::conj(Pi_0);
+    sigma1_00 = sigma1_00_[0];
+    cx_mat sigma1_zz_ = Pi_z.st() * U_eff_zz * arma::conj(Pi_z);
+    sigma1_zz = sigma1_zz_[0];
   }
   
-  return sum;
+  return std::make_tuple(sigma1_00, sigma1_zz);
 }
 
 void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
@@ -581,11 +507,10 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   
   /* Calculate the chemical potential and the charge gap. */
   double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, filling, T, cbp, continuous_k );  
-  std::cout << "delta = " << delta << std::endl;  
+  std::cout << "delta = " << delta << std::endl;
   /* Assume that the chemical potential does not depend on L for integral over continuous k. */
   double ch_gap, ch_pot;
   std::tie(ch_gap, ch_pot) = calc_charge_gap_bilayer( L, *ts, delta );  /* Finite size */  
-  // double ch_pot = calc_chemical_potential_bilayer2( base_dir, L, *ts, delta );  /* Finite size */
 
   /* Output */
   ofstream out_gap;
@@ -607,17 +532,15 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
     /* Calculating gaps */
     double omega_T = 0, omega_L = 0, omega_ph = 0;
     bool return_upper = true;
-    // bool verbose = true;
     bool verbose = false;    
     std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, ch_pot, U, T, delta, cbp, me_F, continuous_k, return_upper, verbose);
     
     return std::make_tuple(omega_T, omega_L, omega_ph);
   };
 
-  /* Calculating gaps at (pi, pi, pi)*/
+  /* Calculating gaps */
   double omega_T = 0, omega_L = 0, omega_ph = 0;
   std::tie(omega_T, omega_L, omega_ph) = calc_gaps(0., 0., 0.);
-  // std::tie(omega_T, omega_L, omega_ph) = calc_gaps(M_PI, M_PI, M_PI);  
   
   /* Output */
   out_gap << "omega_T = " << omega_T << std::endl;
@@ -656,165 +579,177 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   // calc_particle_hole1(pr, *ts, delta, vals, Uph1);
       
   std::vector<BondDelta> bonds {
-     {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, -1, 0},  {0, 0, 1}
+     {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, -1, 0},  {0, 0, 1}     
    };
 
-  auto wavefunc_sublattice_correction = [](int g1, int g2, cx_double psi){
-    if (g1 == 0) {
-      if (g2 == 0) {
-	return psi;
-      } else {
-	return psi;
-      }
-    } else {
-      if (g2 == 0) {
-	return std::conj(psi);
-      } else {
-	return - psi;
-      }
-    }
+  // auto wavefunc_sublattice_correction = [](int g1, int g2, cx_double psi){
+  //   if (g1 == 0) {
+  //     if (g2 == 0) {
+  // 	return psi;
+  //     } else {
+  // 	return psi;
+  //     }
+  //   } else {
+  //     if (g2 == 0) {
+  // 	return std::conj(psi);
+  //     } else {
+  // 	return - psi;
+  //     }
+  //   }
+  // };
+  
+  // /* Output of the mean field energy gaps. */
+  // ofstream out_MF_gap;
+  // out_MF_gap.open(base_dir / "mean_field_energy_gap.text");    
+  // out_MF_gap << "# Index  kx  ky  kz  E_plus  E_minus  E_gap" << std::endl;  
+
+  // std::vector<double> particle_hole_gaps;
+  // for(int z=0; z < 2; ++z){    
+  //   double kz = M_PI * z;
+  //   for(int x=-L/2; x < L/2; ++x){
+  //     double kx = k1 * x;
+  //     for(int y=-L/2; y < L/2; ++y){
+  // 	double ky = k1 * y;
+	  
+  // 	/* Checking if the wavevector is inside the BZ. */
+  // 	double factor = BZ_factor_square_half_filling(kx, ky);
+  // 	if ( std::abs(factor) < 1e-12 ) { continue; }
+
+  // 	/* Eigenenergy */
+  // 	cx_double ek1 = ts->ek1(kx, ky, kz);
+  // 	cx_double ek23 = ts->ek23(kx, ky, kz);
+  // 	cx_double ekz = ts->ekz(kx, ky, kz);	      
+  // 	double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, ts->tz, kz, delta);
+  // 	double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, ts->tz, kz, delta);
+  // 	particle_hole_gaps.push_back(ek_plus - ek_minus);
+	
+  // 	out_MF_gap << kx << "  " << ky << "  " << kz << "  " << ek_plus << "  " << ek_minus << "  " << ek_plus - ek_minus << std::endl;
+  //     }
+  //   }
+  // }
+
+  // /* Sorted mean-field particle-hole energy gaps */
+  // std::sort(particle_hole_gaps.begin(), particle_hole_gaps.end());
+  // ofstream out_eh_gap(base_dir / "particle_hole_gaps.text");
+  // double e = 0;
+  // for(double eg: particle_hole_gaps){
+  //   if ( std::abs(eg - e) > 1e-10 ) {
+  //     out_eh_gap << eg << std::endl;
+  //     e = eg;
+  //   }
+  // }
+  // out_eh_gap.close();
+  
+  // /* Output of the dispersion calculated by RPA. */  
+  // ofstream out_dispersion_transverse, out_dispersion_longitudinal;
+  // out_dispersion_transverse.open(base_dir / "dispersion_transverse.text");
+  // out_dispersion_longitudinal.open(base_dir / "dispersion_longitudinal.text");
+  // out_dispersion_transverse << "# Index  kx  ky  kz  gap" << std::endl;
+  // out_dispersion_longitudinal << "# Index  kx  ky  kz  gap" << std::endl;
+  
+  // /* Output of the wave function. */
+  // ofstream out_wavefunc_k;
+  // out_wavefunc_k.open(base_dir / "wavefunction_k.text");
+  // out_wavefunc_k << "# Index  kx  ky  kz   Re[psi_AA]   Im[psi_AA]   Re[psi_AB]   Im[psi_AB]" << std::endl;
+  
+  // /* Energies. */
+  // std::vector<double> E_k_plus;
+  // std::vector<double> E_k_minus;
+  // std::vector<double> gap_T;
+  // std::vector<double> gap_L;
+
+  // /* Setting the parameters */
+  // int spin = up_spin;  // Unused  
+  // int sublattice = 0;  // Unused
+  // int diff_r[] = {0,0,0};  // Unused
+
+  // /* Photon momenta */
+  // std::vector<vec3> photon_Qs;
+  // photon_Qs.push_back(vec3{0, 0, 0});    
+  // photon_Qs.push_back(vec3{   M_PI,   M_PI,   M_PI });
+  // // photon_Qs.push_back(vec3{ - M_PI, - M_PI, - M_PI });
+  // // std::vector<std::pair<int,int>> photon_ks{{1,0}};
+  // std::vector<std::pair<int,int>> photon_ks{{0,0}};
+  // // std::vector<std::pair<int,int>> photon_ks{{1,1}};    
+  // // std::vector<std::pair<int,int>> photon_ks{{0,0},{0,1},{1,0},{1,1}};
+
+  // std::size_t idx_k_sigma_ki_kf = 0;
+  // for(int z=0; z < 2; ++z){    
+  //   double kz = M_PI * z;
+  //   for(int x=-L/2; x < L/2; ++x){
+  //     double kx = k1 * x;
+  //     for(int y=-L/2; y < L/2; ++y){
+  // 	double ky = k1 * y;
+	  
+  // 	/* Checking if the wavevector is inside the BZ. */
+  // 	double factor = BZ_factor_square_half_filling(kx, ky);
+  // 	if ( std::abs(factor) < 1e-12 ) { continue; }
+
+  // 	/* Calculating the gaps */
+  // 	double gT = 0, gL = 0, gph = 0;
+  // 	std::tie(gT, gL, gph) = calc_gaps(kx, ky, kz);  // Solving the pole equation in RPA.
+	    
+  // 	for(int sigma: {up_spin, down_spin}){
+  // 	  for(std::pair<int,int> photon_k: photon_ks){	  
+  // 	    gap_T.push_back(gT);
+  // 	    gap_L.push_back(gL);
+
+  // 	    /* Eigenenergy */
+  // 	    cx_double ek1 = ts->ek1(kx, ky, kz);
+  // 	    cx_double ek23 = ts->ek23(kx, ky, kz);
+  // 	    cx_double ekz = ts->ekz(kx, ky, kz);	      
+  // 	    double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, ts->tz, kz, delta);
+  // 	    double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, ts->tz, kz, delta);
+  // 	    E_k_plus.push_back(ek_plus);
+  // 	    E_k_minus.push_back(ek_minus);
+
+  // 	    /* For checking the wave functions. */
+  // 	    wfib.set_parameters(*ts, pr.largeUlimit, pr.largeU_scaling_prefactor, sigma, omega_L, Psider, delta, diff_r, sublattice, min_bk_sq);	  
+  // 	    cx_double xki = xk(wfib.spin(), ek1, ts->tz, kz, wfib.delta());
+  // 	    double zki = zk(ek1, ts->tz, kz, wfib.delta());
+  // 	    cx_double bki = bk(wfib.spin(), ek1, ts->tz, kz);
+  // 	    cx_double wavefunc_AA = wfib.integrand(xki, zki, bki, ek_plus, ek_minus, 1., 0);
+  // 	    cx_double wavefunc_AB = wfib.integrand(xki, zki, bki, ek_plus, ek_minus, 1., 1);	
+		    
+  // 	    /* Output */
+  // 	    int npw = 12;
+  // 	    out_dispersion_transverse << idx_k_sigma_ki_kf << std::setw(npw) << kx << std::setw(npw) << ky << std::setw(npw) << kz << std::setw(pw) << gT << std::endl;
+  // 	    out_dispersion_longitudinal << idx_k_sigma_ki_kf << std::setw(npw) << kx << std::setw(npw) << ky << std::setw(npw) << kz << std::setw(pw) << gL << std::endl;
+
+  // 	    out_wavefunc_k << idx_k_sigma_ki_kf << std::setw(npw) << kx << std::setw(npw) << ky << std::setw(npw) << kz << std::setw(pw) << std::real(wavefunc_AA) << std::setw(pw) << std::imag(wavefunc_AA) << std::setw(pw) << std::real(wavefunc_AB) << std::setw(pw) << std::imag(wavefunc_AB) << std::endl;;
+	
+  // 	    ++idx_k_sigma_ki_kf;
+  // 	  }
+  // 	}
+  //     }
+  //   }
+  // }
+
+  auto invalid_components = [](int mu, int nu){
+    /* Only considering in-plane components */
+    if (mu == 2 || nu == 2) { return true; }
+    else { return false; }
+    
+    // /* Not considering xz, yz, zx, and zy. */
+    // if (mu == 2 && nu != 2) { return true; }
+    // else if ( mu != 2 && nu == 2) { return true; }
+    // else { return false; }
   };
   
-  /* Output of the mean field energy gaps. */
-  ofstream out_MF_gap;
-  out_MF_gap.open(base_dir / "mean_field_energy_gap.text");    
-  out_MF_gap << "# Index  kx  ky  kz  E_plus  E_minus  E_gap" << std::endl;  
-
-  std::vector<double> particle_hole_gaps;
-  for(int z=0; z < 2; ++z){    
-    double kz = M_PI * z;
-    for(int x=-L/2; x < L/2; ++x){
-      double kx = k1 * x;
-      for(int y=-L/2; y < L/2; ++y){
-	double ky = k1 * y;
-	  
-	/* Checking if the wavevector is inside the BZ. */
-	double factor = BZ_factor_square_half_filling(kx, ky);
-	if ( std::abs(factor) < 1e-12 ) { continue; }
-
-	/* Eigenenergy */
-	cx_double ek1 = ts->ek1(kx, ky, kz);
-	cx_double ek23 = ts->ek23(kx, ky, kz);
-	cx_double ekz = ts->ekz(kx, ky, kz);	      
-	double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, ts->tz, kz, delta);
-	double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, ts->tz, kz, delta);
-	particle_hole_gaps.push_back(ek_plus - ek_minus);
-	
-	out_MF_gap << kx << "  " << ky << "  " << kz << "  " << ek_plus << "  " << ek_minus << "  " << ek_plus - ek_minus << std::endl;
-      }
-    }
-  }
-
-  /* Sorted mean-field particle-hole energy gaps */
-  std::sort(particle_hole_gaps.begin(), particle_hole_gaps.end());
-  ofstream out_eh_gap(base_dir / "particle_hole_gaps.text");
-  double e = 0;
-  for(double eg: particle_hole_gaps){
-    if ( std::abs(eg - e) > 1e-10 ) {
-      out_eh_gap << eg << std::endl;
-      e = eg;
-    }
-  }
-  out_eh_gap.close();
-  
-  /* Output of the dispersion calculated by RPA. */  
-  ofstream out_dispersion_transverse, out_dispersion_longitudinal;
-  out_dispersion_transverse.open(base_dir / "dispersion_transverse.text");
-  out_dispersion_longitudinal.open(base_dir / "dispersion_longitudinal.text");
-  out_dispersion_transverse << "# Index  kx  ky  kz  gap" << std::endl;
-  out_dispersion_longitudinal << "# Index  kx  ky  kz  gap" << std::endl;
-  
-  /* Output of the wave function. */
-  ofstream out_wavefunc_k;
-  out_wavefunc_k.open(base_dir / "wavefunction_k.text");
-  out_wavefunc_k << "# Index  kx  ky  kz   Re[psi_AA]   Im[psi_AA]   Re[psi_AB]   Im[psi_AB]" << std::endl;
-  
-  /* Energies. */
-  std::vector<double> E_k_plus;
-  std::vector<double> E_k_minus;
-  std::vector<double> gap_T;
-  std::vector<double> gap_L;
-
-  /* Setting the parameters */
-  int spin = up_spin;  // Unused  
-  int sublattice = 0;  // Unused
-  int diff_r[] = {0,0,0};  // Unused
-
-  /* Photon momenta */
-  std::vector<vec3> photon_Qs;
-  photon_Qs.push_back(vec3{0, 0, 0});    
-  photon_Qs.push_back(vec3{   M_PI,   M_PI,   M_PI });
-  // photon_Qs.push_back(vec3{ - M_PI, - M_PI, - M_PI });
-  // std::vector<std::pair<int,int>> photon_ks{{1,0}};
-  std::vector<std::pair<int,int>> photon_ks{{0,0}};
-  // std::vector<std::pair<int,int>> photon_ks{{1,1}};    
-  // std::vector<std::pair<int,int>> photon_ks{{0,0},{0,1},{1,0},{1,1}};
-
-  std::size_t idx_k_sigma_ki_kf = 0;
-  for(int z=0; z < 2; ++z){    
-    double kz = M_PI * z;
-    for(int x=-L/2; x < L/2; ++x){
-      double kx = k1 * x;
-      for(int y=-L/2; y < L/2; ++y){
-	double ky = k1 * y;
-	  
-	/* Checking if the wavevector is inside the BZ. */
-	double factor = BZ_factor_square_half_filling(kx, ky);
-	if ( std::abs(factor) < 1e-12 ) { continue; }
-
-	/* Calculating the gaps */
-	double gT = 0, gL = 0, gph = 0;
-	std::tie(gT, gL, gph) = calc_gaps(kx, ky, kz);  // Solving the pole equation in RPA.
-	    
-	for(int sigma: {up_spin, down_spin}){
-	  for(std::pair<int,int> photon_k: photon_ks){	  
-	    gap_T.push_back(gT);
-	    gap_L.push_back(gL);
-
-	    /* Eigenenergy */
-	    cx_double ek1 = ts->ek1(kx, ky, kz);
-	    cx_double ek23 = ts->ek23(kx, ky, kz);
-	    cx_double ekz = ts->ekz(kx, ky, kz);	      
-	    double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, ts->tz, kz, delta);
-	    double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, ts->tz, kz, delta);
-	    E_k_plus.push_back(ek_plus);
-	    E_k_minus.push_back(ek_minus);
-
-	    /* For checking the wave functions. */
-	    wfib.set_parameters(*ts, pr.largeUlimit, pr.largeU_scaling_prefactor, sigma, omega_L, Psider, delta, diff_r, sublattice, min_bk_sq);	  
-	    cx_double xki = xk(wfib.spin(), ek1, ts->tz, kz, wfib.delta());
-	    double zki = zk(ek1, ts->tz, kz, wfib.delta());
-	    cx_double bki = bk(wfib.spin(), ek1, ts->tz, kz);
-	    cx_double wavefunc_AA = wfib.integrand(xki, zki, bki, ek_plus, ek_minus, 1., 0);
-	    cx_double wavefunc_AB = wfib.integrand(xki, zki, bki, ek_plus, ek_minus, 1., 1);	
-		    
-	    /* Output */
-	    int npw = 12;
-	    out_dispersion_transverse << idx_k_sigma_ki_kf << std::setw(npw) << kx << std::setw(npw) << ky << std::setw(npw) << kz << std::setw(pw) << gT << std::endl;
-	    out_dispersion_longitudinal << idx_k_sigma_ki_kf << std::setw(npw) << kx << std::setw(npw) << ky << std::setw(npw) << kz << std::setw(pw) << gL << std::endl;
-
-	    out_wavefunc_k << idx_k_sigma_ki_kf << std::setw(npw) << kx << std::setw(npw) << ky << std::setw(npw) << kz << std::setw(pw) << std::real(wavefunc_AA) << std::setw(pw) << std::imag(wavefunc_AA) << std::setw(pw) << std::real(wavefunc_AB) << std::setw(pw) << std::imag(wavefunc_AB) << std::endl;;
-	
-	    ++idx_k_sigma_ki_kf;
-	  }
-	}
-      }
-    }
-  }
-
   /* Results */
-  double *spec_Raman_xx = new double[n_omegas];
-  double *spec_Raman_xy = new double[n_omegas];
-  double *spec_Raman_xz = new double[n_omegas];
-  double *spec_Raman_yx = new double[n_omegas];
-  double *spec_Raman_yy = new double[n_omegas];
-  double *spec_Raman_yz = new double[n_omegas];
-  double *spec_Raman_zx = new double[n_omegas];
-  double *spec_Raman_zy = new double[n_omegas];
-  double *spec_Raman_zz = new double[n_omegas];        
-  
+  int n_spec = 3;   // Number of spectrum types
+  mat spec_Raman_xx(n_spec, n_omegas);
+  mat spec_Raman_xy(n_spec, n_omegas);
+  mat spec_Raman_xz(n_spec, n_omegas);
+  mat spec_Raman_yx(n_spec, n_omegas);
+  mat spec_Raman_yy(n_spec, n_omegas);
+  mat spec_Raman_yz(n_spec, n_omegas);
+  mat spec_Raman_zx(n_spec, n_omegas);
+  mat spec_Raman_zy(n_spec, n_omegas);
+  mat spec_Raman_zz(n_spec, n_omegas);    
+
   auto spec_Raman = [&](int mu, int nu){
-    double **spec;
+    mat *spec;
     if ( mu == 0 ) {
       if ( nu == 0 ) { spec = &spec_Raman_xx; }
       else if ( nu == 1 ) { spec = &spec_Raman_xy; }
@@ -828,130 +763,200 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
       else if ( nu == 1 ) { spec = &spec_Raman_zy; }
       else { spec = &spec_Raman_zz; }      
     }
-    return *spec;
+    return spec;
   };
 	      
-  /* Calculating the spectral weights and the energies. */    
-  // std::vector<std::vector<cx_double>> weight_plus;
-  std::vector<std::vector<cx_double>> weight_minus1, weight_minus2;
-  for(int mu=0; mu < 3; ++mu){
-    BondDelta e_mu(mu);
-    for(int nu=0; nu < 3; ++nu){
-      BondDelta e_nu(nu);
+  // /* Calculating the spectral weights and the energies. */    
+  // // std::vector<std::vector<cx_double>> weight_plus;
+  // std::vector<std::vector<cx_double>> weight_minus1, weight_minus2;
+  // for(int mu=0; mu < 3; ++mu){
+  //   BondDelta e_mu(mu);
+  //   for(int nu=0; nu < 3; ++nu){
+  //     BondDelta e_nu(nu);
       
-      // std::vector<cx_double> weight_plus_comp;
-      std::vector<cx_double> weight_minus1_comp, weight_minus2_comp;      
-      idx_k_sigma_ki_kf = 0;
-      for(int z=0; z < 2; ++z){    
-	double kz = M_PI * z;
-	for(int x=-L/2; x < L/2; ++x){
-	  double kx = k1 * x;
-	  for(int y=-L/2; y < L/2; ++y){
-	    double ky = k1 * y;
+  //     // std::vector<cx_double> weight_plus_comp;
+  //     std::vector<cx_double> weight_minus1_comp, weight_minus2_comp;      
+  //     idx_k_sigma_ki_kf = 0;
+  //     for(int z=0; z < 2; ++z){    
+  // 	double kz = M_PI * z;
+  // 	for(int x=-L/2; x < L/2; ++x){
+  // 	  double kx = k1 * x;
+  // 	  for(int y=-L/2; y < L/2; ++y){
+  // 	    double ky = k1 * y;
 
-	    /* Checking if the wavevector is inside the BZ. */
-	    double factor = BZ_factor_square_half_filling(kx, ky);
-	    if ( std::abs(factor) < 1e-12 ) { continue; }
+  // 	    /* Checking if the wavevector is inside the BZ. */
+  // 	    double factor = BZ_factor_square_half_filling(kx, ky);
+  // 	    if ( std::abs(factor) < 1e-12 ) { continue; }
 	    
-	    cx_double ek1 = ts->ek1(kx, ky, kz);
-	    cx_mat Uk = gs_HF(ek1, ts->tz, kz, delta);
-	    cx_mat Uk_bar = gs_HF(ek1, ts->tz, kz + M_PI, delta);	    
-	    cx_mat Uk_dg = Uk.t();
+  // 	    cx_double ek1 = ts->ek1(kx, ky, kz);
+  // 	    cx_mat Uk = gs_HF(ek1, ts->tz, kz, delta);
+  // 	    cx_mat Uk_bar = gs_HF(ek1, ts->tz, kz + M_PI, delta);	    
+  // 	    cx_mat Uk_dg = Uk.t();
 
-	    for(int sigma: {up_spin, down_spin}){  // Electron spin in the conduction band labeling the final state
-	      for(std::pair<int,int> photon_k: photon_ks){
-		/* Velocity */
-		int kii = photon_k.first;
-		int kfi = photon_k.second;
+  // 	    for(int sigma: {up_spin, down_spin}){  // Electron spin in the conduction band labeling the final state
+  // 	      for(std::pair<int,int> photon_k: photon_ks){
+  // 		/* Velocity */
+  // 		int kii = photon_k.first;
+  // 		int kfi = photon_k.second;
 		
-		vec3 ki = photon_Qs[kii];
-		vec3 kf = photon_Qs[kfi];
+  // 		vec3 ki = photon_Qs[kii];
+  // 		vec3 kf = photon_Qs[kfi];
 		    
-		cx_double v_b2_34_pp = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, e_nu, bonds, 1, 1, sigma, sigma);
-		cx_double v_b1_12_pm = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, - ki, e_mu, bonds, 1, -1, sigma, sigma);
-		cx_double v_b1_12_pp = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, - ki, e_mu, bonds, 1,  1, sigma, sigma);
-		cx_double v_b2_34_pm = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, e_nu, bonds, 1, -1, sigma, sigma);
+  // 		cx_double v_b2_34_pp = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, e_nu, bonds, 1, 1, sigma, sigma);
+  // 		cx_double v_b1_12_pm = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, - ki, e_mu, bonds, 1, -1, sigma, sigma);
+  // 		cx_double v_b1_12_pp = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, - ki, e_mu, bonds, 1,  1, sigma, sigma);
+  // 		cx_double v_b2_34_pm = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, e_nu, bonds, 1, -1, sigma, sigma);
 			
-		cx_double v1 = v_b2_34_pp * v_b1_12_pm;
-		cx_double v2 = v_b1_12_pp * v_b2_34_pm;
+  // 		cx_double v1 = v_b2_34_pp * v_b1_12_pm;
+  // 		cx_double v2 = v_b1_12_pp * v_b2_34_pm;
 		
-		/* Matrix elements */
-		cx_double coef = 0.0;
-		for(int g5=0; g5 < 2; ++g5){
-		  int g5_idx = sublattice_spin_index(g5, sigma);
-		  cx_double U_5plus = Uk(g5_idx, sign_spin_index(1, sigma));
+  // 		/* Matrix elements */
+  // 		cx_double coef = 0.0;
+  // 		for(int g5=0; g5 < 2; ++g5){
+  // 		  int g5_idx = sublattice_spin_index(g5, sigma);
+  // 		  cx_double U_5plus = Uk(g5_idx, sign_spin_index(1, sigma));
 		  
-		  for(int g6=0; g6 < 2; ++g6){
-		    int g6_idx = sublattice_spin_index(g6, sigma);
-		    // cx_double U6_plus = Uk(g6_idx, sign_spin_index(1, sigma));
-		    cx_double Udg_minus6 = Uk_dg(sign_spin_index(-1, sigma), g6_idx);
+  // 		  for(int g6=0; g6 < 2; ++g6){
+  // 		    int g6_idx = sublattice_spin_index(g6, sigma);
+  // 		    // cx_double U6_plus = Uk(g6_idx, sign_spin_index(1, sigma));
+  // 		    cx_double Udg_minus6 = Uk_dg(sign_spin_index(-1, sigma), g6_idx);
 		    
-		    /* Using the flipped spin for the wave-function calculation depending on the sublattices. */
-		    int sigma_psi = sigma;
-		    if ( g6 == 1 && g5 == 0 ) {
-		      if ( sigma == up_spin ) {
-			sigma_psi = down_spin;
-		      } else {
-			sigma_psi = up_spin;
-		      }
-		    }
+  // 		    /* Using the flipped spin for the wave-function calculation depending on the sublattices. */
+  // 		    int sigma_psi = sigma;
+  // 		    if ( g6 == 1 && g5 == 0 ) {
+  // 		      if ( sigma == up_spin ) {
+  // 			sigma_psi = down_spin;
+  // 		      } else {
+  // 			sigma_psi = up_spin;
+  // 		      }
+  // 		    }
 
-		    /* Setting the parameters. */
-		    int diff_r[] = {0,0,0};  // Unused
-		    int sublattice = g5 == g6 ? 0 : 1;		    
-		    wfib.set_parameters(*ts, pr.largeUlimit, pr.largeU_scaling_prefactor, sigma_psi, omega_L, Psider, delta, diff_r, sublattice, min_bk_sq);
+  // 		    /* Setting the parameters. */
+  // 		    int diff_r[] = {0,0,0};  // Unused
+  // 		    int sublattice = g5 == g6 ? 0 : 1;		    
+  // 		    wfib.set_parameters(*ts, pr.largeUlimit, pr.largeU_scaling_prefactor, sigma_psi, omega_L, Psider, delta, diff_r, sublattice, min_bk_sq);
 		
-		    /* Calculating Psi(g6, sigma, g5, sigma) from Psi(A, sigma_psi, A/B, sigma_psi) */
-		    cx_double xki = xk(wfib.spin(), ek1, ts->tz, kz, wfib.delta());
-		    double zki = zk(ek1, ts->tz, kz, wfib.delta());
-		    cx_double bki = bk(wfib.spin(), ek1, ts->tz, kz);
+  // 		    /* Calculating Psi(g6, sigma, g5, sigma) from Psi(A, sigma_psi, A/B, sigma_psi) */
+  // 		    cx_double xki = xk(wfib.spin(), ek1, ts->tz, kz, wfib.delta());
+  // 		    double zki = zk(ek1, ts->tz, kz, wfib.delta());
+  // 		    cx_double bki = bk(wfib.spin(), ek1, ts->tz, kz);
 
-		    /* Mean field eigenenergy */
-		    double ek_plus = E_k_plus[idx_k_sigma_ki_kf];
-		    double ek_minus = E_k_minus[idx_k_sigma_ki_kf];
+  // 		    /* Mean field eigenenergy */
+  // 		    double ek_plus = E_k_plus[idx_k_sigma_ki_kf];
+  // 		    double ek_minus = E_k_minus[idx_k_sigma_ki_kf];
 		  
-		    /* Psi(A, sigma_psi, A/B, sigma_psi) */
-		    cx_double wavefunc = wfib.integrand(xki, zki, bki, ek_plus, ek_minus, 1., sublattice);
+  // 		    /* Psi(A, sigma_psi, A/B, sigma_psi) */
+  // 		    cx_double wavefunc = wfib.integrand(xki, zki, bki, ek_plus, ek_minus, 1., sublattice);
 
-		    /* Transforming to Psi(g6, sigma, g5, sigma) */
-		    wavefunc = wavefunc_sublattice_correction(g6, g5, wavefunc);
+  // 		    /* Transforming to Psi(g6, sigma, g5, sigma) */
+  // 		    wavefunc = wavefunc_sublattice_correction(g6, g5, wavefunc);
 
-		    /* Adding the matrix elements. */
-		    coef += U_5plus * Udg_minus6 * std::conj(wavefunc);
-		  }  /* end for g6 */	    
-		}  /* end for g5 */
+  // 		    /* Adding the matrix elements. */
+  // 		    coef += U_5plus * Udg_minus6 * std::conj(wavefunc);
+  // 		  }  /* end for g6 */	    
+  // 		}  /* end for g5 */
 	      
-		cx_double mat_elem1_minus = coef * v1;
-		cx_double mat_elem2_minus = coef * v2;
+  // 		cx_double mat_elem1_minus = coef * v1;
+  // 		cx_double mat_elem2_minus = coef * v2;
 		  
-		weight_minus1_comp.push_back(mat_elem1_minus);
-		weight_minus2_comp.push_back(mat_elem2_minus);
+  // 		weight_minus1_comp.push_back(mat_elem1_minus);
+  // 		weight_minus2_comp.push_back(mat_elem2_minus);
 
-		++idx_k_sigma_ki_kf;
-	      } /* end for photon_k */	      
-	    } /* end for sigma */	      
-	  } /* end for y */
-	} /* end for x */
-      } /* end for z */
+  // 		++idx_k_sigma_ki_kf;
+  // 	      } /* end for photon_k */	      
+  // 	    } /* end for sigma */	      
+  // 	  } /* end for y */
+  // 	} /* end for x */
+  //     } /* end for z */
   
-	// weight_plus.push_back(weight_plus_comp);
-      weight_minus1.push_back(weight_minus1_comp);
-      weight_minus2.push_back(weight_minus2_comp);      
-    } /* end for nu */
-  } /* end for mu */
+  // 	// weight_plus.push_back(weight_plus_comp);
+  //     weight_minus1.push_back(weight_minus1_comp);
+  //     weight_minus2.push_back(weight_minus2_comp);      
+  //   } /* end for nu */
+  // } /* end for mu */
 
   /* Matrix elements for the susceptibility */
   me_F.set_q(0., 0., 0.);
   me_F.set_table(*ts, delta);
+
+  // // for check
+  // cx_double uk(1., 2.);
+  // cx_double vk(10., 20);
+  // cx_double wk(100., 0.);
+  
+  // mat tau_p = mat({0., 0., 1., 0.});
+  // mat tau_m = mat({0., 1., 0., 0.});
+  // mat tau_z = mat({1., 0., 0., - 1.});
+  // tau_p.set_size(2,2);
+  // tau_m.set_size(2,2);
+  // tau_z.set_size(2,2);
+
+  // cx_mat Pauli_0 = cx_mat({1., 0., 0., 1.});
+  // cx_mat Pauli_z = cx_mat({1., 0., 0., - 1.});
+  // Pauli_0.set_size(2,2);
+  // Pauli_z.set_size(2,2);
+
+  // cx_double rk = 10.0;
+  // cx_mat Mk = rk * (arma::kron(uk * tau_p + std::conj(uk) * tau_m, Pauli_0) + arma::kron(vk * tau_p - std::conj(vk) * tau_m + wk * tau_z, Pauli_z));
+  // // cx_mat Mk = arma::kron(uk * tau_p + std::conj(uk) * tau_m, Pauli_0) + arma::kron(vk * tau_p - std::conj(vk) * tau_m + wk * tau_z, Pauli_z);
+  
+  // std::cout << "Test Mk:" << std::endl;
+  // std::cout << Mk << std::endl;
+  // std::cout << Mk.t() << std::endl;
+  // std::cout << Mk << std::endl;
+
   
   /* Calculating the Raman scattering cross sections. */
+#ifdef WITH_OpenMP
+#pragma omp parallel
+  {
+  /* Assignment for each thread */  
+  int n_threads = omp_get_num_threads();
+  int nt = n_omegas / n_threads;
+  int rem = n_omegas % n_threads;      
+  int thread_id = omp_get_thread_num();
+  if ( thread_id < rem ) { nt += 1; }
+      
+  /* Results for each thread */
+  mat spec_Raman_xx_thread(n_spec, nt);
+  mat spec_Raman_xy_thread(n_spec, nt);
+  mat spec_Raman_xz_thread(n_spec, nt);
+  mat spec_Raman_yx_thread(n_spec, nt);
+  mat spec_Raman_yy_thread(n_spec, nt);
+  mat spec_Raman_yz_thread(n_spec, nt);
+  mat spec_Raman_zx_thread(n_spec, nt);
+  mat spec_Raman_zy_thread(n_spec, nt);
+  mat spec_Raman_zz_thread(n_spec, nt);      
+
+  auto spec_Raman_thread = [&](int mu, int nu){
+    mat *spec;
+    if ( mu == 0 ) {
+      if ( nu == 0 ) { spec = &spec_Raman_xx_thread; }
+      else if ( nu == 1 ) { spec = &spec_Raman_xy_thread; }
+      else { spec = &spec_Raman_xz_thread; }
+    } else if ( mu == 1 ) {
+      if ( nu == 0 ) { spec = &spec_Raman_yx_thread; }
+      else if ( nu == 1 ) { spec = &spec_Raman_yy_thread; }
+      else { spec = &spec_Raman_yz_thread; }
+    } else {
+      if ( nu == 0 ) { spec = &spec_Raman_zx_thread; }
+      else if ( nu == 1 ) { spec = &spec_Raman_zy_thread; }
+      else { spec = &spec_Raman_zz_thread; }      
+    }
+    return spec;
+  };
+  
+  for(int oidx=0; oidx < nt; ++oidx){
+    int o = thread_id + oidx * n_threads; // stride: n_threads
+#else
   for(int o=0; o < n_omegas; ++o){
+#endif    
     /* Energy of the final photon state */
     // double omega_f = pr.omega_i - omegas[o]; // (eV)
-    cx_double omega_shifted = cx_double(omegas[o], pr.eta);    
-    int idx_comp = 0;
+    cx_double omega_shifted = cx_double(omegas[o], pr.eta);
     for(int mu=0; mu < 3; ++mu){
       for(int nu=0; nu < 3; ++nu){
+	if (invalid_components(mu,nu)) { continue; }	
 	/* Matrix elements */
 	MatElemK me_K(L, L, 2, mu, nu, bonds);
 
@@ -960,11 +965,38 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	me_K.set_table(*ts, delta);
 	  
 	cx_double sigma0 = calc_Raman_sigma0(L, *ts, ch_pot, U, T, delta, cbp, me_K, omega_shifted, pr.omega_i, continuous_k);
-	cx_double sigma1 = calc_Raman_sigma1(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_F, omega_shifted, pr.omega_i, continuous_k);
-	cx_double Raman_sigma = sigma0 + sigma1;
-	spec_Raman(mu,nu)[o] = 2.0 * std::imag(Raman_sigma);
+	cx_double sigma1_00, sigma1_zz;
+	std::tie(sigma1_00, sigma1_zz) = calc_Raman_sigma1(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_F, omega_shifted, pr.omega_i, continuous_k);
 
-	
+#ifdef WITH_OpenMP
+	(*spec_Raman_thread(mu,nu))(0, oidx) = 2.0 * std::imag(sigma0);
+	(*spec_Raman_thread(mu,nu))(1, oidx) = 2.0 * std::imag(sigma1_00);
+	(*spec_Raman_thread(mu,nu))(2, oidx) = 2.0 * std::imag(sigma1_zz);	
+#else
+	(*spec_Raman(mu,nu))(0, o) = 2.0 * std::imag(sigma0);
+	(*spec_Raman(mu,nu))(1, o) = 2.0 * std::imag(sigma1_00);
+	(*spec_Raman(mu,nu))(2, o) = 2.0 * std::imag(sigma1_zz);		
+#endif
+      }
+    }
+  }
+      
+#ifdef WITH_OpenMP
+  /* Extracting the results */
+  for(int mu=0; mu < 3; ++mu){
+    for(int nu=0; nu < 3; ++nu){
+      if (invalid_components(mu,nu)) { continue; }
+      for(int oidx=0; oidx < nt; ++oidx){
+	int o = thread_id + oidx * n_threads;
+	for(int ispec=0; ispec < n_spec; ++ispec){
+	  (*spec_Raman(mu,nu))(ispec, o) = (*spec_Raman_thread(mu,nu))(ispec, oidx);
+	}
+      }
+    }
+  }
+  }
+#endif      
+
 	// arma::cx_mat chi0_00(NSUBL,NSUBL,arma::fill::zeros);
 	// arma::cx_mat chi0_zz(NSUBL,NSUBL,arma::fill::zeros);
 
@@ -1042,12 +1074,90 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	
 	// spec_Raman(mu,nu)[o] = 2.0 * std::imag(sum);
   
-	++idx_comp;
-      } /* end for nu */
-    } /* end for mu */    
-  }/* end for o */
+  // 	++idx_comp;
+  //     } /* end for nu */
+  //   } /* end for mu */    
+  // }/* end for o */
 
   /* Output */
+  for(int mu=0; mu < 3; ++mu){
+    std::string mu_str;
+    if ( mu == 0 ) { mu_str = 'x'; }
+    else if ( mu == 1 ) { mu_str = 'y'; }
+    else { mu_str = 'z'; }
+    
+    for(int nu=0; nu < 3; ++nu){
+      if (invalid_components(mu,nu)) { continue; }      
+      std::string nu_str;
+      if ( nu == 0 ) { nu_str = 'x'; }
+      else if ( nu == 1 ) { nu_str = 'y'; }
+      else { nu_str = 'z'; }
+  
+      ofstream out_raman;
+      std::string ofilen("Raman_scattering-"+mu_str+nu_str+".text");
+      out_raman.open(base_dir / ofilen);      
+      out_raman << "# Omega     sigma0     sigma1_00     sigma1_zz     sum" << std::endl;
+  
+      /* Output */
+      mat *spec = spec_Raman(mu,nu);
+      for(int o=0; o < n_omegas; ++o){
+	double omega = omegas[o];
+	out_raman << omega;
+	
+	double sum = 0;
+	for(int ispec=0; ispec < n_spec; ++ispec){
+	  double val = (*spec)(ispec, o);
+	  sum += val;
+	  out_raman << std::setw(pw) << val;
+	}
+	out_raman << std::setw(pw) << sum << std::endl;	
+      } /* end for o */
+  
+      out_raman.close();        
+    } /* end for nu */
+  } /* end for mu */
+  
+  // /* Closing the output files. */
+  // out_gap.close();
+  // out_dispersion_transverse.close();
+  // out_dispersion_longitudinal.close();
+  // out_MF_gap.close();
+  // out_wavefunc_k.close();
+}
+
+void calc_coef_eff_Raman_real_space(path& base_dir, rpa::parameters const& pr){
+  /* Output of the coefficient of the effective Raman operator. */
+
+  /* Getting parameters */
+  int L = pr.L;
+  double U = pr.U;
+  double filling = pr.filling;
+  double T = pr.T;
+  bool continuous_k = pr.continuous_k;
+
+  /* Hopping parameters */
+  std::unique_ptr<hoppings_bilayer2> ts = hoppings_bilayer2::mk_bilayer3(pr);
+  
+  /* Parameters for Cuba */
+  CubaParam cbp(pr);
+
+  /* Calculate the chemical potential and the charge gap. */
+  double delta = solve_self_consistent_eq_bilayer2(L, *ts, U, filling, T, cbp, continuous_k);  
+  std::cout << "delta = " << delta << std::endl;
+  
+  /* Bonds */
+  std::vector<BondDelta> bonds {
+     {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, -1, 0},  {0, 0, 1}     
+   };
+  
+  /* Shifted omegas */
+  cx_double omega_shifted = cx_double(pr.Omega, pr.eta);
+  cx_double omega_i_shifted(pr.omega_i, 0.5 * std::imag(omega_shifted));
+  cx_double omega_f_shifted(pr.omega_i - std::real(omega_shifted), - 0.5 * std::imag(omega_shifted));
+  // double omega_f = omega_i - std::real(omega);
+
+  
+  /* For each component set */
   for(int mu=0; mu < 3; ++mu){
     std::string mu_str;
     if ( mu == 0 ) { mu_str = 'x'; }
@@ -1059,33 +1169,20 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
       if ( nu == 0 ) { nu_str = 'x'; }
       else if ( nu == 1 ) { nu_str = 'y'; }
       else { nu_str = 'z'; }
-  
-      ofstream out_raman;
-      std::string ofilen("Raman_scattering-"+mu_str+nu_str+".text");
-      out_raman.open(base_dir / ofilen);      
-      out_raman << "# Omega    R" << std::endl;
-  
-      /* Output */
-      double *spec = spec_Raman(mu,nu);
-      for(int o=0; o < n_omegas; ++o){
-	double omega = omegas[o];
-	out_raman << omega << std::setw(pw) << spec[o] << std::endl;
-      } /* end for o */
-  
-      out_raman.close();        
-    } /* end for nu */
-  } /* end for mu */
 
-  /* Output of the coefficient of the effective Raman operator. */
-  ofstream out_coef_Raman;
-  out_coef_Raman.open(base_dir/"coefficient_of_Raman_operator.text");
-  out_coef_Raman << "#  x  y  Coefficient" << std::endl;
+      ofstream out_coef_Raman;
+      std::string ofilen("coefficient_of_Raman_operator-"+mu_str+nu_str+".text");
+      out_coef_Raman.open(base_dir/ofilen);      
+      out_coef_Raman << "# Coefficient of the Sz-like term for Omega = " << pr.Omega << " and omega_i = " << pr.omega_i << std::endl;      
+      out_coef_Raman << "#  x   y   z     Re     Im" << std::endl;
+	
+      /* Matrix elements */
+      MatElemK me_K(L, L, 2, mu, nu, bonds);
+      me_K.set_q(0., 0., 0.);
+      me_K.set_table(*ts, delta);
 
-  for(int x0=-L/2; x0 <= L/2; ++x0){
-    for(int y0=-L/2; y0 <= L/2; ++y0){
-      if ( x0 + y0 & 1 ) { continue; }
-
-      cx_double sum = 0;
+      double k1 = 2. * M_PI / (double)L;
+      std::vector<cx_double> coef_Sz;
       for(int z=0; z < 2; ++z){    
 	double kz = M_PI * z;
 	for(int x=-L/2; x < L/2; ++x){
@@ -1096,216 +1193,72 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	    /* Checking if the wavevector is inside the BZ. */
 	    double factor = BZ_factor_square_half_filling(kx, ky);
 	    if ( std::abs(factor) < 1e-12 ) { continue; }
-		  
+
 	    /* Eigenenergy */
 	    cx_double ek1 = ts->ek1(kx, ky, kz);
+	    cx_double tz = ts->tz; 
 	    cx_double ek23 = ts->ek23(kx, ky, kz);
 	    cx_double ekz = ts->ekz(kx, ky, kz);	      
-	    double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, ts->tz, kz, delta);
-	    double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, ts->tz, kz, delta);
+	    double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, tz, kz, delta);
+	    double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, tz, kz, delta);		  
+  
+	    cx_double denom1 = ek_plus - ek_minus - omega_i_shifted;
+	    cx_double denom2 = ek_plus - ek_minus + omega_f_shifted;
+  
+	    /* Getting the matrix elements */
+	    cx_double R[2];
+	    if ( me_K.is_table_set() ) {
+	      me_K.get_elem(kx, ky, kz, R);
+	    } else {
+	      me_K.calc_mat_elems(*ts, delta, kx, ky, kz, R);
+	    }
 
-	    /* Unitary matrix */
-	    cx_mat Uk = gs_HF(ek1, ts->tz, kz, delta);
-	    cx_mat Uk_bar = gs_HF(ek1, ts->tz, kz + M_PI, delta);	    
-	    cx_mat Uk_dg = Uk.t();
-
-	    /* Photon momenta */
-	    vec3 ki{0, 0, 0};
-	    vec3 kf{0, 0, 0};
-
-	    /* Delta */
-	    BondDelta e_mu(0);
-	    BondDelta e_nu(0);
-
-	    /* Spin */
-	    int sigma = up_spin;
-	    
-	    cx_double v1 = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, e_nu, bonds, 1, 1, sigma, sigma);
-	    cx_double v2 = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, - ki, e_mu, bonds, 1, -1, sigma, sigma);
-	    
-	    int sigma_bar = sigma == up_spin ? down_spin : up_spin;
-	    cx_double v3 = velocity_U1(*ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, e_nu, bonds, -1, -1, sigma_bar, sigma_bar);
-
-	    cx_double vkp = 0;
-	    for(int zp=0; zp < 2; ++zp){
-	      double kzp = M_PI * zp;
-	      for(int xp=-L/2; xp < L/2; ++xp){
-		double kxp = k1 * xp;
-		for(int yp=-L/2; yp < L/2; ++yp){
-		  double kyp = k1 * yp;
-
-		  /* Checking if the wavevector is inside the BZ. */
-		  double factorp = BZ_factor_square_half_filling(kxp, kyp);
-		  if ( std::abs(factorp) < 1e-12 ) { continue; }
-		  
-		  /* Skip if k' == k. */
-		  if ( std::abs(kxp - kx) + std::abs(kyp - ky) + std::abs(kzp - kz) < 1e-12 ) { continue; }
-		  bool same_k = false;
-		  for(int dkzi: {-1, 1}){
-		    double kzp2 = kzp + (double)dkzi * M_PI;
-		    for(int dkxi: {-1, 1}){
-		      double kxp2 = kxp + (double)dkxi * M_PI;		      
-		      for(int dkyi: {-1, 1}){
-			double kyp2 = kyp + (double)dkyi * M_PI;
-			if ( std::abs(kxp2 - kx) + std::abs(kyp2 - ky) + std::abs(kzp2 - kz) < 1e-12 ) { same_k = true; }
-		      }
-		    }
-		  }
-		  if (same_k) { continue; }
-		  
-		  /* Eigenenergy */
-		  cx_double ekp1 = ts->ek1(kxp, kyp, kzp);
-		  cx_double ekp23 = ts->ek23(kxp, kyp, kzp);
-		  cx_double ekzp = ts->ekz(kxp, kyp, kzp);	      
-
-		  /* Unitary matrix */
-		  cx_mat Ukp = gs_HF(ekp1, ts->tz, kzp, delta);
-		  cx_mat Ukp_bar = gs_HF(ekp1, ts->tz, kzp + M_PI, delta);	    
-		  cx_mat Ukp_dg = Ukp.t();
-
-		  for(int sigmap: {up_spin, down_spin}){
-		    vkp += factorp * velocity_U1(*ts, Ukp_dg, Ukp, Ukp_bar, kxp, kyp, kzp, kf, e_nu, bonds, -1, -1, sigmap, sigmap);
-		  }
-		}  /* end for yp */
-	      }  /* end for xp */
-	    }  /* end for zp */
-	    
-	    cx_double coef_k = (v1+v3+vkp) * v2 / (ek_plus - ek_minus - pr.omega_i);
-	    double z = zk(ek1, ts->tz, kz, delta);
-	    double inner_prod_k = kx * x0 + ky * y0;
-	    cx_double phase = exp(1i*inner_prod_k);
-	    
-	    sum += factor * coef_k * 0.5 * sqrt(1. - z*z) * phase;
+	    /* Coefficient of the Sz-like term */
+	    cx_double rk = R[0] / denom1 + R[1] / denom2;
+	    double z_k = zk(ek1, tz, kz, delta);		  
+	    cx_double wk = 0.5 * sqrt(1. - z_k * z_k);		  
+	    cx_double coef = factor * rk * wk;
+	      
+	    coef_Sz.push_back(coef);
 	  }  /* end for y */
 	}  /* end for x */
       }  /* end for z */
 
-      out_coef_Raman << x0 << "  " << y0 << "   " << std::real(sum) << "   " << std::imag(sum) << std::endl;
-    }  /* end for y0 */
-  }  /* end for x0 */
-  
-  /* Deleting */
-  delete[] spec_Raman_xx;
-  delete[] spec_Raman_xy;
-  delete[] spec_Raman_xz;
-  delete[] spec_Raman_yx;
-  delete[] spec_Raman_yy;
-  delete[] spec_Raman_yz;
-  delete[] spec_Raman_zx;
-  delete[] spec_Raman_zy;
-  delete[] spec_Raman_zz;
-  
-  /* Closing the output files. */
-  out_gap.close();
-  out_dispersion_transverse.close();
-  out_dispersion_longitudinal.close();
-  out_coef_Raman.close();  
-  out_MF_gap.close();
-  out_wavefunc_k.close();
+      for(int x0=-L/2; x0 <= L/2; ++x0){
+	for(int y0=-L/2; y0 <= L/2; ++y0){
+	  for(int z0=0; z0 <= 1; ++z0){
+	    if ( (x0 + y0 + z0) & 1 ) { continue; }
+	      
+	    /* Fourier transform */
+	    cx_double sum = 0;	    
+	    std::size_t index_k = 0;	    
+	    for(int z=0; z < 2; ++z){    
+	      double kz = M_PI * z;
+	      for(int x=-L/2; x < L/2; ++x){
+		double kx = k1 * x;
+		for(int y=-L/2; y < L/2; ++y){
+		  double ky = k1 * y;
+
+		  /* Checking if the wavevector is inside the BZ. */
+		  double factor = BZ_factor_square_half_filling(kx, ky);
+		  if ( std::abs(factor) < 1e-12 ) { continue; }
+
+		  double inner_prod_k = kx * x0 + ky * y0 + kz * z0;
+		  cx_double phase = exp(1i*inner_prod_k);		  
+		  sum += coef_Sz[index_k] * phase;		  
+		  ++index_k;
+		}  /* end for y */
+	      }  /* end for x */
+	    }  /* end for z */
+
+	    /* Output */
+	    out_coef_Raman << x0 << "  " << y0 << "   " << z0 << "   " << std::real(sum) << "   " << std::imag(sum) << std::endl;	      
+	  }  /* end for z0 */
+	}  /* end for y0 */	    
+      }  /* end for x0 */
+
+      /* Closing the output file. */
+      out_coef_Raman.close();	
+    }   /* end for nu */
+  }   /* end for mu */    
 }
-
-// void calc_Raman_bilayer2(path& base_dir, rpa::parameters const& pr){
-//   /* Getting parameters */
-//   int L = pr.L;
-//   int Lk = pr.Lk;
-//   double U = pr.U;
-//   double filling = pr.filling;
-//   double T = pr.T;
-//   bool continuous_k = pr.continuous_k;
-
-//   /* Hopping parameters */
-//   std::unique_ptr<hoppings_bilayer2> ts = hoppings_bilayer2::mk_bilayer3(pr);
-
-//   /* Omegas */
-//   double omega_min = pr.omega_min;
-//   double omega_max = pr.omega_max;
-//   double omega_delta = pr.omega_delta;  
-  
-//   int n_omegas = int((omega_max - omega_min)/omega_delta+0.5);
-//   std::vector<double> omegas(n_omegas);
-//   for(int o=1; o <= n_omegas; ++o){ omegas[o-1] = omega_min + omega_delta * o; }
-  
-//   /* Parameters for Cuba */
-//   CubaParam cbp(pr);
-  
-//   /* Calculate the chemical potential and the charge gap. */
-//   double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, filling, T, cbp, continuous_k );  
-//   std::cout << "delta = " << delta << std::endl;  
-//   /* Assume that mu does not depend on L for integral over continuous k. */
-//   double ch_gap, mu;
-//   std::tie(ch_gap, mu) = calc_charge_gap_bilayer( L, *ts, delta );  /* Finite size */  
-//   // double mu = calc_chemical_potential_bilayer2( base_dir, L, *ts, delta );  /* Finite size */
-
-//   /* Output */
-//   ofstream out_gap;
-//   out_gap.open(base_dir / "gap.text");
-//   out_gap << "Charge gap = " << ch_gap << std::endl;
-//   out_gap << "mu = " << mu << std::endl;
-  
-//   /* MatElemF */
-//   MatElemF me_F( L, L, 2, NSUBL );
-
-//   // auto calc_gaps = [&](double qx, double qy, double qz){
-//   //   /* Setting the ordering vector */
-//   //   me_F.set_q(qx, qy, qz);
-//   //   if ( !continuous_k ) {
-//   //     /* The polarizations are calculated in advance. */
-//   //     me_F.set_table( *ts, delta );
-//   //   }
-    
-//   //   /* Calculating gaps */
-//   //   double omega_T = 0, omega_L = 0, omega_ph = 0;
-//   //   bool return_upper = true;
-//   //   // bool verbose = true;
-//   //   bool verbose = false;    
-//   //   std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, mu, U, T, delta, cbp, me_F, continuous_k, return_upper, verbose);
-    
-//   //   return std::make_tuple(omega_T, omega_L, omega_ph);
-//   // };
-
-//   // /* Calculating gaps at (pi, pi, pi)*/
-//   // double omega_T = 0, omega_L = 0, omega_ph = 0;
-//   // std::tie(omega_T, omega_L, omega_ph) = calc_gaps(M_PI, M_PI, M_PI);
-  
-//   // /* Output */
-//   // out_gap << "omega_T = " << omega_T << std::endl;
-//   // out_gap << "omega_L = " << omega_L << std::endl;
-//   // out_gap << "omega_ph = " << omega_ph << std::endl;
-  
-//   /* Calculating Psi'*/
-//   // double Psider = 1.0;
-//   // std::cout << "Setting Psider to one for simplicity." << std::endl;
-//   // double Psider = calc_Psider(L, *ts, mu, omega_L, delta, cbp, continuous_k);
-
-//   // /* Output */
-//   // out_gap << "Psider = " << Psider << std::endl;
-
-//   // /* Calculating the minimum bk square */
-//   // double min_bk_sq = calc_min_bk_sq_bilayer(L, *ts);
-    
-//   /* Constants */
-//   double k1 = 2. * M_PI / (double)L;  
-//   double g_photon = 1.0;  // This factor does not matter to the result.
-//   // double g_photon = sqrt(planck_h * c_light * c_light / (pr.omega_i * 2. * M_PI / planck_h));  
-//   double beta = 0;
-//   if ( !pr.T_equal_to_0 ) {
-//     beta = 1. / (kB * pr.T);
-//   }
-
-//   /* Precision */
-//   int prec = 10;
-//   int pw = prec + 10;
-
-//   // /* Calculating the scattering states of a single particle-hole pair. */
-//   // int N = 2 * L * L;
-//   // vec vals(N);
-//   // cx_mat Uph1(N, N);
-//   // calc_particle_hole1(pr, *ts, delta, vals, Uph1);
-      
-//   std::vector<BondDelta> bonds {
-//      {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, -1, 0},  {0, 0, 1}
-    
-//     // for check
-//      // {1, 0, 0}, {0, 1, 0}
-//    };
-// }
