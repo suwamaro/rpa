@@ -219,7 +219,6 @@ void MatElemF::build_table(hoppings2 const& ts, double delta){
 	
 	for(int sg1=-1; sg1<=1; sg1+=2){
 	  for(int sg2=-1; sg2<=1; sg2+=2){
-	    // int sg2 = - sg1; /* Opposite sign */
 	    calc_mat_elems(ts, delta, kx, ky, kz, sg1, sg2, F00_up, F00_down, Fpm, Fzz_up, Fzz_down);
 	  
 	    int sg1i = (sg1+1) >> 1;
