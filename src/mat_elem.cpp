@@ -123,10 +123,10 @@ void MatElemF::calc_mat_elems(hoppings2 const& ts, double delta, double kx, doub
   cx_vec X2up = gs_HF1(up_spin, sg2, ek_q1, tz, kz2, delta);
   cx_vec X2down = gs_HF1(down_spin, sg2, ek_q1, tz, kz2, delta);
 
-  cx_mat P1up = arma::kron(arma::trans(X1up), X1up);
-  cx_mat P1down = arma::kron(arma::trans(X1down), X1down);
-  cx_mat P2up = arma::kron(arma::trans(X2up), X2up);
-  cx_mat P2down = arma::kron(arma::trans(X2down), X2down);    
+  cx_mat P1up = arma::kron(X1up, X1up.t());
+  cx_mat P1down = arma::kron(X1down, X1down.t());
+  cx_mat P2up = arma::kron(X2up, X2up.t());
+  cx_mat P2down = arma::kron(X2down, X2down.t());
   
   cx_double F_A0_A0_up = arma::trace(P1up * Sigma_A0 * P2up * Sigma_A0);
   cx_double F_A0_B0_up = arma::trace(P1up * Sigma_A0 * P2up * Sigma_B0);

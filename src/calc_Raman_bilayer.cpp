@@ -1,6 +1,6 @@
 /*****************************************************************************
 *
-* Functions for calculating the wave function
+* Functions for calculating Raman scattering
 *
 * Copyright (C) 2018 by Hidemaro Suwa
 * e-mail:suwamaro@phys.s.u-tokyo.ac.jp
@@ -210,9 +210,9 @@ cx_mat calc_eff_Raman_operator(hoppings_bilayer2& ts, double delta, double kx, d
   cx_double x_k = xk(up_spin, ek1, tz, kz, delta);
   double z_k = zk(ek1, tz, kz, delta);
   
-  cx_double uk = - 0.5 * x_k * z_k;
-  cx_double vk = - 0.5 * x_k;
-  cx_double wk = 0.5 * sqrt(1. - z_k * z_k);
+  cx_double u_k = - 0.25 * (x_k * (1. + z_k) - std::conj(x_k) * (1. - z_k));
+  cx_double v_k = - 0.25 * (x_k * (1. + z_k) + std::conj(x_k) * (1. - z_k));  
+  cx_double w_k = 0.5 * sqrt(1. - z_k * z_k);
   
   /* Effective Raman operator */
   mat tau_p = mat({0., 0., 1., 0.});
@@ -228,8 +228,8 @@ cx_mat calc_eff_Raman_operator(hoppings_bilayer2& ts, double delta, double kx, d
   Pauli_z.set_size(2,2);
 
   cx_double rk = R[0] / denom1 + R[1] / denom2;
-  cx_mat Mk = rk * (arma::kron(uk * tau_p + std::conj(uk) * tau_m, Pauli_0) + arma::kron(vk * tau_p - std::conj(vk) * tau_m + wk * tau_z, Pauli_z));
-  return Mk;
+  cx_mat Mk = rk * (arma::kron(u_k * tau_p + u_k * tau_m, Pauli_0) + arma::kron(v_k * tau_p - v_k * tau_m + w_k * tau_z, Pauli_z));
+  return Mk;  
 }
 
 cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double U, double T, double delta, CubaParam const& cbp, MatElemK const& me_K, cx_double omega, double omega_i, bool continuous_k){
@@ -274,14 +274,14 @@ cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double 
 	      cx_vec X2up = gs_HF1(up_spin, sg2, ek1, tz, kz, delta);	      
 	      cx_vec X1down = gs_HF1(down_spin, sg1, ek1, tz, kz, delta);
 	      cx_vec X2down = gs_HF1(down_spin, sg2, ek1, tz, kz, delta);	      	      
-	      cx_mat P1up = arma::kron(arma::trans(X1up), X1up);
-	      cx_mat P2up = arma::kron(arma::trans(X2up), X2up);	      
-	      cx_mat P1down = arma::kron(arma::trans(X1down), X1down);
-	      cx_mat P2down = arma::kron(arma::trans(X2down), X2down);	      
+	      cx_mat P1up = arma::kron(X1up, X1up.t());
+	      cx_mat P2up = arma::kron(X2up, X2up.t());
+	      cx_mat P1down = arma::kron(X1down, X1down.t());
+	      cx_mat P2down = arma::kron(X2down, X2down.t());
 
 	      /* Matrix element */
-	      cx_double Kup = arma::trace(P1up * Mk * P2up * Mk.t());
-	      cx_double Kdown = arma::trace(P1down * Mk * P2down * Mk.t());	      
+	      cx_double Kup = arma::trace(P1up * Mk.t() * P2up * Mk);
+	      cx_double Kdown = arma::trace(P1down * Mk.t() * P2down * Mk);
 	      cx_double K = Kup + Kdown;
 	      	    
 	      prefactor *= factor;
@@ -434,20 +434,20 @@ std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts,
 	      cx_vec X2up = gs_HF1(up_spin, sg2, ek1, tz, kz, delta);
 	      cx_vec X1down = gs_HF1(down_spin, sg1, ek1, tz, kz, delta);
 	      cx_vec X2down = gs_HF1(down_spin, sg2, ek1, tz, kz, delta);	      
-	      cx_mat P1up = arma::kron(arma::trans(X1up), X1up);
-	      cx_mat P2up = arma::kron(arma::trans(X2up), X2up);	      
-	      cx_mat P1down = arma::kron(arma::trans(X1down), X1down);
-	      cx_mat P2down = arma::kron(arma::trans(X2down), X2down);	      
+	      cx_mat P1up = arma::kron(X1up, X1up.t());
+	      cx_mat P2up = arma::kron(X2up, X2up.t());	      
+	      cx_mat P1down = arma::kron(X1down, X1down.t());
+	      cx_mat P2down = arma::kron(X2down, X2down.t());
 
 	      /* Matrix element */
-	      cx_double P_0_A_up = arma::trace(P1up * Sigma_A0 * P2up * Mk.t());
-	      cx_double P_0_B_up = arma::trace(P1up * Sigma_B0 * P2up * Mk.t());
-	      cx_double P_0_A_down = arma::trace(P1down * Sigma_A0 * P2down * Mk.t());
-	      cx_double P_0_B_down = arma::trace(P1down * Sigma_B0 * P2down * Mk.t());	      
-	      cx_double P_z_A_up = arma::trace(P1up * Sigma_Az * P2up * Mk.t());
-	      cx_double P_z_B_up = arma::trace(P1up * Sigma_Bz * P2up * Mk.t());
-	      cx_double P_z_A_down = arma::trace(P1down * Sigma_Az * P2down * Mk.t());
-	      cx_double P_z_B_down = arma::trace(P1down * Sigma_Bz * P2down * Mk.t());	      
+	      cx_double P_0_A_up = arma::trace(P1up * Sigma_A0 * P2up * Mk);
+	      cx_double P_0_B_up = arma::trace(P1up * Sigma_B0 * P2up * Mk);
+	      cx_double P_0_A_down = arma::trace(P1down * Sigma_A0 * P2down * Mk);
+	      cx_double P_0_B_down = arma::trace(P1down * Sigma_B0 * P2down * Mk);	      
+	      cx_double P_z_A_up = arma::trace(P1up * Sigma_Az * P2up * Mk);
+	      cx_double P_z_B_up = arma::trace(P1up * Sigma_Bz * P2up * Mk);
+	      cx_double P_z_A_down = arma::trace(P1down * Sigma_Az * P2down * Mk);
+	      cx_double P_z_B_down = arma::trace(P1down * Sigma_Bz * P2down * Mk);
 	      
 	      prefactor *= factor;
 
@@ -472,13 +472,26 @@ std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts,
     cx_vec Pi_z = Pi_z_up + Pi_z_down;
     
     /* Total contributions */
-    cx_mat sigma1_00_ = Pi_0.st() * U_eff_00 * arma::conj(Pi_0);
+    cx_mat sigma1_00_ = Pi_0.t() * U_eff_00 * Pi_0;
     sigma1_00 = sigma1_00_[0];
-    cx_mat sigma1_zz_ = Pi_z.st() * U_eff_zz * arma::conj(Pi_z);
+    
+    cx_mat sigma1_zz_ = Pi_z.t() * U_eff_zz * Pi_z;
     sigma1_zz = sigma1_zz_[0];
   }
   
   return std::make_tuple(sigma1_00, sigma1_zz);
+}
+
+
+bool invalid_components(int mu, int nu){
+  /* Only considering in-plane components */
+  if (mu == 2 || nu == 2) { return true; }
+  else { return false; }
+  
+  // /* Not considering xz, yz, zx, and zy. */
+  // if (mu == 2 && nu != 2) { return true; }
+  // else if ( mu != 2 && nu == 2) { return true; }
+  // else { return false; }
 }
 
 void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
@@ -570,17 +583,6 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   std::vector<BondDelta> bonds {
      {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, -1, 0},  {0, 0, 1}     
    };
-
-  auto invalid_components = [](int mu, int nu){
-    /* Only considering in-plane components */
-    if (mu == 2 || nu == 2) { return true; }
-    else { return false; }
-    
-    // /* Not considering xz, yz, zx, and zy. */
-    // if (mu == 2 && nu != 2) { return true; }
-    // else if ( mu != 2 && nu == 2) { return true; }
-    // else { return false; }
-  };
   
   /* Results */
   int n_spec = 3;   // Number of spectrum types
@@ -775,9 +777,10 @@ void calc_coef_eff_Raman_real_space(path& base_dir, rpa::parameters const& pr){
   
   /* Shifted omegas */
   cx_double omega_shifted = cx_double(pr.Omega, pr.eta);
-  cx_double omega_i_shifted(pr.omega_i, 0.5 * std::imag(omega_shifted));
-  cx_double omega_f_shifted(pr.omega_i - std::real(omega_shifted), - 0.5 * std::imag(omega_shifted));
-  // double omega_f = omega_i - std::real(omega);
+  double omega_i = pr.omega_i;
+  double omega_f = omega_i - pr.Omega;  
+  // cx_double omega_i_shifted(pr.omega_i, 0.5 * std::imag(omega_shifted));
+  // cx_double omega_f_shifted(pr.omega_i - std::real(omega_shifted), - 0.5 * std::imag(omega_shifted));
   
   /* For each component set */
   for(int mu=0; mu < 3; ++mu){
@@ -787,16 +790,24 @@ void calc_coef_eff_Raman_real_space(path& base_dir, rpa::parameters const& pr){
     else { mu_str = 'z'; }
     
     for(int nu=0; nu < 3; ++nu){
+      if (invalid_components(mu,nu)) { continue; }      
       std::string nu_str;
       if ( nu == 0 ) { nu_str = 'x'; }
       else if ( nu == 1 ) { nu_str = 'y'; }
       else { nu_str = 'z'; }
 
+      /* Output files */
       ofstream out_coef_Raman;
       std::string ofilen("coefficient_of_Raman_operator-"+mu_str+nu_str+".text");
       out_coef_Raman.open(base_dir/ofilen);      
-      out_coef_Raman << "# Coefficient of the Sz-like term for Omega = " << pr.Omega << " and omega_i = " << pr.omega_i << std::endl;      
-      out_coef_Raman << "#  x   y   z     Re     Im" << std::endl;
+      out_coef_Raman << "# The values of R1 and R2" << std::endl;      
+      out_coef_Raman << "#  kx   ky   kz     Re[R1]     Im[R1]     Re[R2]     Im[R2]" << std::endl;
+      
+      ofstream out_coef_Raman_rs;
+      std::string ofilen_rs("coefficient_of_Raman_operator_real_space-"+mu_str+nu_str+".text");
+      out_coef_Raman_rs.open(base_dir/ofilen_rs);      
+      out_coef_Raman_rs << "# Coefficient of the Sz-like term for Omega = " << pr.Omega << " and omega_i = " << pr.omega_i << std::endl;      
+      out_coef_Raman_rs << "#  x   y   z     Re     Im" << std::endl;
 	
       /* Matrix elements */
       MatElemK me_K(L, L, 2, mu, nu, bonds);
@@ -824,8 +835,10 @@ void calc_coef_eff_Raman_real_space(path& base_dir, rpa::parameters const& pr){
 	    double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, tz, kz, delta);
 	    double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, tz, kz, delta);		  
   
-	    cx_double denom1 = ek_plus - ek_minus - omega_i_shifted;
-	    cx_double denom2 = ek_plus - ek_minus + omega_f_shifted;
+	    cx_double denom1 = ek_plus - ek_minus - omega_i;
+	    cx_double denom2 = ek_plus - ek_minus + omega_f;
+	    // cx_double denom1 = ek_plus - ek_minus - omega_i_shifted;
+	    // cx_double denom2 = ek_plus - ek_minus + omega_f_shifted;	    
   
 	    /* Getting the matrix elements */
 	    cx_double R[2];
@@ -842,6 +855,8 @@ void calc_coef_eff_Raman_real_space(path& base_dir, rpa::parameters const& pr){
 	    cx_double coef = factor * rk * wk;
 	      
 	    coef_Sz.push_back(coef);
+
+	    out_coef_Raman << kx << "  " << ky << "  " << kz << "    " << std::real(R[0]) << "  " << std::imag(R[0]) << "    " << std::real(R[1]) << "  " << std::imag(R[1]) << std::endl;
 	  }  /* end for y */
 	}  /* end for x */
       }  /* end for z */
@@ -874,13 +889,13 @@ void calc_coef_eff_Raman_real_space(path& base_dir, rpa::parameters const& pr){
 	    }  /* end for z */
 
 	    /* Output */
-	    out_coef_Raman << x0 << "  " << y0 << "   " << z0 << "   " << std::real(sum) << "   " << std::imag(sum) << std::endl;	      
+	    out_coef_Raman_rs << x0 << "  " << y0 << "   " << z0 << "   " << std::real(sum) << "   " << std::imag(sum) << std::endl;	      
 	  }  /* end for z0 */
 	}  /* end for y0 */	    
       }  /* end for x0 */
 
       /* Closing the output file. */
-      out_coef_Raman.close();	
+      out_coef_Raman_rs.close();	
     }   /* end for nu */
   }   /* end for mu */    
 }
