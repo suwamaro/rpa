@@ -376,8 +376,8 @@ cx_double calc_prefactor_bare_res_func_bilayer(int sg1, int sg2, hoppings2 const
   /* Electron density at zero temperature */  
   // int n1 = ( ( sg1 + 1 ) >> 1 ) ^ 1;  /* -1 -> 1, 1 -> 0 */
   // int n2 = n1 ^ 1;
-  // double n_diff = (double)(n2 - n1);
-  double n_diff = nk_q - nk;
+  // double n_diff = (double)(n2 - n1);  
+  double n_diff = nk_q - nk;  
   
   cx_double prefactor = n_diff / diff_E;
   return prefactor;

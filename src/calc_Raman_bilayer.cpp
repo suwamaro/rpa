@@ -158,6 +158,8 @@ cx_double velocity_U1(hoppings2 const& ts, cx_mat const& Udg, cx_mat const& U, c
 }
 
 cx_double calc_coef_eff_Raman(int L, hoppings2 const& ts, double delta, double kx, double ky, double kz, int sigma, std::vector<BondDelta> const& bonds, BondDelta mu, BondDelta nu, vec3 const& ki, vec3 const& kf){
+  /* Effective Raman operator acting on the ground state */
+  
   /* Eigenenergy */
   cx_double ek1 = ts.ek1(kx, ky, kz);
   cx_mat Uk = gs_HF(ek1, ts.tz, kz, delta);
@@ -183,41 +185,56 @@ cx_double calc_coef_eff_Raman(int L, hoppings2 const& ts, double delta, double k
     
     coef = (v1 - v2) * v3;
   }
+  
   return coef;
 }
 
-cx_mat calc_eff_Raman_operator(hoppings_bilayer2& ts, double delta, double kx, double ky, double kz, cx_double omega, double omega_i, cx_double *R){
-  /* Mean field eigenenergies */
-  cx_double ek1 = ts.ek1(kx, ky, kz);
-  cx_double tz = ts.tz; 
-  cx_double ek23 = ts.ek23(kx, ky, kz);
-  cx_double ekz = ts.ekz(kx, ky, kz);	      
-  double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, tz, kz, delta);
-  double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, tz, kz, delta);
+void calc_coef_eff_Raman_nonresonant(hoppings2 const& ts, double kx, double ky, double kz, std::vector<BondDelta> const& bonds, BondDelta mu, BondDelta nu, cx_double *N){
+  cx_double coef1 = 0, coef2 = 0, coef3 = 0, coef4 = 0;
+  for(BondDelta bond: bonds){
+    /* Polarization components */
+    int inner_prodbond_mu = inner_prod(mu, bond);
+    int inner_prodbond_nu = inner_prod(nu, bond);
+    int inner_prodbond = inner_prodbond_mu * inner_prodbond_nu;
+    if ( inner_prodbond == 0 ) { continue; }
 
-  /* Shifted omegas */
-  // cx_double omega_i_shifted(omega_i, 0.5 * std::imag(omega));
-  // cx_double omega_f_shifted(omega_i - std::real(omega), - 0.5 * std::imag(omega));
-  double omega_f = omega_i - std::real(omega);
-  
-  /* Coefficients */
-  // cx_double denom1 = ek_plus - ek_minus - omega_i_shifted;
-  // cx_double denom2 = ek_plus - ek_minus + omega_f_shifted;  
-  cx_double denom1 = ek_plus - ek_minus - omega_i;
-  cx_double denom2 = ek_plus - ek_minus + omega_f;
-  
-  /* Formulation using up spin */
-  cx_double x_k = xk(up_spin, ek1, tz, kz, delta);
-  double z_k = zk(ek1, tz, kz, delta);
-  
-  cx_double u_k = - 0.25 * (x_k * (1. + z_k) - std::conj(x_k) * (1. - z_k));
-  cx_double v_k = - 0.25 * (x_k * (1. + z_k) + std::conj(x_k) * (1. - z_k));  
-  cx_double w_k = 0.5 * sqrt(1. - z_k * z_k);
-  
-  /* Effective Raman operator */
+    /* Phases */
+    double inner_prod_k = kx * bond.x + ky * bond.y + kz * bond.z;
+    cx_double phasek = exp(1i*inner_prod_k);
+
+    /* Factor */
+    double factor = 2. * std::real(phasek) * inner_prodbond;
+    
+    if ( (bond.x + bond.y) & 1 ) {
+      /* Different sublattices in the plane */      
+      cx_double t_up = bond_to_hopping_bilayer(ts, bond, 0, 1, up_spin);   // from 1 to 0 sublattice
+      cx_double t_down = bond_to_hopping_bilayer(ts, bond, 0, 1, down_spin);   // from 1 to 0 sublattice
+      coef1 += factor * t_up;
+      coef2 += factor * t_down;
+    } else if (bond.z == 1) {
+      continue;
+    } else {
+      /* Same sublattices */
+      cx_double t_up = bond_to_hopping_bilayer(ts, bond, 0, 0, up_spin);
+      cx_double t_down = bond_to_hopping_bilayer(ts, bond, 0, 0, down_spin);	
+      coef3 += factor * t_up;
+      coef4 += factor * t_down;
+    }
+  }
+
+  N[0] = coef1;
+  N[1] = coef2;
+  N[2] = coef3;
+  N[3] = coef4;
+}
+
+cx_mat calc_eff_Raman_operator(hoppings_bilayer2& ts, double delta, double kx, double ky, double kz, cx_double omega, double omega_i, cx_double *M, bool resonant){
+  /* Basis matrices */
+  mat tau_0 = mat({1., 0., 0., 1.});  
   mat tau_p = mat({0., 0., 1., 0.});
   mat tau_m = mat({0., 1., 0., 0.});
   mat tau_z = mat({1., 0., 0., - 1.});
+  tau_0.set_size(2,2);
   tau_p.set_size(2,2);
   tau_m.set_size(2,2);
   tau_z.set_size(2,2);
@@ -226,13 +243,54 @@ cx_mat calc_eff_Raman_operator(hoppings_bilayer2& ts, double delta, double kx, d
   cx_mat Pauli_z = cx_mat({1., 0., 0., - 1.});
   Pauli_0.set_size(2,2);
   Pauli_z.set_size(2,2);
+    
+  if ( resonant ) {  
+    /* Mean field eigenenergies */
+    cx_double ek1 = ts.ek1(kx, ky, kz);
+    cx_double tz = ts.tz; 
+    cx_double ek23 = ts.ek23(kx, ky, kz);
+    cx_double ekz = ts.ekz(kx, ky, kz);	      
+  
+    /* Formulation using up spin */
+    cx_double x_k = xk(up_spin, ek1, tz, kz, delta);
+    double z_k = zk(ek1, tz, kz, delta);
+  
+    cx_double u_k = - 0.25 * (x_k * (1. + z_k) - std::conj(x_k) * (1. - z_k));
+    cx_double v_k = - 0.25 * (x_k * (1. + z_k) + std::conj(x_k) * (1. - z_k));  
+    cx_double w_k = 0.5 * sqrt(1. - z_k * z_k);
+    
+    double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, tz, kz, delta);
+    double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, tz, kz, delta);
 
-  cx_double rk = R[0] / denom1 + R[1] / denom2;
-  cx_mat Mk = rk * (arma::kron(u_k * tau_p + u_k * tau_m, Pauli_0) + arma::kron(v_k * tau_p - v_k * tau_m + w_k * tau_z, Pauli_z));
-  return Mk;  
+    /* Shifted omegas */
+    // cx_double omega_i_shifted(omega_i, 0.5 * std::imag(omega));
+    // cx_double omega_f_shifted(omega_i - std::real(omega), - 0.5 * std::imag(omega));
+    double omega_f = omega_i - std::real(omega);
+    
+    /* Coefficients */
+    // cx_double denom1 = ek_plus - ek_minus - omega_i_shifted;
+    // cx_double denom2 = ek_plus - ek_minus + omega_f_shifted;  
+    cx_double denom1 = ek_plus - ek_minus - omega_i;
+    cx_double denom2 = ek_plus - ek_minus + omega_f;
+    
+    cx_double coef = M[0] / denom1 + M[1] / denom2;
+    return coef * (arma::kron(u_k * tau_p + u_k * tau_m, Pauli_0) + arma::kron(v_k * tau_p - v_k * tau_m + w_k * tau_z, Pauli_z));
+  } else /* Nonresonant */ {
+    cx_double coef1 = 0.5 * (M[0] + M[1]);
+    cx_double coef2 = 0.5 * (M[0] - M[1]);
+    cx_double coef3 = 0.5 * (M[2] + M[3]);
+    cx_double coef4 = 0.5 * (M[2] - M[3]);
+    
+    cx_mat mat1 = coef1 * arma::kron(tau_p, Pauli_0);
+    cx_mat mat2 = coef2 * arma::kron(tau_p, Pauli_z);
+    cx_mat mat3 = coef3 * arma::kron(tau_0, Pauli_0);
+    cx_mat mat4 = coef4 * arma::kron(tau_0, Pauli_z);        
+    
+    return mat1 + mat1.t() + mat2 + mat2.t() + mat3 + mat4;
+  }
 }
 
-cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double U, double T, double delta, CubaParam const& cbp, MatElemK const& me_K, cx_double omega, double omega_i, bool continuous_k){
+cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double U, double T, double delta, CubaParam const& cbp, MatElemK const& me_K, MatElemN const& me_N, cx_double omega, double omega_i, bool continuous_k, bool nonresonant_only){
   cx_double sum = 0;
   if ( continuous_k ) {
     std::cerr << "Function " << __func__ << " does not support continuous k.\n";
@@ -250,16 +308,21 @@ cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double 
 	  double factor = BZ_factor_square_half_filling(kx, ky);
 	  if ( std::abs(factor) < 1e-12 ) { continue; }
 
-	  /* Getting the matrix elements */
-	  cx_double R[2];
-	  if ( me_K.is_table_set() ) {
-	    me_K.get_elem(kx, ky, kz, R);
-	  } else {
-	    me_K.calc_mat_elems(ts, delta, kx, ky, kz, R);
-	  }
+	  /* Nonresonant contributions */
+	  cx_double N[me_N.n_coefs()];
+	  me_N.get_elem(ts, delta, kx, ky, kz, N);
+	  cx_mat Mk_N = calc_eff_Raman_operator(ts, delta, kx, ky, kz, omega, omega_i, N, false);
 
-	  /* Effective Raman operator */	  
-	  cx_mat Mk = calc_eff_Raman_operator(ts, delta, kx, ky, kz, omega, omega_i, R);	  
+	  // // for check
+	  // Mk_N.zeros();
+	    
+	  cx_mat Mk_K;	  
+	  if ( !nonresonant_only ) {
+	    /* Resonant contributions */
+	    cx_double R[me_K.n_coefs()];
+	    me_K.get_elem(ts, delta, kx, ky, kz, R);
+	    Mk_K = calc_eff_Raman_operator(ts, delta, kx, ky, kz, omega, omega_i, R, true);
+	  }
 
 	  cx_double ek1 = ts.ek1(kx, ky, kz);
 	  cx_double tz = ts.tz;	  
@@ -279,7 +342,16 @@ cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double 
 	      cx_mat P1down = arma::kron(X1down, X1down.t());
 	      cx_mat P2down = arma::kron(X2down, X2down.t());
 
-	      /* Matrix element */
+	      /* Effective operator */
+	      cx_mat Mk(Mk_N);
+	      if (T < 1e-15 && !nonresonant_only) {
+		if (sg1 == -1 && sg2 == 1) {
+		  Mk += Mk_K;
+		} else if ( sg1 == 1 && sg2 == -1 ) {
+		  Mk += Mk_K.t();   // Hermitian conjugate
+		} else {}
+	      }
+	      
 	      cx_double Kup = arma::trace(P1up * Mk.t() * P2up * Mk);
 	      cx_double Kdown = arma::trace(P1down * Mk.t() * P2down * Mk);
 	      cx_double K = Kup + Kdown;
@@ -300,7 +372,7 @@ cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double 
   return sum;
 }
 
-std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts, double ch_pot, double U, double T, double delta, CubaParam const& cbp, MatElemK const& me_K, MatElemF const& me_F, cx_double omega, double omega_i, bool continuous_k){
+std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts, double ch_pot, double U, double T, double delta, CubaParam const& cbp, MatElemK const& me_K, MatElemN const& me_N, MatElemF const& me_F, cx_double omega, double omega_i, bool continuous_k, bool nonresonant_only){
   cx_double sigma1_00 = 0, sigma1_zz = 0;
   if ( continuous_k ) {
     std::cerr << "Function " << __func__ << " does not support continuous k.\n";
@@ -382,7 +454,7 @@ std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts,
     cx_vec Pi_0_up(NSUBL, arma::fill::zeros);
     cx_vec Pi_0_down(NSUBL, arma::fill::zeros);    
     cx_vec Pi_z_up(NSUBL, arma::fill::zeros);
-    cx_vec Pi_z_down(NSUBL, arma::fill::zeros);            
+    cx_vec Pi_z_down(NSUBL, arma::fill::zeros);
     for(int z=0; z < 2; ++z){    
       double kz = M_PI * z;
       for(int x=-L/2; x < L/2; ++x){    
@@ -394,16 +466,21 @@ std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts,
 	  double factor = BZ_factor_square_half_filling(kx, ky);
 	  if ( std::abs(factor) < 1e-12 ) { continue; }
 
-	  /* Getting the matrix elements */
-	  cx_double Rup[2];
-	  if ( me_K.is_table_set() ) {
-	    me_K.get_elem(kx, ky, kz, Rup);
-	  } else {
-	    me_K.calc_mat_elems(ts, delta, kx, ky, kz, Rup);
-	  }
+	  /* Nonresonant contributions */
+	  cx_double N[me_N.n_coefs()];
+	  me_N.get_elem(ts, delta, kx, ky, kz, N);
+	  cx_mat Mk_N = calc_eff_Raman_operator(ts, delta, kx, ky, kz, omega, omega_i, N, false);
 
-	  /* Effective Raman operator */	  
-	  cx_mat Mk = calc_eff_Raman_operator(ts, delta, kx, ky, kz, omega, omega_i, Rup);
+	  // // for check
+	  // Mk_N.zeros();
+	  
+	  cx_mat Mk_K;
+	  if ( !nonresonant_only ){
+	    /* Resonant contributions */
+	    cx_double R[me_K.n_coefs()];
+	    me_K.get_elem(ts, delta, kx, ky, kz, R);
+	    Mk_K = calc_eff_Raman_operator(ts, delta, kx, ky, kz, omega, omega_i, R, true);	    
+	  }
 	  
 	  /* Sigma matrices */
 	  mat tau_A = mat({1., 0., 0., 0});
@@ -439,6 +516,16 @@ std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts,
 	      cx_mat P1down = arma::kron(X1down, X1down.t());
 	      cx_mat P2down = arma::kron(X2down, X2down.t());
 
+	      /* Effective operator */
+	      cx_mat Mk(Mk_N);
+	      if (T < 1e-15 && !nonresonant_only) {
+		if (sg1 == -1 && sg2 == 1) {
+		  Mk += Mk_K;
+		} else if ( sg1 == 1 && sg2 == -1 ) {
+		  Mk += Mk_K.t();   // Hermitian conjugate
+		} else {}
+	      }
+	      
 	      /* Matrix element */
 	      cx_double P_0_A_up = arma::trace(P1up * Sigma_A0 * P2up * Mk);
 	      cx_double P_0_B_up = arma::trace(P1up * Sigma_B0 * P2up * Mk);
@@ -585,7 +672,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
    };
   
   /* Results */
-  int n_spec = 3;   // Number of spectrum types
+  int n_spec = 3 * 2;   // Number of spectrum types
   mat spec_Raman_xx(n_spec, n_omegas);
   mat spec_Raman_xy(n_spec, n_omegas);
   mat spec_Raman_xz(n_spec, n_omegas);
@@ -670,23 +757,38 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	if (invalid_components(mu,nu)) { continue; }	
 	/* Matrix elements */
 	MatElemK me_K(L, L, 2, mu, nu, bonds);
-
+	MatElemN me_N(L, L, 2, mu, nu, bonds);
+	
 	/* Initialization */
 	me_K.set_q(0., 0., 0.);
 	me_K.set_table(*ts, delta);
-	  
-	cx_double sigma0 = calc_Raman_sigma0(L, *ts, ch_pot, U, T, delta, cbp, me_K, omega_shifted, pr.omega_i, continuous_k);
+	me_N.set_q(0., 0., 0.);
+	me_N.set_table(*ts, delta);	
+	
+	/* Resonant and nonresonant contributions */
+	cx_double sigma0 = calc_Raman_sigma0(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, omega_shifted, pr.omega_i, continuous_k, false);
 	cx_double sigma1_00, sigma1_zz;
-	std::tie(sigma1_00, sigma1_zz) = calc_Raman_sigma1(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_F, omega_shifted, pr.omega_i, continuous_k);
-
+	std::tie(sigma1_00, sigma1_zz) = calc_Raman_sigma1(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, me_F, omega_shifted, pr.omega_i, continuous_k, false);
+	
+	/* Nonresonant contributions only */
+	cx_double sigma0_N = calc_Raman_sigma0(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, omega_shifted, pr.omega_i, continuous_k, true);
+	cx_double sigma1_00_N, sigma1_zz_N;
+	std::tie(sigma1_00_N, sigma1_zz_N) = calc_Raman_sigma1(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, me_F, omega_shifted, pr.omega_i, continuous_k, true);	
+	
 #ifdef WITH_OpenMP
 	(*spec_Raman_thread(mu,nu))(0, oidx) = 2.0 * std::imag(sigma0);
 	(*spec_Raman_thread(mu,nu))(1, oidx) = 2.0 * std::imag(sigma1_00);
-	(*spec_Raman_thread(mu,nu))(2, oidx) = 2.0 * std::imag(sigma1_zz);	
+	(*spec_Raman_thread(mu,nu))(2, oidx) = 2.0 * std::imag(sigma1_zz);
+	(*spec_Raman_thread(mu,nu))(3, oidx) = 2.0 * std::imag(sigma0_N);
+	(*spec_Raman_thread(mu,nu))(4, oidx) = 2.0 * std::imag(sigma1_00_N);
+	(*spec_Raman_thread(mu,nu))(5, oidx) = 2.0 * std::imag(sigma1_zz_N);		
 #else
 	(*spec_Raman(mu,nu))(0, o) = 2.0 * std::imag(sigma0);
 	(*spec_Raman(mu,nu))(1, o) = 2.0 * std::imag(sigma1_00);
-	(*spec_Raman(mu,nu))(2, o) = 2.0 * std::imag(sigma1_zz);		
+	(*spec_Raman(mu,nu))(2, o) = 2.0 * std::imag(sigma1_zz);
+	(*spec_Raman(mu,nu))(3, o) = 2.0 * std::imag(sigma0_N);
+	(*spec_Raman(mu,nu))(4, o) = 2.0 * std::imag(sigma1_00_N);
+	(*spec_Raman(mu,nu))(5, o) = 2.0 * std::imag(sigma1_zz_N);			
 #endif
       }
     }
@@ -721,28 +823,32 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
       if ( nu == 0 ) { nu_str = 'x'; }
       else if ( nu == 1 ) { nu_str = 'y'; }
       else { nu_str = 'z'; }
+
+      auto out_raman_scattering = [&](std::string const& ofilen, int i, int n_comp){      
+	ofstream out(base_dir / ofilen);      
+	out << "# Omega     sigma0     sigma1_00     sigma1_zz     sum" << std::endl;
   
-      ofstream out_raman;
-      std::string ofilen("Raman_scattering-"+mu_str+nu_str+".text");
-      out_raman.open(base_dir / ofilen);      
-      out_raman << "# Omega     sigma0     sigma1_00     sigma1_zz     sum" << std::endl;
-  
-      /* Output */
-      mat *spec = spec_Raman(mu,nu);
-      for(int o=0; o < n_omegas; ++o){
-	double omega = omegas[o];
-	out_raman << omega;
+	/* Output */
+	mat *spec = spec_Raman(mu,nu);
+	for(int o=0; o < n_omegas; ++o){
+	  double omega = omegas[o];
+	  out << omega;
 	
-	double sum = 0;
-	for(int ispec=0; ispec < n_spec; ++ispec){
-	  double val = (*spec)(ispec, o);
-	  sum += val;
-	  out_raman << std::setw(pw) << val;
-	}
-	out_raman << std::setw(pw) << sum << std::endl;	
-      } /* end for o */
+	  double sum = 0;
+	  for(int ispec=i; ispec < i + n_comp; ++ispec){
+	    double val = (*spec)(ispec, o);
+	    sum += val;
+	    out << std::setw(pw) << val;
+	  }
+	  out << std::setw(pw) << sum << std::endl;	
+	} /* end for o */
   
-      out_raman.close();        
+	out.close();
+      };
+
+      int n_comp = 3;      
+      out_raman_scattering("Raman_scattering-"+mu_str+nu_str+".text", 0, n_comp);
+      out_raman_scattering("Raman_scattering-"+mu_str+nu_str+"-nonresonant.text", n_comp, n_comp);      
     } /* end for nu */
   } /* end for mu */
   
@@ -842,11 +948,7 @@ void calc_coef_eff_Raman_real_space(path& base_dir, rpa::parameters const& pr){
   
 	    /* Getting the matrix elements */
 	    cx_double R[2];
-	    if ( me_K.is_table_set() ) {
-	      me_K.get_elem(kx, ky, kz, R);
-	    } else {
-	      me_K.calc_mat_elems(*ts, delta, kx, ky, kz, R);
-	    }
+	    me_K.get_elem(*ts, delta, kx, ky, kz, R);
 
 	    /* Coefficient of the Sz-like term */
 	    cx_double rk = R[0] / denom1 + R[1] / denom2;

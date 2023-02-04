@@ -20,6 +20,14 @@ MatElem::MatElem(int Lx, int Ly, int Lz){
   Lz_ = Lz;
 }
 
+MatElem::MatElem(int Lx, int Ly, int Lz, int n_coefs){
+  is_table_set_ = false;
+  Lx_ = Lx;
+  Ly_ = Ly;
+  Lz_ = Lz;
+  n_coefs_ = n_coefs;
+}
+
 void MatElem::set_q(double qx, double qy, double qz){
   qx_ = qx;
   qy_ = qy;
@@ -296,7 +304,7 @@ MatElemF::~MatElemF(){
 
 
 /* Member functions of MatElemK */
-MatElemK::MatElemK(int Lx, int Ly, int Lz, int mu, int nu, std::vector<BondDelta> const& bonds):MatElem(Lx, Ly, Lz),mu_(mu),nu_(nu),bonds_(bonds){}
+MatElemK::MatElemK(int Lx, int Ly, int Lz, int mu, int nu, std::vector<BondDelta> const& bonds):MatElem(Lx, Ly, Lz, 2),mu_(mu),nu_(nu),bonds_(bonds){}  // A factor of 2 comes from the two cases of the perturbation.
 
 void MatElemK::set_table(hoppings2 const& ts, double delta){
   if ( R_up_ != nullptr ) {
@@ -308,9 +316,9 @@ void MatElemK::set_table(hoppings2 const& ts, double delta){
   assign_is_table_set(true);
 }
 
-std::size_t MatElemK::table_size() const { return Lx()*Ly()*Lz()*2; }  // A factor of 2 comes from the two cases of the perturbation.
+std::size_t MatElemK::table_size() const { return Lx()*Ly()*Lz()*n_coefs(); }
 
-void MatElemK::calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double* R) const {
+void MatElemK::calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *R) const {
   /* The photon momenta are approximately set to zero. */
   vec3 ki {0, 0, 0}, kf {0, 0, 0};
   
@@ -342,22 +350,77 @@ void MatElemK::build_table(hoppings2 const& ts, double delta){
       double ky = 2. * M_PI / Ly() * y;
       for(int x=0; x < Lx(); ++x){    
 	double kx = 2. * M_PI / Lx() * x;
-	std::size_t xyz_idx = xyz_to_index(x,y,z) * 2;
-	cx_double Rup[2];
+	std::size_t xyz_idx = xyz_to_index(x,y,z) * n_coefs();
+	cx_double Rup[n_coefs()];
 	calc_mat_elems(ts, delta, kx, ky, kz, Rup);
-	memcpy(R_up_ + xyz_idx, Rup, sizeof(cx_double) * 2);
+	memcpy(R_up_ + xyz_idx, Rup, sizeof(cx_double) * n_coefs());
       }
     }
   }
 }
 
-void MatElemK::get_elem(double kx, double ky, double kz, cx_double* R) const {
-  std::size_t xyz_idx = k_to_index(kx,ky,kz) * 2;
-  memcpy(R, R_up_ + xyz_idx,  sizeof(cx_double) * 2);
+void MatElemK::get_elem(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *R) const {
+  if ( is_table_set() ) {
+    std::size_t xyz_idx = k_to_index(kx,ky,kz) * n_coefs();
+    memcpy(R, R_up_ + xyz_idx,  sizeof(cx_double) * n_coefs());
+  } else {
+    calc_mat_elems(ts, delta, kx, ky, kz, R);
+  }
 }
 
 MatElemK::~MatElemK(){
   if ( R_up_ != nullptr ) {
     delete[] R_up_;
+  }
+}
+
+
+/* Member functions of MatElemN */
+MatElemN::MatElemN(int Lx, int Ly, int Lz, int mu, int nu, std::vector<BondDelta> const& bonds):MatElem(Lx, Ly, Lz, 4),mu_(mu),nu_(nu),bonds_(bonds){}  // A factor of 4 comes from the combinations of 2 sublattices and 2 spins.
+
+void MatElemN::set_table(hoppings2 const& ts, double delta){
+  if ( N_ != nullptr ) {
+    delete[] N_;
+  }
+  N_ = new cx_double[table_size()];
+  build_table(ts, delta);
+  assign_is_table_set(true);
+}
+
+std::size_t MatElemN::table_size() const { return Lx()*Ly()*Lz()*n_coefs(); }
+
+void MatElemN::calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *N) const {
+  /* The photon momenta are approximately set to zero. */
+  calc_coef_eff_Raman_nonresonant(ts, kx, ky, kz, bonds_, mu_, nu_, N);
+}
+
+void MatElemN::build_table(hoppings2 const& ts, double delta){
+  for(int z=0; z < Lz(); ++z){    
+    double kz = 2. * M_PI / Lz() * z;  
+    for(int y=0; y < Ly(); ++y){    
+      double ky = 2. * M_PI / Ly() * y;
+      for(int x=0; x < Lx(); ++x){    
+	double kx = 2. * M_PI / Lx() * x;
+	std::size_t xyz_idx = xyz_to_index(x,y,z) * n_coefs();
+	cx_double N[n_coefs()];
+	calc_mat_elems(ts, delta, kx, ky, kz, N);
+	memcpy(N_ + xyz_idx, N, sizeof(cx_double) * n_coefs());
+      }
+    }
+  }
+}
+
+void MatElemN::get_elem(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *N) const {
+  if ( is_table_set() ) {
+    std::size_t xyz_idx = k_to_index(kx,ky,kz) * n_coefs();
+    memcpy(N, N_ + xyz_idx, sizeof(cx_double) * n_coefs());
+  } else {
+    calc_mat_elems(ts, delta, kx, ky, kz, N);
+  }
+}
+
+MatElemN::~MatElemN(){
+  if ( N_ != nullptr ) {
+    delete[] N_;
   }
 }

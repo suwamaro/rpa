@@ -19,9 +19,11 @@ class MatElem {
 public:
   MatElem(){};
   explicit MatElem(int Lx, int Ly, int Lz);
+  explicit MatElem(int Lx, int Ly, int Lz, int n_coefs);  
   void set_q(double qx, double qy, double qz);
   void assign_is_table_set(bool b) { is_table_set_ = b; }
   int nbands() const { return nbands_; }
+  int n_coefs() const { return n_coefs_; }
   bool is_table_set() const { return is_table_set_; }
   int Lx() const { return Lx_; }
   int Ly() const { return Ly_; }
@@ -34,12 +36,18 @@ public:
   int pullback(double k, int L) const;
   int xyz_to_index(int x, int y, int z) const;
   int k_to_index(double kx, double ky, double kz) const;
-  void build_table(hoppings2 const& ts, double delta);
-  ~MatElem(){};
+
+  /* Virtual functions */
+  // virtual void build_table(hoppings2 const& ts, double delta) = 0;
+  virtual void calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double* M) const {};
+  virtual void get_elem(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *M) const {};
+  
+  virtual ~MatElem(){};
 
 private:
   // OperatorK opek;
   int nbands_ = NSUBL;
+  int n_coefs_;  
   bool is_table_set_;
   int Lx_;
   int Ly_;
@@ -55,7 +63,8 @@ public:
   mat tau_A, tau_B;
   cx_mat Pauli_0, Pauli_p, Pauli_m, Pauli_z;  
   cx_mat Sigma_A0, Sigma_Ap, Sigma_Am, Sigma_Az;
-  cx_mat Sigma_B0, Sigma_Bp, Sigma_Bm, Sigma_Bz;  
+  cx_mat Sigma_B0, Sigma_Bp, Sigma_Bm, Sigma_Bz;
+  virtual ~BasicMatrix(){};
 };
 
 /* Matrix elements for the charge and magnetic susceptibility */
@@ -85,16 +94,16 @@ private:
   cx_double *Fzz_down_ = nullptr;  
 };
 
-/* Matrix elements for the effective Raman operator */
+/* Matrix elements for the resonant contributions of the effective Raman operator */
 class MatElemK : public MatElem {
 public:
   MatElemK(){};
   explicit MatElemK(int Lx, int Ly, int Lz, int mu, int nu, std::vector<BondDelta> const& bonds);
   void set_table(hoppings2 const& ts, double delta);
   std::size_t table_size() const;
-  void calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double* R) const;  
+  void calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *R) const override;  
   void build_table(hoppings2 const& ts, double delta);
-  void get_elem(double kx, double ky, double kz, cx_double* R) const;
+  void get_elem(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *R) const override;
   ~MatElemK();
 
 private:
@@ -102,6 +111,25 @@ private:
   BondDelta nu_;  
   std::vector<BondDelta> bonds_;
   cx_double *R_up_ = nullptr;
+};
+
+/* Matrix elements for the nonresonant contributions of the effective Raman operator */
+class MatElemN : public MatElem {
+public:
+  MatElemN(){};
+  explicit MatElemN(int Lx, int Ly, int Lz, int mu, int nu, std::vector<BondDelta> const& bonds);
+  void set_table(hoppings2 const& ts, double delta);
+  std::size_t table_size() const;
+  void calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *N) const override;
+  void build_table(hoppings2 const& ts, double delta);
+  void get_elem(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *N) const override;
+  ~MatElemN();
+
+private:
+  BondDelta mu_;
+  BondDelta nu_;  
+  std::vector<BondDelta> bonds_;
+  cx_double *N_ = nullptr;
 };
 
 #endif // _MAT_ELEM_H
