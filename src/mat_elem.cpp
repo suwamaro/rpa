@@ -131,84 +131,48 @@ void MatElemF::calc_mat_elems(hoppings2 const& ts, double delta, double kx, doub
   cx_vec X2up = gs_HF1(up_spin, sg2, ek_q1, tz, kz2, delta);
   cx_vec X2down = gs_HF1(down_spin, sg2, ek_q1, tz, kz2, delta);
 
-  cx_mat P1up = arma::kron(X1up, X1up.t());
-  cx_mat P1down = arma::kron(X1down, X1down.t());
-  cx_mat P2up = arma::kron(X2up, X2up.t());
-  cx_mat P2down = arma::kron(X2down, X2down.t());
-  
-  cx_double F_A0_A0_up = arma::trace(P1up * Sigma_A0 * P2up * Sigma_A0);
-  cx_double F_A0_B0_up = arma::trace(P1up * Sigma_A0 * P2up * Sigma_B0);
-  cx_double F_B0_A0_up = arma::trace(P1up * Sigma_B0 * P2up * Sigma_A0);
-  cx_double F_B0_B0_up = arma::trace(P1up * Sigma_B0 * P2up * Sigma_B0);
-  F00_up[0] = F_A0_A0_up;
-  F00_up[1] = F_A0_B0_up;
-  F00_up[2] = F_B0_A0_up;
-  F00_up[3] = F_B0_B0_up;
+  cx_double A0_12up = arma::cdot(X1up, Sigma_A0 * X2up);  
+  cx_double A0_21up = arma::cdot(X2up, Sigma_A0 * X1up);
+  cx_double B0_12up = arma::cdot(X1up, Sigma_B0 * X2up);
+  cx_double B0_21up = arma::cdot(X2up, Sigma_B0 * X1up);  
+  F00_up[0] = A0_21up * A0_12up;
+  F00_up[1] = A0_21up * B0_12up;
+  F00_up[2] = B0_21up * A0_12up;
+  F00_up[3] = B0_21up * B0_12up;
 
-  cx_double F_A0_A0_down = arma::trace(P1down * Sigma_A0 * P2down * Sigma_A0);
-  cx_double F_A0_B0_down = arma::trace(P1down * Sigma_A0 * P2down * Sigma_B0);
-  cx_double F_B0_A0_down = arma::trace(P1down * Sigma_B0 * P2down * Sigma_A0);
-  cx_double F_B0_B0_down = arma::trace(P1down * Sigma_B0 * P2down * Sigma_B0);
-  F00_down[0] = F_A0_A0_down;
-  F00_down[1] = F_A0_B0_down;
-  F00_down[2] = F_B0_A0_down;
-  F00_down[3] = F_B0_B0_down;  
-  
-  cx_double F_Az_Az_up = arma::trace(P1up * Sigma_Az * P2up * Sigma_Az);
-  cx_double F_Az_Bz_up = arma::trace(P1up * Sigma_Az * P2up * Sigma_Bz);
-  cx_double F_Bz_Az_up = arma::trace(P1up * Sigma_Bz * P2up * Sigma_Az);
-  cx_double F_Bz_Bz_up = arma::trace(P1up * Sigma_Bz * P2up * Sigma_Bz);    
-  Fzz_up[0] = F_Az_Az_up;
-  Fzz_up[1] = F_Az_Bz_up;
-  Fzz_up[2] = F_Bz_Az_up;
-  Fzz_up[3] = F_Bz_Bz_up;
+  cx_double A0_12down = arma::cdot(X1down, Sigma_A0 * X2down);  
+  cx_double A0_21down = arma::cdot(X2down, Sigma_A0 * X1down);
+  cx_double B0_12down = arma::cdot(X1down, Sigma_B0 * X2down);
+  cx_double B0_21down = arma::cdot(X2down, Sigma_B0 * X1down);  
+  F00_down[0] = A0_21down * A0_12down;
+  F00_down[1] = A0_21down * B0_12down;
+  F00_down[2] = B0_21down * A0_12down;
+  F00_down[3] = B0_21down * B0_12down;
 
-  cx_double F_Az_Az_down = arma::trace(P1down * Sigma_Az * P2down * Sigma_Az);
-  cx_double F_Az_Bz_down = arma::trace(P1down * Sigma_Az * P2down * Sigma_Bz);
-  cx_double F_Bz_Az_down = arma::trace(P1down * Sigma_Bz * P2down * Sigma_Az);
-  cx_double F_Bz_Bz_down = arma::trace(P1down * Sigma_Bz * P2down * Sigma_Bz);    
-  Fzz_down[0] = F_Az_Az_down;
-  Fzz_down[1] = F_Az_Bz_down;
-  Fzz_down[2] = F_Bz_Az_down;
-  Fzz_down[3] = F_Bz_Bz_down;  
-  
-  cx_double F_Ap_Am = arma::trace(P1up * Sigma_Ap * P2down * Sigma_Am);
-  cx_double F_Ap_Bm = arma::trace(P1up * Sigma_Ap * P2down * Sigma_Bm);
-  cx_double F_Bp_Am = arma::trace(P1up * Sigma_Bp * P2down * Sigma_Am);
-  cx_double F_Bp_Bm = arma::trace(P1up * Sigma_Bp * P2down * Sigma_Bm);  
-  Fpm[0] = F_Ap_Am;
-  Fpm[1] = F_Ap_Bm;
-  Fpm[2] = F_Bp_Am;
-  Fpm[3] = F_Bp_Bm;
-  
-  // cx_vec X1up = gs_HF1(up_spin, sg1, ek1, tz, kz, delta);
-  // // cx_vec X1down = gs_HF1(down_spin, sg1, ek1, tz, kz, delta);
-  // cx_vec X2up = gs_HF1(up_spin, sg2, ek_q1, tz, kz2, delta);  
-  // cx_vec X2down = gs_HF1(down_spin, sg2, ek_q1, tz, kz2, delta);
-  
-  // cx_double F_zu_g1 = arma::cdot(X1up, opek.Gamma_1z * X2up);
-  // cx_double F_zu_gm1 = arma::cdot(X1up, opek.Gamma_2z * X2up);
-  	    
-  // /* Assume the number of sublattices is 2. */
-  // pzz[ 0 ] = std::norm(F_zu_g1);      
-  // pzz[ 1 ] = F_zu_g1 * std::conj(F_zu_gm1);
-  // pzz[ 2 ] = F_zu_gm1 * std::conj(F_zu_g1);
-  // pzz[ 3 ] = std::norm(F_zu_gm1);      
+  cx_double Az_12up = arma::cdot(X1up, Sigma_Az * X2up);    
+  cx_double Az_21up = arma::cdot(X2up, Sigma_Az * X1up);
+  cx_double Bz_12up = arma::cdot(X1up, Sigma_Bz * X2up);  
+  cx_double Bz_21up = arma::cdot(X2up, Sigma_Bz * X1up);
+  Fzz_up[0] = Az_21up * Az_12up;
+  Fzz_up[1] = Az_21up * Bz_12up;
+  Fzz_up[2] = Bz_21up * Az_12up;
+  Fzz_up[3] = Bz_21up * Bz_12up;
 
-  /* <sigma_minus sigma_plus> */  
-  // cx_double F_m_g1 = arma::cdot(X1down, opek.Gamma_1minus * X2up);  
-  // cx_double F_m_gm1 = arma::cdot(X1down, opek.Gamma_2minus * X2up);
-  // ppm[ 0 ] = std::norm(F_m_g1);  
-  // ppm[ 1 ] = F_m_g1 * std::conj(F_m_gm1);
-  // ppm[ 2 ] = std::conj(ppm[1]);
-  // ppm[ 3 ] = std::norm(F_m_gm1);
+  cx_double Az_12down = arma::cdot(X1down, Sigma_Az * X2down);    
+  cx_double Az_21down = arma::cdot(X2down, Sigma_Az * X1down);
+  cx_double Bz_12down = arma::cdot(X1down, Sigma_Bz * X2down);  
+  cx_double Bz_21down = arma::cdot(X2down, Sigma_Bz * X1down);
+  Fzz_down[0] = Az_21down * Az_12down;
+  Fzz_down[1] = Az_21down * Bz_12down;
+  Fzz_down[2] = Bz_21down * Az_12down;
+  Fzz_down[3] = Bz_21down * Bz_12down;
 
-  // cx_double F_p_g1 = arma::cdot(X1up, opek.Gamma_1plus * X2down);
-  // cx_double F_p_gm1 = arma::cdot(X1up, opek.Gamma_2plus * X2down);    
-  // ppm[ 0 ] = std::norm(F_p_g1);      
-  // ppm[ 1 ] = F_p_g1 * std::conj(F_p_gm1);
-  // ppm[ 2 ] = F_p_gm1 * std::conj(F_p_g1);  
-  // ppm[ 3 ] = std::norm(F_p_gm1);
+  cx_double Ap_21 = arma::cdot(X2up, Sigma_Ap * X1down);
+  cx_double Bp_21 = arma::cdot(X2up, Sigma_Bp * X1down);
+  Fpm[0] = std::norm(Ap_21);
+  Fpm[1] = Ap_21 * std::conj(Bp_21);
+  Fpm[2] = Bp_21 * std::conj(Ap_21);
+  Fpm[3] = std::norm(Bp_21);
 }
 
 void MatElemF::build_table(hoppings2 const& ts, double delta){
@@ -326,18 +290,18 @@ void MatElemK::calc_mat_elems(hoppings2 const& ts, double delta, double kx, doub
   int spin = up_spin;
   
   /* Two cases of the perturbation */
-  cx_double R1 = calc_coef_eff_Raman(Lx(), ts, delta, kx, ky, kz, spin, bonds_, mu_, nu_, ki, kf);
-  cx_double R2 = calc_coef_eff_Raman(Lx(), ts, delta, kx, ky, kz, spin, bonds_, nu_, mu_, - kf, - ki);
+  cx_double R1 = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, spin, bonds_, mu_, nu_, ki, kf);
+  cx_double R2 = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, spin, bonds_, nu_, mu_, - kf, - ki);
   
   R[0] = R1;
   R[1] = R2;
 
   // // for check
   // if ( mu_.z == 1 && nu_.z == 1 ) {
-  //   cx_double R1_up = calc_coef_eff_Raman(Lx(), ts, delta, kx, ky, kz, up_spin, bonds_, mu_, nu_, ki, kf);
-  //   cx_double R2_up = calc_coef_eff_Raman(Lx(), ts, delta, kx, ky, kz, up_spin, bonds_, nu_, mu_, - kf, - ki);
-  //   cx_double R1_down = calc_coef_eff_Raman(Lx(), ts, delta, kx, ky, kz, down_spin, bonds_, mu_, nu_, ki, kf);
-  //   cx_double R2_down = calc_coef_eff_Raman(Lx(), ts, delta, kx, ky, kz, down_spin, bonds_, nu_, mu_, - kf, - ki);
+  //   cx_double R1_up = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, up_spin, bonds_, mu_, nu_, ki, kf);
+  //   cx_double R2_up = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, up_spin, bonds_, nu_, mu_, - kf, - ki);
+  //   cx_double R1_down = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, down_spin, bonds_, mu_, nu_, ki, kf);
+  //   cx_double R2_down = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, down_spin, bonds_, nu_, mu_, - kf, - ki);
 
   //   std::cout << kx << "  " << ky << "  " << kz << "     " << R1_up << "   " << R1_down << "     " << R2_up << "   " << R2_down << std::endl;
   // }

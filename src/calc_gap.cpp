@@ -364,9 +364,9 @@ cx_double calc_prefactor_bare_res_func_bilayer(int sg1, int sg2, hoppings2 const
   double kx2 = kx + qx;
   double ky2 = ky + qy;
   double kz2 = kz + qz;
-  cx_double ek_q1 = ts.ek1( kx2, ky2, kz2 );
-  cx_double ek_q23 = ts.ek23( kx2, ky2, kz2 );
-  cx_double ek_qz = ts.ekz( kx2, ky2, kz2 );  
+  cx_double ek_q1 = ts.ek1(kx2, ky2, kz2);
+  cx_double ek_q23 = ts.ek23(kx2, ky2, kz2);
+  cx_double ek_qz = ts.ekz(kx2, ky2, kz2);  
   double Ek_q = eigenenergy_HF(sg2, ek_q1, ek_q23, ek_qz, ts.tz, kz2, delta);
   double nk_q = fermi_density(Ek_q, kB*T, mu);
   
