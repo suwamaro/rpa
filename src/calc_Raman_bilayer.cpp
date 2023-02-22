@@ -263,15 +263,15 @@ cx_mat calc_eff_Raman_operator(hoppings_bilayer2& ts, double delta, double kx, d
     double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, tz, kz, delta);
 
     /* Shifted omegas */
-    // cx_double omega_i_shifted(omega_i, 0.5 * std::imag(omega));
-    // cx_double omega_f_shifted(omega_i - std::real(omega), - 0.5 * std::imag(omega));
-    double omega_f = omega_i - std::real(omega);
+    cx_double omega_i_shifted(omega_i, 0.5 * std::imag(omega));
+    cx_double omega_f_shifted(omega_i - std::real(omega), - 0.5 * std::imag(omega));
+    // double omega_f = omega_i - std::real(omega);
     
     /* Coefficients */
-    // cx_double denom1 = ek_plus - ek_minus - omega_i_shifted;
-    // cx_double denom2 = ek_plus - ek_minus + omega_f_shifted;  
-    cx_double denom1 = ek_plus - ek_minus - omega_i;
-    cx_double denom2 = ek_plus - ek_minus + omega_f;
+    cx_double denom1 = ek_plus - ek_minus - omega_i_shifted;
+    cx_double denom2 = ek_plus - ek_minus + omega_f_shifted;  
+    // cx_double denom1 = ek_plus - ek_minus - omega_i;
+    // cx_double denom2 = ek_plus - ek_minus + omega_f;
     
     cx_double coef = M[0] / denom1 + M[1] / denom2;
     return coef * (arma::kron(u_k * tau_p + u_k * tau_m, Pauli_0) + arma::kron(v_k * tau_p - v_k * tau_m + w_k * tau_z, Pauli_z));
@@ -286,7 +286,7 @@ cx_mat calc_eff_Raman_operator(hoppings_bilayer2& ts, double delta, double kx, d
     cx_mat mat3 = coef3 * arma::kron(tau_0, Pauli_0);
     cx_mat mat4 = coef4 * arma::kron(tau_0, Pauli_z);        
     
-    return 0.5 * (mat1 + mat1.t() + mat2 + mat2.t() + mat3 + mat4);
+    return 0.5 * (mat1 + mat1.t() + mat2 + mat2.t() + mat3 + mat4);   // Multiplied by 1/2 coming from the second order of A.
   }
 }
 
@@ -312,12 +312,6 @@ cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double 
 	  cx_double N[me_N.n_coefs()];
 	  me_N.get_elem(ts, delta, kx, ky, kz, N);
 	  cx_mat Mk_N = calc_eff_Raman_operator(ts, delta, kx, ky, kz, omega, omega_i, N, false);
-
-	  // // for check
-	  // if (nonresonant_only) {
-	  //   std::cerr << "Mk_N" << std::endl;	    
-	  //   std::cerr << Mk_N << std::endl;
-	  // }
 	    
 	  cx_mat Mk_K;	  
 	  if ( !nonresonant_only ) {
@@ -357,58 +351,16 @@ cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double 
 	      cx_double Kdown = std::norm(K_21down);
 	      cx_double K = Kup + Kdown;
 	      	    
-	      prefactor *= factor;
-	      
+	      prefactor *= factor;	      
 	      sum += prefactor * K;
-
-	      // // for check
-	      // if (nonresonant_only) {
-
-	      // 	/* Sigma matrices */
-	      // 	mat tau_A = mat({1., 0., 0., 0});
-	      // 	mat tau_B = mat({0., 0., 0., 1});	  
-	      // 	tau_A.set_size(2,2);
-	      // 	tau_B.set_size(2,2);
-
-	      // 	cx_mat Pauli_0 = cx_mat({1., 0., 0., 1.});
-	      // 	cx_mat Pauli_z = cx_mat({1., 0., 0., - 1.});
-	      // 	Pauli_0.set_size(2,2);
-	      // 	Pauli_z.set_size(2,2);
-
-	      // 	cx_mat Sigma_A0 = arma::kron(tau_A, Pauli_0);
-	      // 	cx_mat Sigma_B0 = arma::kron(tau_B, Pauli_0);
-	      // 	cx_mat Sigma_Az = arma::kron(tau_A, Pauli_z);
-	      // 	cx_mat Sigma_Bz = arma::kron(tau_B, Pauli_z);
-
-	      // 	cx_double up_A0 = arma::trace(P1up * Sigma_A0 * P2up * Mk);
-	      // 	cx_double up_Az = arma::trace(P1up * Sigma_Az * P2up * Mk);
-	      // 	cx_double up_B0 = arma::trace(P1up * Sigma_B0 * P2up * Mk);
-	      // 	cx_double up_Bz = arma::trace(P1up * Sigma_Bz * P2up * Mk);
-	      // 	cx_double down_A0 = arma::trace(P1down * Sigma_A0 * P2down * Mk);
-	      // 	cx_double down_Az = arma::trace(P1down * Sigma_Az * P2down * Mk);
-	      // 	cx_double down_B0 = arma::trace(P1down * Sigma_B0 * P2down * Mk);
-	      // 	cx_double down_Bz = arma::trace(P1down * Sigma_Bz * P2down * Mk);
-	      // 	cx_double A0 = up_A0 + down_A0;
-	      // 	cx_double B0 = up_B0 + down_B0;
-	      // 	cx_double Az = up_Az + down_Az;
-	      // 	cx_double Bz = up_Bz + down_Bz;
-		
-	      // 	std::cerr << z << " " << y << " " << x << "  " << sg1 << " " << sg2 << "   " << Kup << "  " << Kdown << "   " << A0 << "  " << B0 << "  " << Az << "  " << Bz << std::endl;
-	      // }
 	    }
 	  }
 	}
       }
-    }
-    
+    }    
     int n_units = L * L;  // Number of unit cells
     sum /= (double)(n_units);
   }
-
-  // // for check
-  // if ( nonresonant_only ) {
-  //     std::cerr << sum << std::endl;
-  // }
   
   return sum;
 }
@@ -490,28 +442,6 @@ std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts,
     cx_mat denom_zz = arma::eye<arma::cx_mat>(NSUBL, NSUBL) - 0.5 * U * chi0_zz;    
     cx_mat U_eff_00 = - 0.5 * U * arma::inv(denom_00);   // Negative sign
     cx_mat U_eff_zz = 0.5 * U * arma::inv(denom_zz);
-
-    // // for check
-    // if ( nonresonant_only ) {
-    //   std::cerr << "chi0_00_up" << std::endl;
-    //   std::cerr << chi0_00_up << std::endl;
-    //   std::cerr << "chi0_00_down" << std::endl;      
-    //   std::cerr << chi0_00_down << std::endl;
-    //   std::cerr << "chi0_00" << std::endl;      
-    //   std::cerr << chi0_00 << std::endl;
-
-    //   std::cerr << "chi0_zz_up" << std::endl;
-    //   std::cerr << chi0_zz_up << std::endl;
-    //   std::cerr << "chi0_zz_down" << std::endl;      
-    //   std::cerr << chi0_zz_down << std::endl;
-    //   std::cerr << "chi0_zz" << std::endl;      
-    //   std::cerr << chi0_zz << std::endl;      
-
-    //   std::cerr << "U_eff_00" << std::endl;            
-    //   std::cerr << U_eff_00 << std::endl;
-    //   std::cerr << "U_eff_zz" << std::endl;                  
-    //   std::cerr << U_eff_zz << std::endl;            
-    // }
     
     /* Calculating the bubble of the internal and external vertices. */
     cx_vec Pi_0_up(NSUBL, arma::fill::zeros);
@@ -537,9 +467,6 @@ std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts,
 	  cx_double N[me_N.n_coefs()];
 	  me_N.get_elem(ts, delta, kx, ky, kz, N);
 	  cx_mat Mk_N = calc_eff_Raman_operator(ts, delta, kx, ky, kz, omega, omega_i, N, false);
-
-	  // // for check
-	  // Mk_N.zeros();
 	  
 	  cx_mat Mk_K;
 	  if ( !nonresonant_only ){
@@ -569,9 +496,8 @@ std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts,
 	    for(int sg2=-1; sg2<=1; sg2+=2){
 	      /* Prefactor */
 	      cx_double prefactor = calc_prefactor_bare_res_func_bilayer(sg1, sg2, ts, T, kx, ky, kz, 0., 0., 0., omega, delta, ch_pot);	      
-	      if ( std::abs(prefactor) < 1e-12 ) { continue; }
-	      // cx_double prefactor2 = calc_prefactor_bare_res_func_bilayer(sg1, sg2, ts, T, kx, ky, kz, 0., 0., 0., std::conj(omega), delta, ch_pot);   // conj(omega)
-	      // cx_double prefactor2 = calc_prefactor_bare_res_func_bilayer(sg1, sg2, ts, T, kx, ky, kz, 0., 0., 0., - omega, delta, ch_pot);   // - omega	      
+	      cx_double prefactor2 = calc_prefactor_bare_res_func_bilayer(sg1, sg2, ts, T, kx, ky, kz, 0., 0., 0., - omega, delta, ch_pot);   // - omega
+	      if ( std::abs(prefactor) + std::abs(prefactor2) < 1e-12 ) { continue; }	      
 	      
 	      /* Constructing projection operators */
 	      cx_double ek1 = ts.ek1(kx, ky, kz);
@@ -580,10 +506,6 @@ std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts,
 	      cx_vec X2up = gs_HF1(up_spin, sg2, ek1, tz, kz, delta);
 	      cx_vec X1down = gs_HF1(down_spin, sg1, ek1, tz, kz, delta);
 	      cx_vec X2down = gs_HF1(down_spin, sg2, ek1, tz, kz, delta);	      
-	      // cx_mat P1up = arma::kron(X1up, X1up.t());
-	      // cx_mat P2up = arma::kron(X2up, X2up.t());	      
-	      // cx_mat P1down = arma::kron(X1down, X1down.t());
-	      // cx_mat P2down = arma::kron(X2down, X2down.t());
 
 	      /* Effective operator */
 	      cx_mat Mk(Mk_N);
@@ -616,37 +538,8 @@ std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts,
 	      cx_double Az_M_down = Az_down * Mk_down;
 	      cx_double Bz_M_down = Bz_down * Mk_down;	      
 
-	      /* Effective operator */
-	      cx_mat Mk2(Mk_N);
-	      if (T < 1e-15 && !nonresonant_only) {
-		if (sg1 == 1 && sg2 == -1) {
-		  Mk2 += Mk_K.t();   // Hermitian conjugate
-		} else if (sg1 == -1 && sg2 == 1) {
-		  Mk2 += Mk_K;
-		} else {}
-	      }
-	      cx_double A0_up2 = arma::cdot(X1up, Sigma_A0 * X2up);
-	      cx_double B0_up2 = arma::cdot(X1up, Sigma_B0 * X2up);
-	      cx_double Az_up2 = arma::cdot(X1up, Sigma_Az * X2up);
-	      cx_double Bz_up2 = arma::cdot(X1up, Sigma_Bz * X2up);
-	      cx_double A0_down2 = arma::cdot(X1down, Sigma_A0 * X2down);
-	      cx_double B0_down2 = arma::cdot(X1down, Sigma_B0 * X2down);
-	      cx_double Az_down2 = arma::cdot(X1down, Sigma_Az * X2down);
-	      cx_double Bz_down2 = arma::cdot(X1down, Sigma_Bz * X2down);
-	      cx_double Mk_up2 = arma::cdot(X2up, Mk2 * X1up);	      
-	      cx_double Mk_down2 = arma::cdot(X2down, Mk2 * X1down);
-	      
-	      cx_double A0_M2_up = Mk_up2 * A0_up2;
-	      cx_double B0_M2_up = Mk_up2 * B0_up2;
-	      cx_double A0_M2_down = Mk_down2 * A0_down2;
-	      cx_double B0_M2_down = Mk_down2 * B0_down2;
-	      cx_double Az_M2_up = Mk_up2 * Az_up2;
-	      cx_double Bz_M2_up = Mk_up2 * Bz_up2;
-	      cx_double Az_M2_down = Mk_down2 * Az_down2;
-	      cx_double Bz_M2_down = Mk_down2 * Bz_down2;	      	      
-
 	      prefactor *= factor;
-	      // prefactor2 *= factor;	      
+	      prefactor2 *= factor;	      
 
 	      Pi_0_up(0) += prefactor * A0_M_up;
 	      Pi_0_up(1) += prefactor * B0_M_up;
@@ -657,52 +550,14 @@ std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts,
 	      Pi_z_down(0) += prefactor * Az_M_down;
 	      Pi_z_down(1) += prefactor * Bz_M_down;
 	      
-	      // Pi2_0_up(0) += prefactor2 * A0_M_up;
-	      // Pi2_0_up(1) += prefactor2 * B0_M_up;
-	      // Pi2_0_down(0) += prefactor2 * A0_M_down;
-	      // Pi2_0_down(1) += prefactor2 * B0_M_down;	      
-	      // Pi2_z_up(0) += prefactor2 * Az_M_up;
-	      // Pi2_z_up(1) += prefactor2 * Bz_M_up;
-	      // Pi2_z_down(0) += prefactor2 * Az_M_down;
-	      // Pi2_z_down(1) += prefactor2 * Bz_M_down;
-
-	      Pi2_0_up(0) += prefactor * A0_M2_up;
-	      Pi2_0_up(1) += prefactor * B0_M2_up;
-	      Pi2_0_down(0) += prefactor * A0_M2_down;
-	      Pi2_0_down(1) += prefactor * B0_M2_down;	      
-	      Pi2_z_up(0) += prefactor * Az_M2_up;
-	      Pi2_z_up(1) += prefactor * Bz_M2_up;
-	      Pi2_z_down(0) += prefactor * Az_M2_down;
-	      Pi2_z_down(1) += prefactor * Bz_M2_down;
-	      	      
-	      // // // for check
-	      // if ( nonresonant_only ) {
-	      // 	// std::cerr << "Sigma_A0" << std::endl;
-	      // 	// std::cerr << Sigma_A0 << std::endl;
-	      // 	// std::cerr << "Sigma_B0" << std::endl;
-	      // 	// std::cerr << Sigma_B0 << std::endl;
-	      // 	// std::cerr << "Sigma_Az" << std::endl;
-	      // 	// std::cerr << Sigma_Az << std::endl;
-	      // 	// std::cerr << "Sigma_Bz" << std::endl;
-	      // 	// std::cerr << Sigma_Bz << std::endl;
-		
-	      // 	// std::cerr << "Mk" << std::endl;
-	      //  	// std::cerr << Mk << std::endl;
-	      // 	cx_double up_A0 = arma::trace(P1up * Sigma_A0 * P2up * Mk);
-	      // 	cx_double up_Az = arma::trace(P1up * Sigma_Az * P2up * Mk);
-	      // 	cx_double up_B0 = arma::trace(P1up * Sigma_B0 * P2up * Mk);
-	      // 	cx_double up_Bz = arma::trace(P1up * Sigma_Bz * P2up * Mk);
-	      // 	cx_double down_A0 = arma::trace(P1down * Sigma_A0 * P2down * Mk);
-	      // 	cx_double down_Az = arma::trace(P1down * Sigma_Az * P2down * Mk);
-	      // 	cx_double down_B0 = arma::trace(P1down * Sigma_B0 * P2down * Mk);
-	      // 	cx_double down_Bz = arma::trace(P1down * Sigma_Bz * P2down * Mk);
-	      // 	// cx_double A0 = up_A0 + down_A0;
-	      // 	// cx_double B0 = up_B0 + down_B0;
-	      // 	// cx_double Az = up_Az + down_Az;
-	      // 	// cx_double Bz = up_Bz + down_Bz;	      
-	      // 	// std::cerr << sg1 << " " << sg2 << "    " << z << " " << y << " " << x << "   " << A0 << "  " << B0 << "  " << Az << "  " << Bz << std::endl;
-	      // 	std::cerr << z << " " << y << " " << x << "   " << sg1 << " " << sg2 << "   " << up_A0 << "  " << up_Az << "   " << up_B0 << "  " << up_Bz << "   " << down_A0 << "  " << down_Az << "   " << down_B0 << "  " << down_Bz << std::endl;
-	      // }
+	      Pi2_0_up(0) += prefactor2 * A0_M_up;
+	      Pi2_0_up(1) += prefactor2 * B0_M_up;
+	      Pi2_0_down(0) += prefactor2 * A0_M_down;
+	      Pi2_0_down(1) += prefactor2 * B0_M_down;	      
+	      Pi2_z_up(0) += prefactor2 * Az_M_up;
+	      Pi2_z_up(1) += prefactor2 * Bz_M_up;
+	      Pi2_z_down(0) += prefactor2 * Az_M_down;
+	      Pi2_z_down(1) += prefactor2 * Bz_M_down;
 	    }
 	  }
 	}
@@ -720,44 +575,11 @@ std::tuple<cx_double, cx_double> calc_Raman_sigma1(int L, hoppings_bilayer2& ts,
     cx_vec Pi_z = Pi_z_up + Pi_z_down;
     cx_vec Pi2_0 = Pi2_0_up + Pi2_0_down;    
     cx_vec Pi2_z = Pi2_z_up + Pi2_z_down;    
-
-    // // for check
-    // if ( nonresonant_only ) {
-    //   std::cerr << Pi_0 << std::endl;
-    //   std::cerr << U_eff_00 << std::endl;      
-    //   std::cerr << Pi_z << std::endl;
-    //   std::cerr << U_eff_zz << std::endl;            
-    // }
     
     /* Total contributions */
-    // sigma1_00 = arma::dot(Pi_0, U_eff_00 * Pi2_0);
     sigma1_00 = arma::dot(Pi2_0, U_eff_00 * Pi_0);
-    
-    // cx_mat sigma1_00_ = Pi2_0.st() * U_eff_00 * Pi_0;
-    // // cx_mat sigma1_00_ = Pi_0.t() * U_eff_00 * Pi_0;        
-    // sigma1_00 = sigma1_00_[0];
-    
-    // sigma1_zz = arma::dot(Pi_z, U_eff_zz * Pi2_z);
     sigma1_zz = arma::dot(Pi2_z, U_eff_zz * Pi_z);
-    
-    // cx_mat sigma1_zz_ = Pi2_z.st() * U_eff_zz * Pi_z;    
-    // // cx_mat sigma1_zz_ = Pi_z.t() * U_eff_zz * Pi_z;        
-    // sigma1_zz = sigma1_zz_[0];
-
-    // // for check
-    // if ( nonresonant_only ) {
-    //   std::cerr << "sigma1_00_" << std::endl;
-    //   std::cerr << sigma1_00_ << std::endl;      
-    //   std::cerr << "sigma1_zz_" << std::endl;
-    //   std::cerr << sigma1_zz_ << std::endl;      
-    // }    
   }
-
-  // // for check
-  // if ( nonresonant_only ) {
-  //   std::cerr << sigma1_00 << std::endl;
-  //   std::cerr << sigma1_zz << std::endl;
-  // }
     
   return std::make_tuple(sigma1_00, sigma1_zz);
 }
@@ -948,9 +770,6 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
     for(int mu=0; mu < 3; ++mu){
       for(int nu=0; nu < 3; ++nu){
 	if (invalid_components(mu,nu)) { continue; }
-
-	// // for check
-	// std::cerr << omegas[0] << "  " << mu << " " << nu << std::endl;
 	
 	/* Matrix elements */
 	MatElemK me_K(L, L, 2, mu, nu, bonds);
@@ -968,15 +787,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	std::tie(sigma1_00, sigma1_zz) = calc_Raman_sigma1(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, me_F, omega_shifted, pr.omega_i, continuous_k, false);
 	
 	/* Nonresonant contributions only */
-
-	// // for check
-	// std::cerr << "sigma0" << std::endl;
-	
 	cx_double sigma0_N = calc_Raman_sigma0(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, omega_shifted, pr.omega_i, continuous_k, true);
-
-	// // for check
-	// std::cerr << "sigma1" << std::endl;
-	
 	cx_double sigma1_00_N, sigma1_zz_N;
 	std::tie(sigma1_00_N, sigma1_zz_N) = calc_Raman_sigma1(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, me_F, omega_shifted, pr.omega_i, continuous_k, true);	
 	
@@ -1088,10 +899,10 @@ void calc_coef_eff_Raman_real_space(path& base_dir, rpa::parameters const& pr){
   
   /* Shifted omegas */
   cx_double omega_shifted = cx_double(pr.Omega, pr.eta);
-  double omega_i = pr.omega_i;
-  double omega_f = omega_i - pr.Omega;  
-  // cx_double omega_i_shifted(pr.omega_i, 0.5 * std::imag(omega_shifted));
-  // cx_double omega_f_shifted(pr.omega_i - std::real(omega_shifted), - 0.5 * std::imag(omega_shifted));
+  // double omega_i = pr.omega_i;
+  // double omega_f = omega_i - pr.Omega;  
+  cx_double omega_i_shifted(pr.omega_i, 0.5 * std::imag(omega_shifted));
+  cx_double omega_f_shifted(pr.omega_i - std::real(omega_shifted), - 0.5 * std::imag(omega_shifted));
   
   /* For each component set */
   for(int mu=0; mu < 3; ++mu){
@@ -1146,10 +957,10 @@ void calc_coef_eff_Raman_real_space(path& base_dir, rpa::parameters const& pr){
 	    double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, tz, kz, delta);
 	    double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, tz, kz, delta);		  
   
-	    cx_double denom1 = ek_plus - ek_minus - omega_i;
-	    cx_double denom2 = ek_plus - ek_minus + omega_f;
-	    // cx_double denom1 = ek_plus - ek_minus - omega_i_shifted;
-	    // cx_double denom2 = ek_plus - ek_minus + omega_f_shifted;	    
+	    // cx_double denom1 = ek_plus - ek_minus - omega_i;
+	    // cx_double denom2 = ek_plus - ek_minus + omega_f;
+	    cx_double denom1 = ek_plus - ek_minus - omega_i_shifted;
+	    cx_double denom2 = ek_plus - ek_minus + omega_f_shifted;	    
   
 	    /* Getting the matrix elements */
 	    cx_double R[2];

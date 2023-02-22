@@ -38,7 +38,7 @@ public:
   int k_to_index(double kx, double ky, double kz) const;
 
   /* Virtual functions */
-  // virtual void build_table(hoppings2 const& ts, double delta) = 0;
+  virtual void build_table(hoppings2 const& ts, double delta) = 0;
   virtual void calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double* M) const {};
   virtual void get_elem(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *M) const {};
   
@@ -76,7 +76,7 @@ public:
   void set_table(hoppings2 const& ts, double delta);
   std::size_t table_size() const;  
   void calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, int sg1, int sg2, cx_double* F00_up, cx_double* F00_down, cx_double* Fpm, cx_double* Fzz_up, cx_double* Fzz_down) const;  
-  void build_table(hoppings2 const& ts, double delta);
+  void build_table(hoppings2 const& ts, double delta) override;
   void get_00_up(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* F00k) const;
   void get_00_down(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* F00k) const;  
   void get_pm(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Fpmk) const;
@@ -102,7 +102,7 @@ public:
   void set_table(hoppings2 const& ts, double delta);
   std::size_t table_size() const;
   void calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *R) const override;  
-  void build_table(hoppings2 const& ts, double delta);
+  void build_table(hoppings2 const& ts, double delta) override;
   void get_elem(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *R) const override;
   ~MatElemK();
 
@@ -121,7 +121,7 @@ public:
   void set_table(hoppings2 const& ts, double delta);
   std::size_t table_size() const;
   void calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *N) const override;
-  void build_table(hoppings2 const& ts, double delta);
+  void build_table(hoppings2 const& ts, double delta) override;
   void get_elem(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *N) const override;
   ~MatElemN();
 

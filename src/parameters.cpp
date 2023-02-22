@@ -132,8 +132,12 @@ namespace rpa {
     init_value = config->get_as<double>("init_value").value_or(std::numeric_limits<double>::quiet_NaN());
 
     /* Parameters for the Raman scattering */
-    omega_i = config->get_as<double>("omega_i").value_or(532.0);  // (nm)
-    omega_i = planck_h * c_light / (omega_i * 1e-9);  // (eV)
+    double eV_532_inv_nm = planck_h * c_light / (532.0 * 1e-9);  // (eV)    
+    omega_i = config->get_as<double>("omega_i").value_or(eV_532_inv_nm);  // (eV)
+    
+    std::cout << "Incident photon energy is " << omega_i << " eV." << std::endl;    
+    std::cout << "1 eV corresponds to " << 1e-2 / (planck_h * c_light) << " cm^{-1}." << std::endl;
+
     n_ex = config->get_as<int64_t>("n_ex").value_or(1);
     Omega = config->get_as<double>("Omega").value_or(0.1);  // (nm)    
   }

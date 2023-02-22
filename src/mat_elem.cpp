@@ -295,16 +295,6 @@ void MatElemK::calc_mat_elems(hoppings2 const& ts, double delta, double kx, doub
   
   R[0] = R1;
   R[1] = R2;
-
-  // // for check
-  // if ( mu_.z == 1 && nu_.z == 1 ) {
-  //   cx_double R1_up = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, up_spin, bonds_, mu_, nu_, ki, kf);
-  //   cx_double R2_up = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, up_spin, bonds_, nu_, mu_, - kf, - ki);
-  //   cx_double R1_down = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, down_spin, bonds_, mu_, nu_, ki, kf);
-  //   cx_double R2_down = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, down_spin, bonds_, nu_, mu_, - kf, - ki);
-
-  //   std::cout << kx << "  " << ky << "  " << kz << "     " << R1_up << "   " << R1_down << "     " << R2_up << "   " << R2_down << std::endl;
-  // }
 }
 
 void MatElemK::build_table(hoppings2 const& ts, double delta){

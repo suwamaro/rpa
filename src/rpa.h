@@ -51,5 +51,6 @@ constexpr double J_over_eV = 6.24150907446076 * 1e+18;
 constexpr double e_over_hbar = 1.519267447 * 1e+15 / J_over_eV;  // (A/eV)
 constexpr double planck_h = 4.135667696 * 1e-15;  // (eV/Hz)
 constexpr double c_light = 2.99792458 * 1e+8;  // (m/s)
+constexpr double eV_to_inv_nm = 1e-9 / (planck_h * c_light);
 
 #endif // __RPA__
