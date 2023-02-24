@@ -53,7 +53,7 @@ namespace rpa {
     double epsfunc;
     double mod_prefactor;
     
-    double eta;  // Broadnening factor
+    double eta;  // Broadening factor
     double U;  // Onsite Coulomb interaction
 
     /* Hopping amplitudes */
@@ -107,9 +107,11 @@ namespace rpa {
     double init_value;
 
     /* Parameters for the Raman scattering */
-    double omega_i;  // Energy of the initial photon state
-    int n_ex;  // Maximum number of excitons in the initial state.
-    double Omega;  // Energy in the spectrum for the coefficient calculation.
+    double omega_i;   // Energy of the initial photon state
+    double eta_res;   // Broadening factor for resonant contributions
+    double factor_resonant;   // A factor for the resonant contributions
+    int n_ex;   // Maximum number of excitons in the initial state.
+    double Omega;   // Energy in the spectrum for the coefficient calculation.
   };
 
   std::tuple<path, rpa::parameters> extract_parameters(const char* dirn);

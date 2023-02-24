@@ -134,10 +134,12 @@ namespace rpa {
     /* Parameters for the Raman scattering */
     double eV_532_inv_nm = planck_h * c_light / (532.0 * 1e-9);  // (eV)    
     omega_i = config->get_as<double>("omega_i").value_or(eV_532_inv_nm);  // (eV)
+    eta_res = config->get_as<double>("eta_res").value_or(0.5*eta);
     
     std::cout << "Incident photon energy is " << omega_i << " eV." << std::endl;    
     std::cout << "1 eV corresponds to " << 1e-2 / (planck_h * c_light) << " cm^{-1}." << std::endl;
 
+    factor_resonant = config->get_as<double>("factor_resonant").value_or(1.0);  // (eV)    
     n_ex = config->get_as<int64_t>("n_ex").value_or(1);
     Omega = config->get_as<double>("Omega").value_or(0.1);  // (nm)    
   }
