@@ -27,9 +27,10 @@ namespace rpa {
     calc_phase_boundary_t4_bilayer = config->get_as<bool>("calc_phase_boundary_t4_bilayer").value_or(false);
     calc_current_bilayer = config->get_as<bool>("calc_current_bilayer").value_or(false);    
     calc_Raman_bilayer = config->get_as<bool>("calc_Raman_bilayer").value_or(false);
-    calc_Raman_bilayer_coefficient = config->get_as<bool>("calc_Raman_bilayer_coefficient").value_or(false);    
+    calc_Raman_bilayer_coefficient = config->get_as<bool>("calc_Raman_bilayer_coefficient").value_or(false);
+    calc_mean_field_eigenenergy = config->get_as<bool>("calc_mean_field_eigenenergy").value_or(false);    
     calc_two_site_problem = config->get_as<bool>("calc_two_site_problem").value_or(false);            
-    
+
     L = config->get_as<int64_t>("L").value_or(16);
     Lx = config->get_as<int64_t>("Lx").value_or(4);
     Ly = config->get_as<int64_t>("Ly").value_or(4);

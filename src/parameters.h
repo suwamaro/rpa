@@ -32,7 +32,8 @@ namespace rpa {
     bool calc_phase_boundary_t4_bilayer;
     bool calc_current_bilayer;    
     bool calc_Raman_bilayer;
-    bool calc_Raman_bilayer_coefficient;    
+    bool calc_Raman_bilayer_coefficient;
+    bool calc_mean_field_eigenenergy;    
     bool calc_two_site_problem;
     
     int L;  // System size

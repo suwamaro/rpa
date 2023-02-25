@@ -25,12 +25,18 @@
 #include "calc_phase_boundary.h"
 #include "calc_current.h"
 #include "calc_Raman.h"
+#include "calc_mean_field.h"
 // #include "calc_two_site.h"
 
 int main(int argc, char **argv){
   path base_dir;
   rpa::parameters p;
   std::tie(base_dir, p) = rpa::extract_parameters(argv[1]);
+
+  /* Calculating the eigenenergies of the mean field Hamiltonian */
+  if ( p.calc_mean_field_eigenenergy ) {
+    calc_mean_field_eigenenergy(base_dir, p);
+  }  
   
   /* Finding the critical U */
   if ( p.find_critical_U_bilayer ) {

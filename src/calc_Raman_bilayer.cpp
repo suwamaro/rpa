@@ -266,7 +266,7 @@ cx_mat calc_eff_Raman_operator(hoppings_bilayer2& ts, double delta, double kx, d
     // cx_double omega_i_shifted(omega_i, 0.5 * std::imag(omega));
     // cx_double omega_f_shifted(omega_i - std::real(omega), - 0.5 * std::imag(omega));
     cx_double omega_i_shifted(omega_i, eta_res);
-    cx_double omega_f_shifted(omega_i - std::real(omega), - eta_res);        
+    cx_double omega_f_shifted(omega_i - std::real(omega), eta_res);        
     // double omega_f = omega_i - std::real(omega);
     
     /* Coefficients */
