@@ -62,6 +62,17 @@ std::tuple<double, double> SelfConsistentIntegrand2Bilayer::calc_compressibility
   return std::make_tuple(g_minus, g_plus);
 }
 
+double SelfConsistentIntegrand2Bilayer::calc_energy(const double *qvec) const {
+  double kx = qvec[0];
+  double ky = qvec[1];
+  double kz = qvec[2];  
+  double Em, Ep;
+  std::tie(Em, Ep) = calc_single_particle_energy2(*ts(), kx, ky, kz, delta());
+  double f_minus = fermi_energy(Em, kB*T(), mu());
+  double f_plus = fermi_energy(Ep, kB*T(), mu());
+  return f_minus + f_plus;   // Free energy
+}
+
 double SelfConsistentIntegrand2Bilayer::integrand_mean_field(const double *qvec) const {
   double kx = qvec[0];
   double ky = qvec[1];
@@ -90,7 +101,7 @@ double SelfConsistentIntegrand2Bilayer::integrand_mean_field_der_delta(const dou
   double kz = qvec[2];
   cx_double ek1 = ts()->ek1(kx, ky, kz);
   double zod = zk_over_delta(ek1, ts()->tz, kz, delta());
-  return (g_minus + g_plus) * std::pow(zod, 2) - (n_minus - n_plus) * std::pow(zod, 3);
+  return ((g_minus + g_plus) * std::pow(zod, 2) - (n_minus - n_plus) * std::pow(zod, 3)) * delta();
 }
 
 double SelfConsistentIntegrand2Bilayer::integrand_mean_field_der_mu(const double *qvec) const {
@@ -123,6 +134,10 @@ double SelfConsistentIntegrand2Bilayer::integrand_elec_density_der_mu(const doub
   return g_minus + g_plus;
 }
 
+double SelfConsistentIntegrand2Bilayer::integrand_energy(const double *qvec) const {
+  return calc_energy(qvec);
+}
+
 std::tuple<double, double> SelfConsistentIntegrand2Bilayer::calc_qs(const cubareal *xx) const {
   /* Wavenumbers */
   double k1 = xx[0] * 2 * M_PI;
@@ -141,11 +156,16 @@ void SelfConsistentIntegrand2Bilayer::integral(const int *ndim, const cubareal x
   std::tie(kx, ky) = calc_qs(xx);
   
   /* Sum over kz */
-  for(int z=0; z < 2; z++){       
+  for(int z=0; z < 2; ++z){       
     double kz = M_PI * z;
     double qvec[] = {kx, ky, kz};
     ff[0] += (this->*integrand_ptr)(qvec);    
   }
+}
+
+double SelfConsistentIntegrand2Bilayer::calc_mean_field_function(){
+  integrand_ptr = &SelfConsistentIntegrand2Bilayer::integrand_mean_field;
+  return calc() * delta();
 }
 
 double SelfConsistentIntegrand2Bilayer::calc_mean_field(){
@@ -160,7 +180,7 @@ double SelfConsistentIntegrand2Bilayer::calc_elec_density(){
 
 double SelfConsistentIntegrand2Bilayer::calc_mean_field_der_delta(){
   integrand_ptr = &SelfConsistentIntegrand2Bilayer::integrand_mean_field_der_delta;
-  return calc() * delta();  // Multiplied by delta
+  return calc();
 }
 
 double SelfConsistentIntegrand2Bilayer::calc_mean_field_der_mu(){
@@ -176,6 +196,19 @@ double SelfConsistentIntegrand2Bilayer::calc_elec_density_der_delta(){
 double SelfConsistentIntegrand2Bilayer::calc_elec_density_der_mu(){
   integrand_ptr = &SelfConsistentIntegrand2Bilayer::integrand_elec_density_der_mu;
   return calc();
+}
+
+double SelfConsistentIntegrand2Bilayer::calc_energy(){
+  integrand_ptr = &SelfConsistentIntegrand2Bilayer::integrand_energy;
+  return calc();
+}
+
+double SelfConsistentIntegrand2Bilayer::calc_diff(){
+  if ( non_zero_delta() ) {
+    return std::norm(nr_.F(0)) + std::norm(nr_.F(1));
+  } else {
+    return std::norm(nr_.F(1));
+  }
 }
 
 void SelfConsistentIntegrand2Bilayer::update_parameters(int64_t niter, double& _delta, double& _mu){
@@ -200,6 +233,8 @@ void SelfConsistentIntegrand2Bilayer::update_parameters(int64_t niter, double& _
     nr_.F(1) = calc_elec_density();
     _mu += - nr_.mod_factor(niter) * nr_.F(1) / nr_.J(1,1);
   }
+  if ( _mu < mu_lower_bound() ) { _mu = mu_lower_bound(); }
+  if ( _mu > mu_upper_bound() ) { _mu = mu_upper_bound(); }  
 }
 
 bool SelfConsistentIntegrand2Bilayer::find_solution(double& delta, double& mu, bool verbose){
@@ -211,17 +246,14 @@ bool SelfConsistentIntegrand2Bilayer::find_solution(double& delta, double& mu, b
     ++niter;
     if ( niter == max_iter() ) {
       std::cerr << "Number of iteration reaches the limit " << max_iter() << std::endl;
-      std::exit(EXIT_FAILURE);
+      std::cerr << "The remained error squared is " << std::to_string(diff) << std::endl;      
+      return false;
     }
     delta = delta2;
     mu = mu2;
     set_input(delta, mu);    
     update_parameters(niter, delta2, mu2);
-    if ( non_zero_delta() ) {
-      diff = std::norm(nr_.F(0)) + std::norm(nr_.F(1));
-    } else {
-      diff = std::norm(nr_.F(1));
-    }
+    diff = calc_diff();
     if ( verbose ) {
       if ( non_zero_delta() ) {
 	std::cout << niter << "  "
@@ -265,11 +297,11 @@ double SelfConsistentIntegrand2Bilayer::calc() const {
   } else { /* Integral for a finite-size system */
     double k1 = 2. * M_PI / (double)L();
   
-    for(int z=0; z < 2; z++){    
+    for(int z=0; z < 2; ++z){    
       double kz = M_PI * z;
-      for(int x=-L()/2; x < L()/2; x++){
+      for(int x=-L()/2; x < L()/2; ++x){
 	double kx = k1 * x;
-	for(int y=-L()/2; y < L()/2; y++){
+	for(int y=-L()/2; y < L()/2; ++y){
 	  double ky = k1 * y;      
 	
 	  /* Checking if k is inside/outside the BZ. */
@@ -305,11 +337,11 @@ double self_consistent_eq_bilayer(int L, hoppings_bilayer const& ts, double delt
   double k1 = 2. * M_PI / (double)L;
   double sum = 0;
 
-  for(int z=0; z < 2; z++){    
+  for(int z=0; z < 2; ++z){    
     double kz = M_PI * z;
-    for(int x=-L/2; x < L/2; x++){
+    for(int x=-L/2; x < L/2; ++x){
       double kx = k1 * x;
-      for(int y=-L/2; y < L/2; y++){
+      for(int y=-L/2; y < L/2; ++y){
 	double ky = k1 * y;      
 	double e_eps = 1e-12;
 	
@@ -393,11 +425,11 @@ double self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double fi
     double eps = 1e-12;
     double k1 = 2. * M_PI / (double)L;
     
-    for(int z=0; z < 2; z++){    
+    for(int z=0; z < 2; ++z){    
       double kz = M_PI * z;
-      for(int x=-L/2; x < L/2; x++){
+      for(int x=-L/2; x < L/2; ++x){
 	double kx = k1 * x;
-	for(int y=-L/2; y < L/2; y++){
+	for(int y=-L/2; y < L/2; ++y){
 	  double ky = k1 * y;      
 	
 	  /* Checking if k is inside/outside the BZ. */
@@ -462,25 +494,29 @@ double solve_self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, dou
   }  
 }
 
-std::tuple<double, double> solve_self_consistent_eqs_bilayer(rpa::parameters const& pr, int L, hoppings_bilayer2 const& ts, double U, double filling, double T, bool continuous_k, bool non_zero_delta){  
+std::tuple<double, double> solve_self_consistent_eqs_bilayer(rpa::parameters const& pr, int L, hoppings_bilayer2 const& ts, double U, double filling, double T, bool continuous_k, bool non_zero_delta, double delta_i = 0.01, double mu_i = 0.){  
   std::cout << "Finding a self-consistent solution for U = " << U << ", T = " << T << std::endl;
   
   /* Initial values */
-  double delta = 0, mu = 0;
-  if ( non_zero_delta ) {
-    delta = 0.1 * U;
+  double delta = 0.;
+  if (non_zero_delta) {
+    delta = delta_i;  
+  } else {
+    delta = 0.;
   }
-
+  double mu = mu_i;
+  
   /* Set parameters */
   sci2b.set_parameters(pr, L, ts, U, filling, T, delta, mu, continuous_k, non_zero_delta);
 
   /* Find a solution */
-  bool verbose = false;  
+  bool verbose = true;
+  // bool verbose = false;  
+  
   bool sol_found = sci2b.find_solution(delta, mu, verbose);  
 
   if ( !sol_found ) {
-    std::cerr << "Cannot find a self-consistent solution." << std::endl;
-    std::exit(EXIT_FAILURE);    
+    std::cerr << "A self-consistent solution was not found within the tolerance." << std::endl;
   }
   
   return std::make_tuple(delta, mu);  
@@ -503,7 +539,7 @@ void solve_self_consistent_eqs_bilayer_T(path& base_dir, rpa::parameters const& 
   
   int n_Ts = int((T_max - T_min)/T_delta+0.5) + 1;
   std::vector<double> Ts(n_Ts);
-  for(int o=0; o < n_Ts; o++){ Ts[o] = T_min + T_delta * o; }
+  for(int o=0; o < n_Ts; ++o){ Ts[o] = T_min + T_delta * o; }
 
   /* Output */
   ofstream out_sc;;
@@ -520,7 +556,7 @@ void solve_self_consistent_eqs_bilayer_T(path& base_dir, rpa::parameters const& 
   
   /* For each T */
   std::cout << "Solving the self-consistent equations for U = " << U << std::endl;  
-  for(int Ti=0; Ti < n_Ts; Ti++){
+  for(int Ti=0; Ti < n_Ts; ++Ti){
     double T = Ts[Ti];
     bool non_zero_delta = T < Tc;
     double delta, mu;

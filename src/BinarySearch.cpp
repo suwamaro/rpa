@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include "BinarySearch.h"
 
 BinarySearch::BinarySearch(bool continuous_k){
@@ -92,11 +93,13 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
     return true;
   } else if ( std::abs( fx2 - target ) < eps_fx ) {
     std::cout << n_iter << "   " << x2 << "   " << fx2 << "   " << target << "   " << fx2 - target << std::endl;
-    x = x2;
+    x = x2;    
     return true;
   }
   
   /* Binary search */
+  int prec_orig = std::cout.precision();
+  std::cout << std::setprecision(12);  
   if ( debug ) { std::cout << "Binary search between " << x << " and " << x2 << std::endl; }
   double dx = 0;
   if ( additive ) {
@@ -116,7 +119,7 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
     }
     
     if ( std::abs( dx ) < 1e-24 ) {
-      std::cerr << "Cannot find an optimal x.\n";
+      std::cerr << "The tolerable margin of error was not reached." << std::endl;
       return false;
     }
 
@@ -140,5 +143,6 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
     std::cout << n_iter << "   " << x << "   " << fx << "   " << target << "   " << diff << std::endl;
   }
 
+  std::cout << std::setprecision(prec_orig);  
   return true;
 }

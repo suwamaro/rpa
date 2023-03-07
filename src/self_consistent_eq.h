@@ -53,6 +53,7 @@ public:
   explicit SelfConsistentIntegrand2(hoppings2 *ts);
   virtual ~SelfConsistentIntegrand2(){}
   virtual void set_parameters(int _L, double _U, double _filling, double _T, double _delta, double _mu, bool _continuous_k, bool _non_zero_delta);
+  void set_delta_mu(double _delta, double _mu);  
   void set_input(double _delta, double _mu);
   void set_eps_func(double _eps);
   int64_t max_iter() const;
@@ -69,6 +70,9 @@ public:
   bool non_zero_delta() const;
   double non_zero_delta_lower_bound() const;
   double delta_upper_bound() const;
+  void set_mu_bounds(double lower, double upper);
+  double mu_lower_bound() const { return mu_lower_bound_; }
+  double mu_upper_bound() const { return mu_upper_bound_; }  
   
 private:
   int64_t max_iter_;
@@ -84,6 +88,8 @@ private:
   bool continuous_k_;
   bool non_zero_delta_;
   double non_zero_delta_lower_bound_;
+  double mu_lower_bound_ = std::numeric_limits<double>::min();
+  double mu_upper_bound_ = std::numeric_limits<double>::max();
 };
 
 class SelfConsistentIntegrand2Bilayer : public SelfConsistentIntegrand2 {
@@ -93,21 +99,26 @@ public:
   void set_parameters(rpa::parameters const& pr, int _L, hoppings_bilayer2 const& ts, double _U, double _filling, double _T, double _delta, double _mu, bool _continous_k, bool _non_zero_delta);
   std::tuple<double, double> calc_elec_density(const double *qvec) const;
   std::tuple<double, double> calc_compressibility(const double *qvec) const;
+  double calc_energy(const double *qvec) const;    
   double integrand_mean_field(const double *qvec) const;
   double integrand_elec_density(const double *qvec) const;
   double integrand_mean_field_der_delta(const double *qvec) const;
   double integrand_mean_field_der_mu(const double *qvec) const;
   double integrand_elec_density_der_delta(const double *qvec) const;
   double integrand_elec_density_der_mu(const double *qvec) const;
+  double integrand_energy(const double *qvec) const;  
   std::tuple<double, double> calc_qs(const cubareal *xx) const;
   void integral(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const;
   double calc() const;
+  double calc_mean_field_function();  
   double calc_mean_field();
   double calc_elec_density();
   double calc_mean_field_der_delta();
   double calc_mean_field_der_mu();
   double calc_elec_density_der_delta();
   double calc_elec_density_der_mu();
+  double calc_energy();
+  double calc_diff();
   void update_parameters(int64_t niter, double& delta, double& mu);  
   bool find_solution(double& delta, double& mu, bool verbose);
   
@@ -128,7 +139,7 @@ double self_consistent_eq_bilayer(int L, hoppings_bilayer const& ts, double delt
 double solve_self_consistent_eq_bilayer(int L, hoppings_bilayer const& ts, double U);
 double solve_self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double U, double filling, double T, CubaParam const& cbp, bool continuous_k);
 /* For finite temperatures */
-std::tuple<double, double> solve_self_consistent_eqs_bilayer(rpa::parameters const& pr, int L, hoppings_bilayer2 const& ts, double U, double filling, double T, bool continuous_k, bool non_zero_delta);
+std::tuple<double, double> solve_self_consistent_eqs_bilayer(rpa::parameters const& pr, int L, hoppings_bilayer2 const& ts, double U, double filling, double T, bool continuous_k, bool non_zero_delta, double delta_i, double mu_i);
 void solve_self_consistent_eqs_bilayer_T(path& base_dir, rpa::parameters const& pr);
 
 /* For a simple cubic lattice */

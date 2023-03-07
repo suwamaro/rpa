@@ -8,7 +8,11 @@
 *****************************************************************************/
 
 #include "rpa_util.h"
+#include "calc_chemical_potential.h"
+#include "self_consistent_eq.h"
 #include "find_critical_U.h"
+
+extern SelfConsistentIntegrand2Bilayer sci2b;
 
 /* Instantiation */
 FindUcIntegrandBilayer fuib;
@@ -27,23 +31,27 @@ double find_critical_U_bilayer(rpa::parameters const& pr){
   /* Hopping parameters */
   std::unique_ptr<hoppings_bilayer2> ts = hoppings_bilayer2::mk_bilayer3(pr);
 
+  /* Parameters for Cuba */
+  CubaParam cbp(pr);
+    
+  /* Calculating the chemical potential */
+  double delta = 0.0;   // Zero order parameter
+  double kT = 0.0;   // Zero temperature
+  // double mu = calc_chemical_potential_bilayer3(L, *ts, filling, kT, delta, cbp, continuous_k, false);
+  double mu = calc_chemical_potential_bilayer3(L, *ts, filling, kT, delta, cbp, continuous_k, true);  
+
   /* Setting the parameters */
-  fuib.set_parameters(*ts, filling);  
+  fuib.set_parameters(*ts, delta, mu);  
   
   double sum = 0;  
-  if ( continuous_k ) {
-    /* Parameters for Cuba */
-    CubaParam cbp(pr);
-  
+  if ( continuous_k ) {  
     /* For Cuba */
-    double epsrel = 1e-10;
-    double epsabs = 1e-10;
     int ncomp = 1;    
     int nregions, neval, fail;
     cubareal integral[ncomp], error[ncomp], prob[ncomp];
 
     /* Cuhre */
-    Cuhre(cbp.NDIM, ncomp, find_critical_U_bilayer_integrand, cbp.userdata, cbp.nvec, epsrel, epsabs, cbp.flags, cbp.mineval, cbp.maxeval, cbp.key, cbp.statefile, cbp.spin, &nregions, &neval, &fail, integral, error, prob);
+    Cuhre(cbp.NDIM, ncomp, find_critical_U_bilayer_integrand, cbp.userdata, cbp.nvec, cbp.epsrel, cbp.epsabs, cbp.flags, cbp.mineval, cbp.maxeval, cbp.key, cbp.statefile, cbp.spin, &nregions, &neval, &fail, integral, error, prob);
     
     // for check
     printf("CUHRE RESULT:\tnregions %d\tneval %d\tfail %d\n", nregions, neval, fail);
@@ -105,4 +113,95 @@ void find_critical_U_bilayer_output(path& base_dir, rpa::parameters const& pr){
   out_Uc.open( base_dir / "critical-U.text");
   out_Uc << "Uc = " << std::setprecision(prec) << std::setw( prec ) << Uc << std::endl;
   out_Uc.close();  
+}
+
+void check_mean_field_eq_bilayer(std::string const& ofilen, rpa::parameters const& pr){
+  /* Getting parameters */
+  int L = pr.L;
+  double filling = pr.filling;
+  bool continuous_k = pr.continuous_k;
+  
+  /* Hopping parameters */
+  std::unique_ptr<hoppings_bilayer2> ts = hoppings_bilayer2::mk_bilayer3(pr);
+
+  /* Parameters for Cuba */
+  CubaParam cbp(pr);
+
+  /* Precision */
+  int prec = 12;
+  int sw = prec + 10;
+    
+  /* Output file */
+  ofstream out_mf;
+  out_mf.open(ofilen);
+  out_mf << "#  delta   mu   func   energy" << std::endl;
+  out_mf << std::setprecision(prec);
+    
+  double kT = 0.0;   // Zero temperature
+  
+  /* Calculating the chemical potential */
+  double delta_max = 1.0;
+  double delta_delta = 0.01;
+  for(double delta=0.; delta <= delta_max; delta += delta_delta){
+    double mu = calc_chemical_potential_bilayer3(L, *ts, filling, kT, delta, cbp, continuous_k, false);
+
+    /* Set parameters */
+    double U = 0.;   // Unused
+    sci2b.set_parameters(pr, L, *ts, U, filling, kT, delta, mu, continuous_k, true);
+
+    double f = sci2b.calc_mean_field_function();
+    double E = sci2b.calc_energy();
+    out_mf << delta << std::setw(sw) << mu << std::setw(sw) << f << std::setw(sw) << E << std::endl;
+  }
+
+  /* Closing the output file. */
+  out_mf.close();    
+}
+
+std::tuple<double, double, double, double, double, double> calc_total_energies(rpa::parameters const& pr, double U, double delta_i, double mu_i, bool set_initial_values){
+  /* Getting parameters */
+  int L = pr.L;
+  double kT = pr.T;  
+  double filling = pr.filling;
+  bool continuous_k = pr.continuous_k;
+  std::cout << "kT = " << kT << std::endl;
+  
+  /* Hopping parameters */
+  std::unique_ptr<hoppings_bilayer2> ts = hoppings_bilayer2::mk_bilayer3(pr);
+
+  /* Parameters for Cuba */
+  CubaParam cbp(pr);
+    
+  /* For the disordered state */
+  double delta = 0;
+  double mu = calc_chemical_potential_bilayer3(L, *ts, filling, kT, delta, cbp, continuous_k, false);
+  sci2b.set_parameters(pr, L, *ts, U, filling, kT, delta, mu, continuous_k, true);
+  sci2b.set_mu_bounds(0., 0.3);   // ad-hoc
+  std::cout << "Setting mu bounds [0, 0.3]." << std::endl;
+  double F1 = sci2b.calc_energy();
+
+  // for check
+  std::cout << delta << "  " << mu << "  " << F1 << std::endl;
+
+  /* For the ordered state */
+  if (set_initial_values){
+    delta = delta_i;
+    mu = mu_i;
+  } else {
+    delta = 0.1 * U;
+  }
+  
+  std::tie(delta, mu) = solve_self_consistent_eqs_bilayer(pr, L, *ts, U, filling, kT, continuous_k, true, delta, mu);
+  sci2b.set_delta_mu(delta, mu);
+  double F2 = sci2b.calc_energy();
+  double diff = sci2b.calc_diff();
+  
+  double ch_gap, mu0;
+  std::tie(ch_gap, mu0) = calc_charge_gap_bilayer(L, *ts, delta);
+  std::cout << "The charge gap = " << ch_gap << std::endl;
+    
+  // for check
+  std::cout << delta << "  " << mu << "  " << F2 << "  " << ch_gap << std::endl;
+  
+  return std::make_tuple(F1, F2, delta, mu, ch_gap, diff);
 }

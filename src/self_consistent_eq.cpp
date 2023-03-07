@@ -58,7 +58,7 @@ int SelfConsistentIntegrandBilayer::calc(const int *ndim, const cubareal xx[], c
 
 /* Member functions of SelfConsistentIntegrand2 */
 SelfConsistentIntegrand2::SelfConsistentIntegrand2(hoppings2 *ts):ts_(ts){
-  max_iter_ = 1e+6;
+  max_iter_ = 2e+2;
   eps_ = 1e-12;
   eps_func_ = 1e-10;
   non_zero_delta_lower_bound_ = 1e-12;
@@ -89,6 +89,11 @@ void SelfConsistentIntegrand2::set_parameters(int _L, double _U, double _filling
   non_zero_delta_ = _non_zero_delta;
 }
 
+void SelfConsistentIntegrand2::set_delta_mu(double _delta, double _mu){
+  delta_ = _delta;
+  mu_ = _mu;  
+}
+
 void SelfConsistentIntegrand2::set_input(double _delta, double _mu){
   delta_ = _delta;
   mu_ = _mu;
@@ -96,4 +101,9 @@ void SelfConsistentIntegrand2::set_input(double _delta, double _mu){
 
 void SelfConsistentIntegrand2::set_eps_func(double _eps){
   eps_func_ = _eps;
+}
+
+void SelfConsistentIntegrand2::set_mu_bounds(double lower, double upper){
+  mu_lower_bound_ = lower;
+  mu_upper_bound_ = upper;
 }

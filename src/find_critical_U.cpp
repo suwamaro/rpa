@@ -8,12 +8,14 @@
 *****************************************************************************/
 
 #include "rpa_util.h"
+#include "calc_single_particle_energy.h"
 #include "find_critical_U.h"
 
 /* Member functions of FindUcIntegrandBilayer */
-void FindUcIntegrandBilayer::set_parameters(hoppings_bilayer2 const& h, double filling){
-  assert(filling == 0.5);  
-  hb_ = h;  
+void FindUcIntegrandBilayer::set_parameters(hoppings_bilayer2 const& h, double delta, double mu){
+  hb_ = h;
+  delta_ = delta;
+  mu_ = mu;
 }
 
 double FindUcIntegrandBilayer::integrand(const double *qvec) const {
@@ -21,9 +23,12 @@ double FindUcIntegrandBilayer::integrand(const double *qvec) const {
   double ky = qvec[1];
   double kz = qvec[2];
   cx_double ek1 = ts()->ek1(kx, ky, kz);
-  double n_minus = 1.0;  // Assume at a half filling
-  double n_plus = 0.0;
-  return (n_minus - n_plus) / std::abs(bk(up_spin, ek1, ts()->tz, kz));  // Spin does not matter.
+  double Em, Ep;
+  std::tie(Em, Ep) = calc_single_particle_energy2(*ts(), kx, ky, kz, delta());
+  double kT = 0.0;
+  double n_minus = fermi_density(Em, kT, mu());
+  double n_plus = fermi_density(Ep, kT, mu());
+  return (n_minus - n_plus) / bk(ek1, ts()->tz, kz);  // Spin does not matter.
 }
 
 int FindUcIntegrandBilayer::calc(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata) const {

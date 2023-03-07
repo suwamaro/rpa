@@ -75,6 +75,7 @@ double zk_over_delta(int spin, cx_double ek1, cx_double tz, double kz, double de
 double zk_over_delta(cx_double ek1, cx_double tz, double kz, double delta);
 cx_double xk(int spin, cx_double ek1, cx_double tz, double kz, double delta);
 double eigenenergy_HF(double sign, cx_double ek1, cx_double ek23, cx_double ekz, cx_double tz, double kz, double delta);
+double fermi_energy(double x, double kT, double mu);
 double fermi_density(double x, double kT, double mu);
 double compressibility(double x, double kT, double mu);
 

@@ -25,6 +25,7 @@ namespace rpa {
     calc_binding_energy_bilayer = config->get_as<bool>("calc_binding_energy_bilayer").value_or(false);
     calc_phase_boundary_U_bilayer = config->get_as<bool>("calc_phase_boundary_U_bilayer").value_or(false);
     calc_phase_boundary_t4_bilayer = config->get_as<bool>("calc_phase_boundary_t4_bilayer").value_or(false);
+    check_mean_field_function = config->get_as<bool>("check_mean_field_function").value_or(false);    
     calc_current_bilayer = config->get_as<bool>("calc_current_bilayer").value_or(false);    
     calc_Raman_bilayer = config->get_as<bool>("calc_Raman_bilayer").value_or(false);
     calc_Raman_bilayer_coefficient = config->get_as<bool>("calc_Raman_bilayer_coefficient").value_or(false);
@@ -133,16 +134,21 @@ namespace rpa {
     init_value = config->get_as<double>("init_value").value_or(std::numeric_limits<double>::quiet_NaN());
 
     /* Parameters for the Raman scattering */
-    double eV_532_inv_nm = planck_h * c_light / (532.0 * 1e-9);  // (eV)    
-    omega_i = config->get_as<double>("omega_i").value_or(eV_532_inv_nm);  // (eV)
-    eta_res = config->get_as<double>("eta_res").value_or(0.5*eta);
-    
-    std::cout << "Incident photon energy is " << omega_i << " eV." << std::endl;    
-    std::cout << "1 eV corresponds to " << 1e-2 / (planck_h * c_light) << " cm^{-1}." << std::endl;
+    if (calc_Raman_bilayer) {
+      double eV_532_inv_nm = planck_h * c_light / (532.0 * 1e-9);  // (eV)    
+      omega_i = config->get_as<double>("omega_i").value_or(eV_532_inv_nm);  // (eV)
+      eta_res = config->get_as<double>("eta_res").value_or(0.5*eta);
+      
+      std::cout << "Incident photon energy is " << omega_i << " eV." << std::endl;    
+      std::cout << "1 eV corresponds to " << 1e-2 / (planck_h * c_light) << " cm^{-1}." << std::endl;
+      
+      factor_resonant = config->get_as<double>("factor_resonant").value_or(1.0);  // (eV)    
+      // n_ex = config->get_as<int64_t>("n_ex").value_or(1);
+    }
 
-    factor_resonant = config->get_as<double>("factor_resonant").value_or(1.0);  // (eV)    
-    n_ex = config->get_as<int64_t>("n_ex").value_or(1);
-    Omega = config->get_as<double>("Omega").value_or(0.1);  // (nm)    
+    if (calc_Raman_bilayer_coefficient) {    
+      Omega = config->get_as<double>("Omega").value_or(0.1);  // (nm)
+    }
   }
   
   double parameters::calc_T(double Tc) const {

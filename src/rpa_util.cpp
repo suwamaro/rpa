@@ -106,6 +106,20 @@ double eigenenergy_HF(double sign, cx_double ek1, cx_double ek23, cx_double ekz,
   return std::real(ek23) + std::real(ekz) + sign * sqrt(delta*delta + std::norm(bk(up_spin,ek1,tz,kz)));
 }
 
+double fermi_energy(double x, double kT, double mu) {
+  double alpha = (x-mu)/std::abs(kT);
+  if (kT < 1e-15 || std::abs(alpha) > 40) {
+    return (x < mu) ? (x-mu) : 0.0;
+  }
+  else {
+    if ( alpha >= 0 ) {
+      return - kT * log(1. + exp(-alpha));
+    } else {
+      return x - mu - kT * log(1. + exp(alpha));
+    }
+  }
+}
+
 double fermi_density(double x, double kT, double mu) {    
   double alpha = (x-mu) / std::abs(kT);
   if (kT < 1e-15 || std::abs(alpha) > 40.) {

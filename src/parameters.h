@@ -30,12 +30,13 @@ namespace rpa {
     bool calc_binding_energy_bilayer;
     bool calc_phase_boundary_U_bilayer;
     bool calc_phase_boundary_t4_bilayer;
+    bool check_mean_field_function;
     bool calc_current_bilayer;    
     bool calc_Raman_bilayer;
     bool calc_Raman_bilayer_coefficient;
     bool calc_mean_field_eigenenergy;    
     bool calc_two_site_problem;
-    
+
     int L;  // System size
     int Lx, Ly, Lz;
     int Lk;  // Delta q = 2pi / Lk for plot
@@ -111,7 +112,7 @@ namespace rpa {
     double omega_i;   // Energy of the initial photon state
     double eta_res;   // Broadening factor for resonant contributions
     double factor_resonant;   // A factor for the resonant contributions
-    int n_ex;   // Maximum number of excitons in the initial state.
+    // int n_ex;   // Maximum number of excitons in the initial state.
     double Omega;   // Energy in the spectrum for the coefficient calculation.
   };
 

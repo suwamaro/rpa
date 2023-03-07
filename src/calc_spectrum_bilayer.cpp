@@ -144,115 +144,115 @@ void calc_single_particle_energy_bilayer2(path& base_dir, hoppings2 const& ts, i
   out_e.close();
 }
 
-void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L, double eta){
-  std::unique_ptr<hoppings_bilayer> ts;
-  ts = hoppings_Sr3Ir2O7::mk_Sr3Ir2O7(theta, phi, t3);  
+// void calc_spectrum_bilayer(double theta, double phi, double t3, double U, int L, double eta){
+//   std::unique_ptr<hoppings_bilayer> ts;
+//   ts = hoppings_Sr3Ir2O7::mk_Sr3Ir2O7(theta, phi, t3);  
   
-  double k1 = 2. * M_PI / (double)L;
-  int prec = 15;
+//   double k1 = 2. * M_PI / (double)L;
+//   int prec = 15;
   
-  /* Omegas */
-  double delta_omega = 0.001;  
-  double max_omega = ts->t_max() * 10;
+//   /* Omegas */
+//   double delta_omega = 0.001;  
+//   double max_omega = ts->t_max() * 10;
   
-  int n_omegas = int(max_omega/delta_omega+0.5);
-  std::vector<double> omegas(n_omegas);
-  for(int o=1; o <= n_omegas; o++){ omegas[o-1] = delta_omega * o; }
+//   int n_omegas = int(max_omega/delta_omega+0.5);
+//   std::vector<double> omegas(n_omegas);
+//   for(int o=1; o <= n_omegas; o++){ omegas[o-1] = delta_omega * o; }
 
-  /* Calculate the chemical potential and the charge gap. */
-  double delta = solve_self_consistent_eq_bilayer( L, *ts, U );
-  std::cout << "delta = " << delta << std::endl;
-  double mu = calc_chemical_potential_bilayer( L, *ts, delta );  /* Updated */
+//   /* Calculate the chemical potential and the charge gap. */
+//   double delta = solve_self_consistent_eq_bilayer( L, *ts, U );
+//   std::cout << "delta = " << delta << std::endl;
+//   double mu = calc_chemical_potential_bilayer( L, *ts, delta );  /* Updated */
 
-  /* Single particle energy */
-  calc_single_particle_energy_bilayer( *ts, L, delta );
+//   /* Single particle energy */
+//   calc_single_particle_energy_bilayer( *ts, L, delta );
   
-  /* Output */
-  ofstream out_xy, out_z;
-  out_xy.open("spectrum-xy.text");
-  out_z.open("spectrum-z.text");
+//   /* Output */
+//   ofstream out_xy, out_z;
+//   out_xy.open("spectrum-xy.text");
+//   out_z.open("spectrum-z.text");
 
-  /* Wavenumbers */
-  double qx = 0;
-  double qy = 0;
-  double qz = 0;
-  int q_idx = 0;
+//   /* Wavenumbers */
+//   double qx = 0;
+//   double qy = 0;
+//   double qz = 0;
+//   int q_idx = 0;
   
-  /* 2-layer Square lattice */
-  /* X -> Sigma -> Gamma -> X -> M -> Sigma */
-  /* Gamma = ( 0, 0 )               */
-  /* X = ( pi, 0 )                  */
-  /* Sigma = ( pi/2, pi/2 )         */
-  /* M = ( pi, pi )                 */
+//   /* 2-layer Square lattice */
+//   /* X -> Sigma -> Gamma -> X -> M -> Sigma */
+//   /* Gamma = ( 0, 0 )               */
+//   /* X = ( pi, 0 )                  */
+//   /* Sigma = ( pi/2, pi/2 )         */
+//   /* M = ( pi, pi )                 */
 
-  /* From the response function to the dynamic structure factor */  
-  auto output_spectrum = [&](){
-    std::cout << "( qidx, qx, qy, qz ) = ( " << q_idx << ", " << qx << ", " << qy << ", " << qz << " )" << std::endl;
-    for(int o=0; o < n_omegas; o++){
-      cx_double cx_omega(omegas[o], eta);
+//   /* From the response function to the dynamic structure factor */  
+//   auto output_spectrum = [&](){
+//     std::cout << "( qidx, qx, qy, qz ) = ( " << q_idx << ", " << qx << ", " << qy << ", " << qz << " )" << std::endl;
+//     for(int o=0; o < n_omegas; o++){
+//       cx_double cx_omega(omegas[o], eta);
 
-      /* The (S^+ S^-) response function, or the retarded Green's function */
-      double factor_dsf = 2.;
-      cx_double chi_xy = calc_intensity_bilayer( L, *ts, mu, U, delta, qx, qy, qz, cx_omega, false );
+//       /* The (S^+ S^-) response function, or the retarded Green's function */
+//       double factor_dsf = 2.;
+//       cx_double chi_xy = calc_intensity_bilayer( L, *ts, mu, U, delta, qx, qy, qz, cx_omega, false );
       
-      double spec_xy = factor_dsf * std::imag(chi_xy);
+//       double spec_xy = factor_dsf * std::imag(chi_xy);
       
-      /* Output */
-      out_xy << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_xy << std::setw( prec ) << U << std::endl;
+//       /* Output */
+//       out_xy << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_xy << std::setw( prec ) << U << std::endl;
 
-      /* The (S^z S^z) response function, or the retarded Green's function */
-      cx_double chi_z = calc_intensity_bilayer( L, *ts, mu, U, delta, qx, qy, qz, cx_omega, true );
+//       /* The (S^z S^z) response function, or the retarded Green's function */
+//       cx_double chi_z = calc_intensity_bilayer( L, *ts, mu, U, delta, qx, qy, qz, cx_omega, true );
       
-      double spec_z = factor_dsf * std::imag(chi_z);
+//       double spec_z = factor_dsf * std::imag(chi_z);
       
-      /* Output */
-      out_z << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_z << std::setw( prec ) << U << std::endl;      
-    }
-  };
+//       /* Output */
+//       out_z << q_idx << std::setw( prec ) << qx << std::setw( prec ) << qy << std::setw( prec ) << qz << std::setw( prec ) << omegas[o] << std::setw( prec ) << spec_z << std::setw( prec ) << U << std::endl;      
+//     }
+//   };
 
-  /* Through symmetric points */
-  for(int z=0; z < 2; z++){
-    qz = M_PI * z;
+//   /* Through symmetric points */
+//   for(int z=0; z < 2; z++){
+//     qz = M_PI * z;
   
-    for(int x=0; x < L/4; x++){
-      qx = M_PI - k1 * x;
-      qy = k1 * x;
-      output_spectrum();
-      ++q_idx;
-    }
+//     for(int x=0; x < L/4; x++){
+//       qx = M_PI - k1 * x;
+//       qy = k1 * x;
+//       output_spectrum();
+//       ++q_idx;
+//     }
   
-    for(int x=0; x < L/4; x++){
-      qx = 0.5 * M_PI - k1 * x;
-      qy = 0.5 * M_PI - k1 * x;
-      output_spectrum();
-      ++q_idx;
-    }
+//     for(int x=0; x < L/4; x++){
+//       qx = 0.5 * M_PI - k1 * x;
+//       qy = 0.5 * M_PI - k1 * x;
+//       output_spectrum();
+//       ++q_idx;
+//     }
   
-    for(int x=0; x < L/2; x++){
-      qx = k1 * x;
-      qy = 0;
-      output_spectrum();
-      ++q_idx;
-    }
+//     for(int x=0; x < L/2; x++){
+//       qx = k1 * x;
+//       qy = 0;
+//       output_spectrum();
+//       ++q_idx;
+//     }
   
-    for(int y=0; y < L/2; y++){
-      qx = M_PI;
-      qy = k1 * y;
-      output_spectrum();
-      ++q_idx;
-    }
+//     for(int y=0; y < L/2; y++){
+//       qx = M_PI;
+//       qy = k1 * y;
+//       output_spectrum();
+//       ++q_idx;
+//     }
   
-    for(int x=0; x <= L/4; x++){
-      qx = M_PI - k1 * x;
-      qy = M_PI - k1 * x;
-      output_spectrum();
-      ++q_idx;
-    }
-  }
+//     for(int x=0; x <= L/4; x++){
+//       qx = M_PI - k1 * x;
+//       qy = M_PI - k1 * x;
+//       output_spectrum();
+//       ++q_idx;
+//     }
+//   }
 
-  out_xy.close();
-  out_z.close();
-}
+//   out_xy.close();
+//   out_z.close();
+// }
 
 class WaveVector {
 public:
@@ -438,18 +438,29 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
     delta = solve_self_consistent_eq_bilayer2( L, *ts, U, filling, T, cbp, continuous_k );  
     std::cout << "delta = " << delta << std::endl;  
     
-    /* Calculating the chemical potential. */  
+    /* Calculating the chemical potential. */
     mu = calc_chemical_potential_bilayer_output( base_dir, L, *ts, filling, T, delta, cbp, continuous_k );  /* Finite size */
-    std::cout << "mu = " << mu << std::endl;
   } else {
     /* Find the critical temperature */
     double Tc = find_critical_T_bilayer(pr);
-    T = pr.calc_T(Tc);
+    T = pr.calc_T(Tc);    
     std::cout << "T = " << T << std::endl;    
-    bool non_zero_delta = T < Tc;
-    std::tie(delta, mu) = solve_self_consistent_eqs_bilayer( pr, L, *ts, U, filling, T, continuous_k, non_zero_delta );
+    bool non_zero_delta = T < Tc;    
+
+    /* Calculating mu for delta=0 */
+    double ch_gap;
+    std::tie(ch_gap, mu) = calc_charge_gap_bilayer(L, *ts, 0.);
+    std::cout << "The charge gap of the noninteracting system = " << ch_gap << std::endl;
+    std::cout << "The chemical potential of the noninteracting system = " << mu << std::endl;    
+
+    /* Solving the self-consistent eqs. */
+    double delta_i = 0.1 * U;
+    std::tie(delta, mu) = solve_self_consistent_eqs_bilayer( pr, L, *ts, U, filling, T, continuous_k, non_zero_delta, delta_i, mu);
     std::cout << "delta = " << delta << std::endl;
     std::cout << "mu = " << mu << std::endl;
+    double mu0;
+    std::tie(ch_gap, mu0) = calc_charge_gap_bilayer(L, *ts, delta);
+    std::cout << "The charge gap = " << ch_gap << std::endl;        
   }
       
   /* Single particle energy */
