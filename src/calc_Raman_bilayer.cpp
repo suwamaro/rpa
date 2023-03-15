@@ -262,17 +262,12 @@ cx_mat calc_eff_Raman_operator(hoppings_bilayer2& ts, double delta, double kx, d
     double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, tz, kz, delta);
 
     /* Shifted omegas */
-    // cx_double omega_i_shifted(omega_i, 0.5 * std::imag(omega));
-    // cx_double omega_f_shifted(omega_i - std::real(omega), - 0.5 * std::imag(omega));
     cx_double omega_i_shifted(omega_i, eta_res);
     cx_double omega_f_shifted(omega_i - std::real(omega), eta_res);        
-    // double omega_f = omega_i - std::real(omega);
     
     /* Coefficients */
     cx_double denom1 = ek_plus - ek_minus - omega_i_shifted;
     cx_double denom2 = ek_plus - ek_minus + omega_f_shifted;  
-    // cx_double denom1 = ek_plus - ek_minus - omega_i;
-    // cx_double denom2 = ek_plus - ek_minus + omega_f;
     
     cx_double coef = M[0] / denom1 + M[1] / denom2;
     return coef * (arma::kron(u_k * tau_p + u_k * tau_m, Pauli_0) + arma::kron(v_k * tau_p - v_k * tau_m + w_k * tau_z, Pauli_z));
@@ -688,7 +683,6 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   out_gap << "omega_ph = " << omega_ph << std::endl;
   
   /* Constants */
-  // double stag_rot_angle = 12.0 / 180.0 * M_PI;
   double k1 = 2. * M_PI / (double)L;  
   double g_photon = 1.0;  // This factor does not matter to the result.
   // double g_photon = sqrt(planck_h * c_light * c_light / (pr.omega_i * 2. * M_PI / planck_h));  
@@ -938,8 +932,6 @@ void calc_coef_eff_Raman_real_space(path& base_dir, rpa::parameters const& pr){
   
   /* Shifted omegas */
   cx_double omega_shifted = cx_double(pr.Omega, pr.eta);
-  // double omega_i = pr.omega_i;
-  // double omega_f = omega_i - pr.Omega;
   cx_double omega_i_shifted(pr.omega_i, pr.eta_res);
   cx_double omega_f_shifted(pr.omega_i - pr.Omega, pr.eta_res);
   
@@ -996,8 +988,6 @@ void calc_coef_eff_Raman_real_space(path& base_dir, rpa::parameters const& pr){
 	    double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, tz, kz, delta);
 	    double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, tz, kz, delta);		  
   
-	    // cx_double denom1 = ek_plus - ek_minus - omega_i;
-	    // cx_double denom2 = ek_plus - ek_minus + omega_f;
 	    cx_double denom1 = ek_plus - ek_minus - omega_i_shifted;
 	    cx_double denom2 = ek_plus - ek_minus + omega_f_shifted;	    
   

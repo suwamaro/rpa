@@ -110,9 +110,10 @@ namespace rpa {
     double t4_min, t4_max, t4_delta;
     double U_min, U_max, U_delta;
     double init_value;
+    bool find_metal_insulator_transition;
 
     /* Parameters for finding a 1st-order transition point */
-    bool find_first_order_transition_point;    
+    bool find_first_order_transition;    
     bool find_U1st_anneal;
     double find_U1st_U_max;
     double find_U1st_U_delta;    

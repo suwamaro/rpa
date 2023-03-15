@@ -134,10 +134,11 @@ namespace rpa {
     U_min = config->get_as<double>("U_min").value_or(0);
     U_max = config->get_as<double>("U_max").value_or(1.0);
     U_delta = config->get_as<double>("U_delta").value_or(0.1);
-    init_value = config->get_as<double>("init_value").value_or(std::numeric_limits<double>::quiet_NaN());
-  
+    init_value = config->get_as<double>("init_value").value_or(0.1);
+    find_metal_insulator_transition = config->get_as<bool>("find_metal_insulator_transition").value_or(false);
+    
     /* Parameters for finding a 1st-order transition point */
-    find_first_order_transition_point = config->get_as<bool>("find_first_order_transition_point").value_or(false);    
+    find_first_order_transition = config->get_as<bool>("find_first_order_transition").value_or(false);    
     find_U1st_anneal = config->get_as<bool>("find_U1st_anneal").value_or(true);
     find_U1st_U_max = config->get_as<double>("find_U1st_U_max").value_or(0.3);
     find_U1st_U_delta = config->get_as<double>("find_U1st_U_delta").value_or(0.01);        

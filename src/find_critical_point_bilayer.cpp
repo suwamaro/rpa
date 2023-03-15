@@ -95,14 +95,14 @@ double self_consistent_eq_point_bilayer2(double tz, rpa::parameters& pr, CubaPar
 }
 
 double find_critical_point_bilayer(rpa::parameters& pr){
+  std::cout << "Finding a critical point for U = " << pr.U << std::endl;
+  
   /* Getting parameters */
   double U = pr.U;
   assert(pr.filling == 0.5);  // Assume half filling  
   
   /* Parameters for Cuba */
   CubaParam cbp(pr);
-
-  std::cout << "Finding a critical point for U = " << U << std::endl;
   double target = 1. / U;
 
   /* Setting the parameter to an initial value. */

@@ -11,6 +11,7 @@
 #include "BinarySearch.h"
 #include "find_critical_point.h"
 #include "find_critical_U.h"
+#include "find_metal_insulator_transition.h"
 
 void calc_phase_boundary_U_bilayer(path& base_dir, rpa::parameters& pr){
   std::cout << "Obtaining the phase boundary as a function of U..." << std::endl;
@@ -31,6 +32,7 @@ void calc_phase_boundary_U_bilayer(path& base_dir, rpa::parameters& pr){
   /* For each U */
   for(int Ui=0; Ui < n_U; Ui++){
     double U = Us[Ui];
+    std::cout << "U = " << U << std::endl;
     if ( std::abs(U) < 1e-12 ) {
       std::cout << "Skipping the case of U = 0." << std::endl;
       continue;
@@ -39,8 +41,14 @@ void calc_phase_boundary_U_bilayer(path& base_dir, rpa::parameters& pr){
     if ( pr.fix_J ) {
       pr.t1 = 0.5*sqrt(pr.J*U);
     }
-    double tz_c = find_critical_point_bilayer(pr);
-    out_pb << std::setprecision(prec) << U << std::setw(prec+8) << tz_c << std::endl;
+
+    if (pr.find_metal_insulator_transition) {
+      double tz_c = find_metal_insulator_transition_t4_bilayer(pr);
+      out_pb << std::setprecision(prec) << U << std::setw(prec+8) << tz_c << std::endl;      
+    } else {
+      double tz_c = find_critical_point_bilayer(pr);
+      out_pb << std::setprecision(prec) << U << std::setw(prec+8) << tz_c << std::endl;
+    }
   }
   
   out_pb.close();
@@ -137,7 +145,7 @@ void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
     std::cout << "Uc = " << Uc << std::endl;
     
     /* Checking if a first-order transition occurs. */
-    if (pr.find_first_order_transition_point) {
+    if (pr.find_first_order_transition) {
       if (pr.check_details) {
 	/* Output */
 	std::string ofn_ = "free_energy-t4_"+std::to_string(t4r)+".text";

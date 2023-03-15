@@ -220,7 +220,7 @@ double calc_chemical_potential_bilayer_output(path& base_dir, int L, hoppings_bi
   return mu;
 }
 
-std::tuple<double, double> calc_charge_gap_bilayer(int L, hoppings2 const& ts, double delta){
+std::tuple<double, double> calc_charge_gap_bilayer(int L, hoppings2 const& ts, double delta, bool negative){
   /* Find the chemical potential as the average of the maximum of the lower band and the minimum of the upper. */
   double k1 = 2. * M_PI / (double)L;
   double E_min = std::numeric_limits<double>::max();
@@ -247,7 +247,12 @@ std::tuple<double, double> calc_charge_gap_bilayer(int L, hoppings2 const& ts, d
     } /* end for x */
   } /* end for z */
 
-  double ch_gap = std::max( 0., E_min - E_max );  
+  double ch_gap = 0.;
+  if (negative) {
+    ch_gap = E_min - E_max;
+  } else {
+    ch_gap = std::max( 0., E_min - E_max );
+  }
   double mu = 0.5 * ( E_min + E_max );
   
   return std::make_tuple(ch_gap, mu);

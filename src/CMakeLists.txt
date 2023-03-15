@@ -13,6 +13,7 @@ find_critical_T.cpp
 find_critical_T_bilayer.cpp
 find_critical_point.cpp
 find_critical_point_bilayer.cpp
+find_metal_insulator_transition_bilayer.cpp
 #plot_chi0.cpp
 #plot_chi0_AF.cpp
 self_consistent_eq.cpp
