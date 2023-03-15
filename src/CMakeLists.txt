@@ -4,6 +4,7 @@ array3.cpp
 rpa_util.cpp
 cuba_helper.cpp
 find_root.cpp
+optimization.cpp
 Hartree_Fock.cpp
 mat_elem.cpp
 find_critical_U.cpp

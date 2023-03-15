@@ -178,21 +178,31 @@ double elec_filling_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, do
   return sum;
 }
 
-double calc_chemical_potential_bilayer3(int L, hoppings_bilayer2 const& ts, double filling, double T, double delta, CubaParam const& cbp, bool continuous_k, bool verbose){
-  assert(kB*T > 1e-15 || filling == 0.5);  
-  double target = filling;
-  double mu = 0.0;
+double calc_chemical_potential_bilayer3(int L, hoppings_bilayer2 const& ts, double filling, double T, double delta, CubaParam const& cbp, bool continuous_k, bool verbose){    
+  assert(kB*T > 1e-15 || filling == 0.5);
+  std::cout << "Calculating the chemical potential..." << std::endl;
 
-  using std::placeholders::_1;
-  auto eq = std::bind( elec_filling_eq_bilayer, L, std::ref(ts), _1, T, delta, std::ref(cbp), continuous_k );
+  /* If the charge gap is finite, the chemical potential is set to the midpoint of the upper and lower bands. */
+  double ch_gap = 0., mu0 = 0.;
+  std::tie(ch_gap, mu0) = calc_charge_gap_bilayer(L, ts, delta);
+  if (ch_gap > 0. ) {
+    return mu0;
+  } else {  
+    double target = filling;
+    double mu = 0.0;
 
-  BinarySearch bs(continuous_k);
-  double mu_delta = 0.1;
-  bool sol_found = bs.find_solution( mu, target, eq, true, mu_delta, verbose );  
-  return mu;
+    using std::placeholders::_1;
+    auto eq = std::bind( elec_filling_eq_bilayer, L, std::ref(ts), _1, T, delta, std::ref(cbp), continuous_k );
+
+    BinarySearch bs(continuous_k);
+    double mu_delta = 0.1;
+    bool sol_found = bs.find_solution( mu, target, eq, true, mu_delta, verbose );  
+    return mu;
+  }
 }
 
 double calc_chemical_potential_bilayer_output(path& base_dir, int L, hoppings_bilayer2 const& ts, double filling, double T, double delta, CubaParam const& cbp, bool continuous_k){  
+  
   std::cout << "Finding the chemical potential for delta = " << delta << ", T = " << T << std::endl;
   double mu = calc_chemical_potential_bilayer3(L, ts, filling, T, delta, cbp, continuous_k, true);
 

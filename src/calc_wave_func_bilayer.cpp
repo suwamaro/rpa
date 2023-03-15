@@ -204,6 +204,7 @@ double solve_pole_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, doub
 }
 
 std::tuple<double, double, double> calc_gap_bilayer(int L, hoppings_bilayer2 const& ts, double mu, double U, double T, double delta, CubaParam const& cbp, MatElemF const& me_F, bool continuous_k, bool return_upper, bool verbose){
+  std::cout << "Calculating the excitation gaps." << std::endl;
   double upper = calc_band_gap_bilayer(L, ts, delta, me_F.qx(), me_F.qy(), me_F.qz());
   double omega_T = solve_pole_eq_bilayer(L, ts, mu, U, T, delta, cbp, me_F, continuous_k, "transverse", upper, return_upper, verbose);
   double omega_L = solve_pole_eq_bilayer(L, ts, mu, U, T, delta, cbp, me_F, continuous_k, "longitudinal", upper, return_upper, verbose);
@@ -487,7 +488,9 @@ void check_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
   CubaParam cbp(pr);
   
   /* Calculate the chemical potential and the charge gap. */
-  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, filling, T, cbp, continuous_k );  
+  double delta0 = 0.;
+  double mu0 = calc_chemical_potential_bilayer3(L, *ts, filling, T, delta0, cbp, continuous_k, false);  
+  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, mu0, T, cbp, continuous_k );  
   std::cout << "delta = " << delta << std::endl;  
   /* Assume that mu does not depend on L for integral over continuous k. */
   double ch_gap, mu;

@@ -30,7 +30,8 @@ namespace rpa {
     calc_Raman_bilayer = config->get_as<bool>("calc_Raman_bilayer").value_or(false);
     calc_Raman_bilayer_coefficient = config->get_as<bool>("calc_Raman_bilayer_coefficient").value_or(false);
     calc_mean_field_eigenenergy = config->get_as<bool>("calc_mean_field_eigenenergy").value_or(false);    
-    calc_two_site_problem = config->get_as<bool>("calc_two_site_problem").value_or(false);            
+    calc_two_site_problem = config->get_as<bool>("calc_two_site_problem").value_or(false);
+    check_details = config->get_as<bool>("check_details").value_or(false);                
 
     L = config->get_as<int64_t>("L").value_or(16);
     Lx = config->get_as<int64_t>("Lx").value_or(4);
@@ -70,6 +71,8 @@ namespace rpa {
     continuous_k = config->get_as<bool>("continuous_k").value_or(false);
     epsfunc = config->get_as<double>("epsfunc").value_or(1e-10);
     mod_prefactor = config->get_as<double>("mod_prefactor").value_or(1.0);
+    use_NelderMead = config->get_as<bool>("use_NelderMead").value_or(false);
+    use_1d_solver = config->get_as<bool>("use_1d_solver").value_or(true);        
     eta = config->get_as<double>("eta").value_or(0.001);
     U = config->get_as<double>("U").value_or(1.0);
 
@@ -132,7 +135,13 @@ namespace rpa {
     U_max = config->get_as<double>("U_max").value_or(1.0);
     U_delta = config->get_as<double>("U_delta").value_or(0.1);
     init_value = config->get_as<double>("init_value").value_or(std::numeric_limits<double>::quiet_NaN());
-
+  
+    /* Parameters for finding a 1st-order transition point */
+    find_first_order_transition_point = config->get_as<bool>("find_first_order_transition_point").value_or(false);    
+    find_U1st_anneal = config->get_as<bool>("find_U1st_anneal").value_or(true);
+    find_U1st_U_max = config->get_as<double>("find_U1st_U_max").value_or(0.3);
+    find_U1st_U_delta = config->get_as<double>("find_U1st_U_delta").value_or(0.01);        
+    
     /* Parameters for the Raman scattering */
     if (calc_Raman_bilayer) {
       double eV_532_inv_nm = planck_h * c_light / (532.0 * 1e-9);  // (eV)    

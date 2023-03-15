@@ -39,6 +39,8 @@ typedef std::ofstream ofstream;
 using std::filesystem::exists;
 #endif
 
+typedef std::ostream ostream;
+
 using namespace std::complex_literals;
 
 constexpr int up_spin = 1;

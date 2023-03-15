@@ -64,7 +64,7 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
     }
     
     if ( !additive && n_iter == max_iter ) {
-      std::cerr << "Cannot find an optimal x.\n";
+      std::cerr << "An optimal x was not found.\n";
       return false;
     }
 
@@ -119,13 +119,15 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
     }
     
     if ( std::abs( dx ) < 1e-24 ) {
-      std::cerr << "The tolerable margin of error was not reached." << std::endl;
+      std::cerr << "The tolerance was not reached in a binary search: the difference = " << diff << std::endl;
       return false;
     }
 
     /* Updating x */
     x += dx;
-
+    if ( !std::isnan( x_MIN_ ) && x < x_MIN_ ) { x = x_MIN_; }
+    if ( !std::isnan( x_MAX_ ) && x > x_MAX_ ) { x = x_MAX_; }
+    
     /* Updating the value */
     fx = f(x);
     diff = fx - target;

@@ -13,11 +13,32 @@
 #include "calc_single_particle_energy.h"
 #include "calc_chemical_potential.h"
 #include "BinarySearch.h"
+#include "find_critical_U.h"
 #include "find_critical_T.h"
 
 /* Creating an instance */
 SelfConsistentIntegrandBilayer scib;
 SelfConsistentIntegrand2Bilayer sci2b;
+
+int sci2b_gsl_function(const gsl_vector *x, void *params, gsl_vector *f){
+  return sci2b.gsl_function_helper(x, params, f);
+}
+int sci2b_gsl_function_df(const gsl_vector *x, void *params, gsl_matrix *J){
+  return sci2b.gsl_function_df_helper(x, params, J);
+}
+int sci2b_gsl_function_fdf(const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix *J){
+  return sci2b.gsl_function_fdf_helper(x, params, f, J);
+}
+  
+double sci2b_calc_diff(vec const& x){
+  return sci2b.calc_diff(x);
+}
+
+bool compare_x(vec const& x1, vec const& x2){
+  double f1 = sci2b.NelderMead_f(x1);
+  double f2 = sci2b.NelderMead_f(x2);
+  return f1 < f2;
+}
 
 /* Wrapper functions */
 int sc_integrand_bilayer(const int *ndim, const cubareal xx[], const int *ncomp, cubareal ff[], void *userdata){
@@ -30,7 +51,10 @@ int sc_integrand_bilayer2(const int *ndim, const cubareal xx[], const int *ncomp
 }
 
 /* Member functions of SelfConsistentIntegrand2Bilayer */
-SelfConsistentIntegrand2Bilayer::SelfConsistentIntegrand2Bilayer():SelfConsistentIntegrand2(&hb_),nr_(n_sc_params){}
+SelfConsistentIntegrand2Bilayer::SelfConsistentIntegrand2Bilayer():SelfConsistentIntegrand2(),nr_(n_sc_params),nm_(n_sc_params),use_gsl_(false),use_gsl_fdf_solver_(false),use_NelderMead_(false),use_1d_solver_(true){
+  nm_.f = &sci2b_calc_diff;
+  nm_.compare = &compare_x;
+}
 
 void SelfConsistentIntegrand2Bilayer::set_parameters(rpa::parameters const& pr, int _L, hoppings_bilayer2 const& _hb, double _U, double _filling, double _T, double _delta, double _mu, bool _continuous_k, bool _non_zero_delta){
   SelfConsistentIntegrand2::set_parameters(_L, _U, _filling, _T, _delta, _mu, _continuous_k, _non_zero_delta);
@@ -38,7 +62,11 @@ void SelfConsistentIntegrand2Bilayer::set_parameters(rpa::parameters const& pr, 
   hb_ = _hb;
   cbp_.set_parameters(pr);
   nr_.mod_prefactor = pr.mod_prefactor;
+  use_NelderMead_ = pr.use_NelderMead;
+  use_1d_solver_ = pr.use_1d_solver;  
 }
+
+const hoppings_bilayer2 *SelfConsistentIntegrand2Bilayer::ts() const { return &hb_; }
 
 std::tuple<double, double> SelfConsistentIntegrand2Bilayer::calc_elec_density(const double *qvec) const {
   double kx = qvec[0];
@@ -203,12 +231,32 @@ double SelfConsistentIntegrand2Bilayer::calc_energy(){
   return calc();
 }
 
-double SelfConsistentIntegrand2Bilayer::calc_diff(){
+double SelfConsistentIntegrand2Bilayer::calc_diff_nr(){
   if ( non_zero_delta() ) {
     return std::norm(nr_.F(0)) + std::norm(nr_.F(1));
   } else {
     return std::norm(nr_.F(1));
   }
+}
+
+double SelfConsistentIntegrand2Bilayer::calc_diff(){
+  double f1 = calc_elec_density();
+  if ( non_zero_delta() ) {
+    double f0 = calc_mean_field();    
+    return f0 * f0 + f1 * f1;
+  } else {
+    return f1 * f1;
+  }
+}
+
+double SelfConsistentIntegrand2Bilayer::calc_diff(vec const& x){
+  set_input(x(0), x(1));
+  return calc_diff();
+}
+
+double SelfConsistentIntegrand2Bilayer::calc_diff(double _delta, double _mu){
+  set_input(_delta, _mu);
+  return calc_diff();
 }
 
 void SelfConsistentIntegrand2Bilayer::update_parameters(int64_t niter, double& _delta, double& _mu){
@@ -234,44 +282,336 @@ void SelfConsistentIntegrand2Bilayer::update_parameters(int64_t niter, double& _
     _mu += - nr_.mod_factor(niter) * nr_.F(1) / nr_.J(1,1);
   }
   if ( _mu < mu_lower_bound() ) { _mu = mu_lower_bound(); }
-  if ( _mu > mu_upper_bound() ) { _mu = mu_upper_bound(); }  
+  if ( _mu > mu_upper_bound() ) { _mu = mu_upper_bound(); }
 }
 
-bool SelfConsistentIntegrand2Bilayer::find_solution(double& delta, double& mu, bool verbose){
-  double delta2 = delta;
-  double mu2 = mu;
+int SelfConsistentIntegrand2Bilayer::gsl_function_helper(const gsl_vector *x, void *params, gsl_vector *f){  
+  const double x0 = gsl_vector_get(x, 0);
+  const double x1 = gsl_vector_get(x, 1);
+
+  if (invalid_params(x0, x1)) {
+    gsl_vector_set(f, 0, 1e+12);
+    gsl_vector_set(f, 1, 1e+12);
+  } else {    
+    set_input(x0, x1);
+    const double y0 = calc_mean_field();
+    const double y1 = calc_elec_density();
+    gsl_vector_set(f, 0, y0);
+    gsl_vector_set(f, 1, y1);
+  }
+  
+  return GSL_SUCCESS;
+}
+
+int SelfConsistentIntegrand2Bilayer::gsl_function_df_helper(const gsl_vector *x, void *params, gsl_matrix *J){
+  const double x0 = gsl_vector_get(x, 0);
+  const double x1 = gsl_vector_get(x, 1);
+  
+  set_input(x0, x1);  
+  const double df00 = calc_mean_field_der_delta();
+  const double df01 = calc_mean_field_der_mu();
+  const double df10 = calc_elec_density_der_delta();
+  const double df11 = calc_elec_density_der_mu();
+  gsl_matrix_set(J, 0, 0, df00);
+  gsl_matrix_set(J, 0, 1, df01);
+  gsl_matrix_set(J, 1, 0, df10);
+  gsl_matrix_set(J, 1, 1, df11);
+  
+  return GSL_SUCCESS;
+}
+
+int SelfConsistentIntegrand2Bilayer::gsl_function_fdf_helper(const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix *J){
+  const double x0 = gsl_vector_get(x, 0);
+  const double x1 = gsl_vector_get(x, 1);
+
+  if (invalid_params(x0, x1)) {
+    gsl_vector_set(f, 0, 1e+12);
+    gsl_vector_set(f, 1, 1e+12);
+  } else {      
+    set_input(x0, x1);
+  
+    const double y0 = calc_mean_field();
+    const double y1 = calc_elec_density();  
+    gsl_vector_set(f, 0, y0);
+    gsl_vector_set(f, 1, y1);
+
+    const double df00 = calc_mean_field_der_delta();
+    const double df01 = calc_mean_field_der_mu();
+    const double df10 = calc_elec_density_der_delta();
+    const double df11 = calc_elec_density_der_mu();
+    gsl_matrix_set(J, 0, 0, df00);
+    gsl_matrix_set(J, 0, 1, df01);
+    gsl_matrix_set(J, 1, 0, df10);
+    gsl_matrix_set(J, 1, 1, df11);
+  }
+  
+  return GSL_SUCCESS;  
+}
+
+bool SelfConsistentIntegrand2Bilayer::find_solution_gsl(double& _delta, double& _mu, bool verbose){
+  const gsl_multiroot_fsolver_type *T;
+  const gsl_multiroot_fdfsolver_type *Tdf;        
+  gsl_multiroot_fsolver *s;
+  gsl_multiroot_fdfsolver *sdf;
+
+  int status;
+  std::size_t iter = 0;
+
+  const size_t n = 2;
+  gsl_multiroot_function f = {&sci2b_gsl_function, n, NULL};
+  gsl_multiroot_function_fdf fdf = {&sci2b_gsl_function, &sci2b_gsl_function_df, &sci2b_gsl_function_fdf, n, NULL};    
+
+  set_input(_delta, _mu);
+    
+  double x_init[2] = {delta(), mu()};
+  gsl_vector *x = gsl_vector_alloc(n);
+  gsl_vector_set(x, 0, x_init[0]);
+  gsl_vector_set(x, 1, x_init[1]);
+
+  T = gsl_multiroot_fsolver_hybrids;    
+  Tdf = gsl_multiroot_fdfsolver_hybridsj;
+    
+  s = gsl_multiroot_fsolver_alloc(T, n);
+  sdf = gsl_multiroot_fdfsolver_alloc(Tdf, n);
+    
+  gsl_multiroot_fsolver_set(s, &f, x);    
+  gsl_multiroot_fdfsolver_set(sdf, &fdf, x);
+
+  /* Iteration */
+  do {
+    iter++;
+    if (use_gsl_fdf_solver()) {
+      status = gsl_multiroot_fdfsolver_iterate(sdf);
+    } else {
+      status = gsl_multiroot_fsolver_iterate(s);
+    }
+    if (status) break;
+    status = gsl_multiroot_test_residual(s->f, eps_func());
+  } while(status == GSL_CONTINUE && iter <= max_iter());
+
+  printf ("status = %s\n", gsl_strerror(status));
+  printf ("number of iterations = %zu\n", iter);
+  printf ("root found at (%g, %g)\n",
+	  gsl_vector_get(s->x, 0),
+	  gsl_vector_get(s->x, 1));
+
+  /* Getting the result. */
+  _delta = gsl_vector_get(x, 0);
+  _mu = gsl_vector_get(x, 1);
+
+  /* Free memory */
+  gsl_multiroot_fsolver_free(s);
+  gsl_multiroot_fdfsolver_free(sdf);    
+  gsl_vector_free(x);
+
+  return true;  
+}
+
+bool SelfConsistentIntegrand2Bilayer::find_solution_nr(double& _delta, double& _mu, bool verbose){
+  std::cout << "Using the Newton-Raphson method." << std::endl;
+  double delta2 = _delta;
+  double mu2 = _mu;
   int64_t niter = 0;
   double diff = 0;
   do {
     ++niter;
     if ( niter == max_iter() ) {
       std::cerr << "Number of iteration reaches the limit " << max_iter() << std::endl;
-      std::cerr << "The remained error squared is " << std::to_string(diff) << std::endl;      
-      return false;
+      std::cerr << "The remained error squared is " << std::to_string(diff) << std::endl;
+      break;
     }
-    delta = delta2;
-    mu = mu2;
-    set_input(delta, mu);    
+    _delta = delta2;
+    _mu = mu2;
+    set_input(_delta, _mu);    
     update_parameters(niter, delta2, mu2);
-    diff = calc_diff();
+    diff = calc_diff_nr();
     if ( verbose ) {
       if ( non_zero_delta() ) {
 	std::cout << niter << "  "
-		  << delta << "  " << delta2 << "  " << mu << "  " << mu2 << "  "
+		  << _delta << "  " << delta2 << "  " << _mu << "  " << mu2 << "  "
 		  << diff << "  "
 		  << nr_.F(0) << "  " << nr_.F(1) << "  "
 		  << nr_.J(0,0) << "  " << nr_.J(0,1) << "  " << nr_.J(1,0) << "  " << nr_.J(1,1) << std::endl;
       } else {
-	std::cout << niter << "  " << delta << "  "
-		  << mu << "  " << mu2 << "  "
+	std::cout << niter << "  " << _delta << "  "
+		  << _mu << "  " << mu2 << "  "
 		  << diff << "  "
-	          << nr_.F(1) << "  "
+		  << nr_.F(1) << "  "
 		  << nr_.J(1,1)
 		  << std::endl;
       }
     }
-  } while ( diff > eps_func() * eps_func() );
-  return true;  
+  } while (diff > eps_func() * eps_func());
+
+  if (diff <= eps_func() * eps_func()){
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool SelfConsistentIntegrand2Bilayer::find_solution_nm(double& _delta, double& _mu, bool verbose){
+  std::cout << "Using the Nelder-Mead method." << std::endl;    
+  nm_.reset();
+  nm_.set_tolerance(eps_func() * eps_func());
+    
+  /* Initial parameters */
+  std::vector<vec> xs(n_sc_params+1);
+  vec x0{_delta, _mu};
+  vec x1{_delta*1.01, _mu*1.01};
+  vec x2{_delta*1.01, _mu*0.99};
+  xs[0] = x0;
+  xs[1] = x1;
+  xs[2] = x2;
+  nm_.init_x(xs);
+  nm_.sort();
+
+  bool optimized = true;
+  for(std::size_t t=0; t < max_iter(); ++t){
+    // nm_.output(std::cout);
+    nm_.step();
+    if (nm_.is_terminated()) { break; }      
+    if (t == max_iter() - 1){ optimized = false; }
+  }
+    
+  double f_opt = 0.;
+  nm_.get_result(x0, f_opt);
+  _delta = x0[0];
+  _mu = x0[1];
+  if (optimized){
+    return true;
+  } else {
+    std::cerr << "Number of iteration reaches the limit " << max_iter() << std::endl;    
+    std::cerr << "The remained error squared is " << std::to_string(f_opt) << std::endl;
+    return false;
+  }
+}
+
+bool SelfConsistentIntegrand2Bilayer::find_solution_using_1d_solver(double& _delta, double& _mu, bool verbose){
+  double delta0 = _delta;
+  double mu0 = _mu;
+  double diff1 = 0., diff2 = 0.;
+
+  int prec = 15;
+  int pw = prec + 10;
+  
+  /* Testing the two alternating algorithms. */
+  for(std::size_t t=0; t < max_iter(); ++t){
+    /* delta -> mu */    
+    _mu = calc_chemical_potential_bilayer3(L(), *ts(), filling(), T(), _delta, cbp_, continuous_k(), false);
+
+    if (verbose) {
+      std::cout << std::setw(pw) << t << std::setw(pw) << _delta << std::setw(pw) << _mu << std::endl;
+    }
+
+    /* mu -> delta */    
+    _delta = solve_self_consistent_eq_bilayer2(L(), *ts(), U(), _mu, T(), cbp_, continuous_k());
+    diff1 = calc_diff(_delta, _mu);
+    
+    if (verbose) {
+      std::cout << std::setw(pw) << t << std::setw(pw) << _delta << std::setw(pw) << _mu << std::setw(pw) << diff1 << std::endl;
+    }
+
+    /* Checking if it is converged. */
+    if (diff1 <= eps_func() * eps_func()) {
+      return true;
+    }
+
+    /* Reached the maximum iteration step. */
+    if (t == max_iter() - 1) {
+      std::cerr << "Number of iteration reaches the limit " << max_iter() << std::endl;    
+      std::cerr << "The remained error squared is " << std::to_string(diff1) << std::endl;
+    }    
+  }
+
+  /* Storing */
+  double delta1 = _delta;
+  double mu1 = _mu;
+  
+  /* Resetting */
+  _delta = delta0;
+  _mu = mu0;
+  
+  for(std::size_t t=0; t < max_iter(); ++t){
+    /* mu -> delta */    
+    _delta = solve_self_consistent_eq_bilayer2(L(), *ts(), U(), _mu, T(), cbp_, continuous_k());
+    
+    if (verbose){
+      std::cout << std::setw(pw) << t << std::setw(pw) << _delta << std::setw(pw) << _mu << std::endl;
+    }
+
+    /* delta -> mu */    
+    _mu = calc_chemical_potential_bilayer3(L(), *ts(), filling(), T(), _delta, cbp_, continuous_k(), false);    
+    diff2 = calc_diff(_delta, _mu);
+    
+    if (verbose){
+      std::cout << std::setw(pw) << t << std::setw(pw) << _delta << std::setw(pw) << _mu << std::setw(pw) << diff2 << std::endl;
+    }
+
+    /* Checking if it is converged. */
+    if (diff2 <= eps_func() * eps_func()) {
+      return true;
+    }
+
+    /* Reached the maximum iteration step. */
+    if (t == max_iter() - 1) {
+      std::cerr << "Number of iteration reaches the limit " << max_iter() << std::endl;    
+      std::cerr << "The remained error squared is " << std::to_string(diff2) << std::endl;
+    }    
+  }  
+
+  /* Storing */
+  double delta2 = _delta;
+  double mu2 = _mu;
+
+  /* Choosing one solution. */
+  if (diff1 < diff2) {
+    _delta = delta1;
+    _mu = mu1;
+  } else {
+    _delta = delta2;
+    _mu = mu2;
+  }
+  
+  return true;
+}
+
+bool SelfConsistentIntegrand2Bilayer::find_solution(double& _delta, double& _mu, bool verbose){
+  if (half_filling() && T_equal_to_0()){
+    /* Checking if the charge gap of the noninteracting system is finite. */
+    double delta0 = 0.;
+    double ch_gap, mu0;
+    std::tie(ch_gap, mu0) = calc_charge_gap_bilayer(L(), *ts(), delta0);
+    if (ch_gap > 0.) {
+      /* delta for mu0 should be correct. */
+      _delta = solve_self_consistent_eq_bilayer2(L(), *ts(), U(), mu0, T(), cbp_, continuous_k());
+
+      /* Updating mu */
+      std::tie(ch_gap, _mu) = calc_charge_gap_bilayer(L(), *ts(), _delta);
+      return true;
+    }    
+  }
+
+  /* Two-dimensional root-finding. */
+  if (use_gsl()){
+    return find_solution_gsl(_delta, _mu, verbose);
+  } else if (use_1d_solver()) {
+    return find_solution_using_1d_solver(_delta, _mu, verbose);
+  } else {
+    /* Using the Newton-Raphson method */
+    bool converged = find_solution_nr(_delta, _mu, verbose);
+
+    /* The Nelder-Mead method may be used if the Newton-Raphson method was not successful. */
+    if (converged) {
+      return true;
+    } else {
+      if (use_NelderMead()) {
+	return find_solution_nm(_delta, _mu, verbose);
+      } else {
+	return false;
+      }
+    }
+  }
 }
 
 double SelfConsistentIntegrand2Bilayer::calc() const {
@@ -388,6 +728,7 @@ double solve_self_consistent_eq_bilayer(int L, hoppings_bilayer const& ts, doubl
 
   BinarySearch bs;
   bool sol_found = bs.find_solution( delta, target, scc );
+  
   if ( sol_found ) {
     return delta;
   } else {
@@ -395,13 +736,12 @@ double solve_self_consistent_eq_bilayer(int L, hoppings_bilayer const& ts, doubl
   }
 }
 
-double self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double filling, double T, double delta, CubaParam const& cbp, bool continuous_k){  
+double self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double mu, double T, double delta, CubaParam const& cbp, bool continuous_k){
   /* Monotonically decreasing as a function of delta */
   double sum = 0;
 
-  /* Changing the parameters */
-  double mu = calc_chemical_potential_bilayer3(L, ts, filling, T, delta, cbp, continuous_k, false);
-  scib.set_parameters(ts, mu, delta, T);  
+  /* Setting the parameters. */
+  scib.set_parameters(ts, mu, delta, T);
     
   if ( continuous_k ) {
     /* For Cuba */
@@ -455,19 +795,12 @@ double self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double fi
 	  double mu = 0.5 * ( Em + Ep );
 	  double n_minus = fermi_density(Em, kB*T, mu);
 	  double n_plus = fermi_density(Ep, kB*T, mu);	    
-
-	  // // for check
-	  // double zki = zk(ek1, ts.tz, kz, delta);	  
-	  // sum += factor * zki;
-	  
 	  sum += factor * zki_over_delta * ( n_minus - n_plus );	  
-	  
 	} /* end for y */
       } /* end for x */
     } /* end for z */
 
-    int n_sites = L * L * 2;  
-    // sum /= (double)( n_sites * delta );
+    int n_sites = L * L * 2;
     sum /= (double)( n_sites );    
   }  
 
@@ -475,26 +808,55 @@ double self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double fi
   return sum;
 }
 
-double solve_self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double U, double filling, double T, CubaParam const& cbp, bool continuous_k){
-  
-  std::cout << "Finding a self-consistent solution for U = " << U << ", T = " << T << std::endl;
+double solve_self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double U, double mu, double T, CubaParam const& cbp, bool continuous_k){
+  std::cout << "Solving the self-consistent equation for U = " << U << ", mu = " << mu << ", T = " << T << std::endl;  
   double target = 1. / U;
   double delta = 0.45 * U;
 
   using std::placeholders::_1;
-  auto scc = std::bind( self_consistent_eq_bilayer2, L, std::ref(ts), filling, T, _1, std::ref(cbp), continuous_k );
+  auto scc = std::bind(self_consistent_eq_bilayer2, L, std::ref(ts), mu, T, _1, std::ref(cbp), continuous_k);
 
   BinarySearch bs(continuous_k);
-  bool sol_found = bs.find_solution( delta, target, scc );
+  bool sol_found = bs.find_solution(delta, target, scc);
 
-  if ( sol_found ) {
+  if (sol_found) {
     return delta;
   } else {
     return 0;
-  }  
+  }
 }
 
-std::tuple<double, double> solve_self_consistent_eqs_bilayer(rpa::parameters const& pr, int L, hoppings_bilayer2 const& ts, double U, double filling, double T, bool continuous_k, bool non_zero_delta, double delta_i = 0.01, double mu_i = 0.){  
+std::tuple<double, double> solve_self_consistent_eqs_bilayer(rpa::parameters const& pr, int L, hoppings_bilayer2 const& ts, double U, double filling, double T, bool continuous_k, double delta_i, double mu_i){
+  /* Checking if it is in the ordered phase. */
+  bool non_zero_delta;
+  if (T < 1e-15) {
+    std::cout << "Calculating the critical U." << std::endl;
+    double Uc = find_critical_U_bilayer(pr);
+    std::cout << "Uc = " << Uc << std::endl;
+    
+    if (U > Uc) {
+      non_zero_delta = true;
+    } else {
+      non_zero_delta = false;
+    }
+  } else {
+    std::cout << "Calculating the critical T." << std::endl;
+    double Tc = find_critical_T_bilayer(pr);
+    std::cout << "Tc = " << Tc << std::endl;
+    T = pr.calc_T(Tc);
+    std::cout << "T = " << T << std::endl;
+    
+    if (T < Tc) {
+      non_zero_delta = true;
+    } else {
+      non_zero_delta = false;
+    }
+  }
+  
+  return solve_self_consistent_eqs_bilayer2(pr, L, ts, U, filling, T, continuous_k, non_zero_delta, delta_i, mu_i);
+}
+
+std::tuple<double, double> solve_self_consistent_eqs_bilayer2(rpa::parameters const& pr, int L, hoppings_bilayer2 const& ts, double U, double filling, double T, bool continuous_k, bool non_zero_delta, double delta_i, double mu_i){
   std::cout << "Finding a self-consistent solution for U = " << U << ", T = " << T << std::endl;
   
   /* Initial values */

@@ -1,3 +1,15 @@
+/*****************************************************************************
+*
+* Functions for finding a root.
+*
+* Copyright (C) 2018 by Hidemaro Suwa
+* e-mail:suwamaro@phys.s.u-tokyo.ac.jp
+*
+*****************************************************************************/
+
+#ifndef __FIND_ROOT_H__
+#define __FIND_ROOT_H__
+
 #include <cmath>
 #include <functional>
 #include "rpa.h"
@@ -17,3 +29,5 @@ public:
   vec F;  // Find a solution x such that F(x) == 0.
   mat J;  // Derivatives  
 };
+
+#endif  // __FIND_ROOT_H__

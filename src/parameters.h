@@ -36,7 +36,8 @@ namespace rpa {
     bool calc_Raman_bilayer_coefficient;
     bool calc_mean_field_eigenenergy;    
     bool calc_two_site_problem;
-
+    bool check_details;  // For debug
+    
     int L;  // System size
     int Lx, Ly, Lz;
     int Lk;  // Delta q = 2pi / Lk for plot
@@ -54,6 +55,8 @@ namespace rpa {
     /* Parameter for solving the self-consistent equations */
     double epsfunc;
     double mod_prefactor;
+    bool use_NelderMead;
+    bool use_1d_solver;
     
     double eta;  // Broadening factor
     double U;  // Onsite Coulomb interaction
@@ -108,6 +111,12 @@ namespace rpa {
     double U_min, U_max, U_delta;
     double init_value;
 
+    /* Parameters for finding a 1st-order transition point */
+    bool find_first_order_transition_point;    
+    bool find_U1st_anneal;
+    double find_U1st_U_max;
+    double find_U1st_U_delta;    
+    
     /* Parameters for the Raman scattering */
     double omega_i;   // Energy of the initial photon state
     double eta_res;   // Broadening factor for resonant contributions

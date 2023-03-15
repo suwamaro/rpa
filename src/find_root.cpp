@@ -1,3 +1,12 @@
+/*****************************************************************************
+*
+* Functions for finding a root.
+*
+* Copyright (C) 2018 by Hidemaro Suwa
+* e-mail:suwamaro@phys.s.u-tokyo.ac.jp
+*
+*****************************************************************************/
+
 #include <iostream>
 #include "find_root.h"
 

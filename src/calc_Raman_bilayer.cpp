@@ -18,7 +18,6 @@
 #include "calc_gap.h"
 #include "calc_chemical_potential.h"
 #include "calc_wave_func.h"
-#include "BinarySearch.h"
 #include "calc_Raman.h"
 // #include "particle_hole1.h"
 
@@ -642,16 +641,19 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   /* Parameters for Cuba */
   CubaParam cbp(pr);
   
-  /* Calculate the chemical potential and the charge gap. */
-  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, filling, T, cbp, continuous_k );  
+  /* Calculating the order parameter (delta) and the chemical potential. */
+  double delta = 0., ch_pot = 0.;
+  std::tie(delta, ch_pot) = solve_self_consistent_eqs_bilayer(pr, L, *ts, U, filling, T, continuous_k);
   std::cout << "delta = " << delta << std::endl;
-  /* Assume that the chemical potential does not depend on L for integral over continuous k. */
-  double ch_gap, ch_pot;
-  std::tie(ch_gap, ch_pot) = calc_charge_gap_bilayer( L, *ts, delta );  /* Finite size */  
 
+  /* Calculating the charge gap. */  
+  double ch_gap = 0., mu0 = 0.;
+  std::tie(ch_gap, mu0) = calc_charge_gap_bilayer( L, *ts, delta );  /* Finite size */
+  
   /* Output */
   ofstream out_gap;
   out_gap.open(base_dir / "gap.text");
+  out_gap << "delta = " << delta << std::endl;  
   out_gap << "Charge gap = " << ch_gap << std::endl;
   out_gap << "Chemical potential = " << ch_pot << std::endl;
   
@@ -668,7 +670,8 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
     
     /* Calculating gaps */
     double omega_T = 0, omega_L = 0, omega_ph = 0;
-    bool return_upper = true;
+    bool return_upper = false;
+    // bool return_upper = true;    
     bool verbose = false;    
     std::tie(omega_T, omega_L, omega_ph) = calc_gap_bilayer(L, *ts, ch_pot, U, T, delta, cbp, me_F, continuous_k, return_upper, verbose);
     
@@ -923,7 +926,9 @@ void calc_coef_eff_Raman_real_space(path& base_dir, rpa::parameters const& pr){
   CubaParam cbp(pr);
 
   /* Calculate the chemical potential and the charge gap. */
-  double delta = solve_self_consistent_eq_bilayer2(L, *ts, U, filling, T, cbp, continuous_k);  
+  double delta0 = 0.;
+  double mu0 = calc_chemical_potential_bilayer3(L, *ts, filling, T, delta0, cbp, continuous_k, false);
+  double delta = solve_self_consistent_eq_bilayer2(L, *ts, U, mu0, T, cbp, continuous_k);  
   std::cout << "delta = " << delta << std::endl;
   
   /* Bonds */

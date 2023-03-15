@@ -405,6 +405,7 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
   double eta = pr.eta;
   double U = pr.U;
   double filling = pr.filling;
+  double T = pr.T;
   bool continuous_k = pr.continuous_k;
 
   /* Wavevectors */
@@ -425,44 +426,17 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
   /* Parameters for Cuba */
   CubaParam cbp(pr);
 
-  /* Calculating delta and mu */
-  double delta = 0, mu = 0;
-  double T = 0;
+  /* Calculating the order parameter (delta) and the chemical potential. */
+  double delta = 0., mu = 0.;
+  std::tie(delta, mu) = solve_self_consistent_eqs_bilayer(pr, L, *ts, U, filling, T, continuous_k);
+  std::cout << "delta = " << delta << std::endl;
+  std::cout << "mu = " << mu << std::endl;  
+
+  /* Calculating the charge gap. */  
+  double ch_gap = 0., mu0 = 0.;
+  std::tie(ch_gap, mu0) = calc_charge_gap_bilayer( L, *ts, delta );  /* Finite size */
+  std::cout << "charge gap = " << ch_gap << std::endl;
   
-  /* Checking if the temperature T == 0 */
-  if ( pr.T_equal_to_0 ) {
-    T = 0;
-    std::cout << "T = " << T << std::endl;
-    
-    /* Calculating the order parameter. */
-    delta = solve_self_consistent_eq_bilayer2( L, *ts, U, filling, T, cbp, continuous_k );  
-    std::cout << "delta = " << delta << std::endl;  
-    
-    /* Calculating the chemical potential. */
-    mu = calc_chemical_potential_bilayer_output( base_dir, L, *ts, filling, T, delta, cbp, continuous_k );  /* Finite size */
-  } else {
-    /* Find the critical temperature */
-    double Tc = find_critical_T_bilayer(pr);
-    T = pr.calc_T(Tc);    
-    std::cout << "T = " << T << std::endl;    
-    bool non_zero_delta = T < Tc;    
-
-    /* Calculating mu for delta=0 */
-    double ch_gap;
-    std::tie(ch_gap, mu) = calc_charge_gap_bilayer(L, *ts, 0.);
-    std::cout << "The charge gap of the noninteracting system = " << ch_gap << std::endl;
-    std::cout << "The chemical potential of the noninteracting system = " << mu << std::endl;    
-
-    /* Solving the self-consistent eqs. */
-    double delta_i = 0.1 * U;
-    std::tie(delta, mu) = solve_self_consistent_eqs_bilayer( pr, L, *ts, U, filling, T, continuous_k, non_zero_delta, delta_i, mu);
-    std::cout << "delta = " << delta << std::endl;
-    std::cout << "mu = " << mu << std::endl;
-    double mu0;
-    std::tie(ch_gap, mu0) = calc_charge_gap_bilayer(L, *ts, delta);
-    std::cout << "The charge gap = " << ch_gap << std::endl;        
-  }
-      
   /* Single particle energy */
   calc_single_particle_energy_bilayer2( base_dir, *ts, L, delta );
       

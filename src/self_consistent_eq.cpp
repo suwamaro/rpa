@@ -57,7 +57,7 @@ int SelfConsistentIntegrandBilayer::calc(const int *ndim, const cubareal xx[], c
 
 
 /* Member functions of SelfConsistentIntegrand2 */
-SelfConsistentIntegrand2::SelfConsistentIntegrand2(hoppings2 *ts):ts_(ts){
+SelfConsistentIntegrand2::SelfConsistentIntegrand2(){
   max_iter_ = 2e+2;
   eps_ = 1e-12;
   eps_func_ = 1e-10;
@@ -66,10 +66,11 @@ SelfConsistentIntegrand2::SelfConsistentIntegrand2(hoppings2 *ts):ts_(ts){
 int64_t SelfConsistentIntegrand2::max_iter() const { return max_iter_; }
 double SelfConsistentIntegrand2::eps() const { return eps_; }
 double SelfConsistentIntegrand2::eps_func() const { return eps_func_; }
-hoppings2 *SelfConsistentIntegrand2::ts() const { return ts_; }
 int SelfConsistentIntegrand2::L() const { return L_; }
 double SelfConsistentIntegrand2::U() const { return U_; }
+bool SelfConsistentIntegrand2::half_filling() const { return half_filling_; }
 double SelfConsistentIntegrand2::filling() const { return filling_; }
+bool SelfConsistentIntegrand2::T_equal_to_0() const { return T_equal_to_0_; }
 double SelfConsistentIntegrand2::T() const { return T_; }
 double SelfConsistentIntegrand2::delta() const { return delta_; }
 double SelfConsistentIntegrand2::mu() const { return mu_; }
@@ -82,16 +83,21 @@ void SelfConsistentIntegrand2::set_parameters(int _L, double _U, double _filling
   L_ = _L;
   U_ = _U;
   filling_ = _filling;
+  if (std::abs(filling() - 0.5) < 1e-12) {
+    half_filling_ = true;    
+  } else {
+    half_filling_ = false;
+  }
   T_ = _T;
+  if (T() < 1e-15) {
+    T_equal_to_0_ = true;
+  } else {
+    T_equal_to_0_ = false;
+  }
   delta_ = _delta;
   mu_ = _mu;  
   continuous_k_ = _continuous_k;
   non_zero_delta_ = _non_zero_delta;
-}
-
-void SelfConsistentIntegrand2::set_delta_mu(double _delta, double _mu){
-  delta_ = _delta;
-  mu_ = _mu;  
 }
 
 void SelfConsistentIntegrand2::set_input(double _delta, double _mu){
@@ -106,4 +112,9 @@ void SelfConsistentIntegrand2::set_eps_func(double _eps){
 void SelfConsistentIntegrand2::set_mu_bounds(double lower, double upper){
   mu_lower_bound_ = lower;
   mu_upper_bound_ = upper;
+}
+
+bool SelfConsistentIntegrand2::invalid_params(double _delta, double _mu) const {
+  if ( _delta < non_zero_delta_lower_bound() || _delta > delta_upper_bound() || _mu < mu_lower_bound() || _mu > mu_upper_bound() ) { return true; }
+  else { return false; }
 }

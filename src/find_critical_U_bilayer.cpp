@@ -23,6 +23,8 @@ int find_critical_U_bilayer_integrand(const int *ndim, const cubareal xx[], cons
 }
 
 double find_critical_U_bilayer(rpa::parameters const& pr){
+  std::cout << "Finding the critical U..." << std::endl;
+  
   /* Getting parameters */
   int L = pr.L;
   double filling = pr.filling;
@@ -36,9 +38,9 @@ double find_critical_U_bilayer(rpa::parameters const& pr){
     
   /* Calculating the chemical potential */
   double delta = 0.0;   // Zero order parameter
-  double kT = 0.0;   // Zero temperature
-  // double mu = calc_chemical_potential_bilayer3(L, *ts, filling, kT, delta, cbp, continuous_k, false);
-  double mu = calc_chemical_potential_bilayer3(L, *ts, filling, kT, delta, cbp, continuous_k, true);  
+  double T = 0.0;   // Zero temperature
+  double mu = calc_chemical_potential_bilayer3(L, *ts, filling, T, delta, cbp, continuous_k, false);
+  // double mu = calc_chemical_potential_bilayer3(L, *ts, filling, T, delta, cbp, continuous_k, true);
 
   /* Setting the parameters */
   fuib.set_parameters(*ts, delta, mu);  
@@ -100,7 +102,6 @@ double find_critical_U_bilayer(rpa::parameters const& pr){
 }
 
 void find_critical_U_bilayer_output(path& base_dir, rpa::parameters const& pr){
-  std::cout << "Finding the critical U..." << std::endl;
   double Uc = find_critical_U_bilayer(pr);
   
   /* Precision */
@@ -137,17 +138,17 @@ void check_mean_field_eq_bilayer(std::string const& ofilen, rpa::parameters cons
   out_mf << "#  delta   mu   func   energy" << std::endl;
   out_mf << std::setprecision(prec);
     
-  double kT = 0.0;   // Zero temperature
+  double T = 0.0;   // Zero temperature
   
   /* Calculating the chemical potential */
   double delta_max = 1.0;
   double delta_delta = 0.01;
   for(double delta=0.; delta <= delta_max; delta += delta_delta){
-    double mu = calc_chemical_potential_bilayer3(L, *ts, filling, kT, delta, cbp, continuous_k, false);
+    double mu = calc_chemical_potential_bilayer3(L, *ts, filling, T, delta, cbp, continuous_k, false);
 
     /* Set parameters */
     double U = 0.;   // Unused
-    sci2b.set_parameters(pr, L, *ts, U, filling, kT, delta, mu, continuous_k, true);
+    sci2b.set_parameters(pr, L, *ts, U, filling, T, delta, mu, continuous_k, true);
 
     double f = sci2b.calc_mean_field_function();
     double E = sci2b.calc_energy();
@@ -161,10 +162,8 @@ void check_mean_field_eq_bilayer(std::string const& ofilen, rpa::parameters cons
 std::tuple<double, double, double, double, double, double> calc_total_energies(rpa::parameters const& pr, double U, double delta_i, double mu_i, bool set_initial_values){
   /* Getting parameters */
   int L = pr.L;
-  double kT = pr.T;  
   double filling = pr.filling;
   bool continuous_k = pr.continuous_k;
-  std::cout << "kT = " << kT << std::endl;
   
   /* Hopping parameters */
   std::unique_ptr<hoppings_bilayer2> ts = hoppings_bilayer2::mk_bilayer3(pr);
@@ -174,14 +173,10 @@ std::tuple<double, double, double, double, double, double> calc_total_energies(r
     
   /* For the disordered state */
   double delta = 0;
-  double mu = calc_chemical_potential_bilayer3(L, *ts, filling, kT, delta, cbp, continuous_k, false);
-  sci2b.set_parameters(pr, L, *ts, U, filling, kT, delta, mu, continuous_k, true);
-  sci2b.set_mu_bounds(0., 0.3);   // ad-hoc
-  std::cout << "Setting mu bounds [0, 0.3]." << std::endl;
+  double T = 0.0;
+  double mu = calc_chemical_potential_bilayer3(L, *ts, filling, T, delta, cbp, continuous_k, false);
+  sci2b.set_parameters(pr, L, *ts, U, filling, T, delta, mu, continuous_k, true);
   double F1 = sci2b.calc_energy();
-
-  // for check
-  std::cout << delta << "  " << mu << "  " << F1 << std::endl;
 
   /* For the ordered state */
   if (set_initial_values){
@@ -190,18 +185,16 @@ std::tuple<double, double, double, double, double, double> calc_total_energies(r
   } else {
     delta = 0.1 * U;
   }
-  
-  std::tie(delta, mu) = solve_self_consistent_eqs_bilayer(pr, L, *ts, U, filling, kT, continuous_k, true, delta, mu);
-  sci2b.set_delta_mu(delta, mu);
+  bool non_zero_delta = true;
+  std::tie(delta, mu) = solve_self_consistent_eqs_bilayer2(pr, L, *ts, U, filling, T, continuous_k, non_zero_delta, delta, mu);
+  // std::tie(delta, mu) = solve_self_consistent_eqs_bilayer(pr, L, *ts, U, filling, T, continuous_k, delta, mu);  
+  sci2b.set_input(delta, mu);
   double F2 = sci2b.calc_energy();
-  double diff = sci2b.calc_diff();
-  
+  double diff = sci2b.calc_diff(delta, mu);
+
+  /* Calculating the charge gap. */
   double ch_gap, mu0;
   std::tie(ch_gap, mu0) = calc_charge_gap_bilayer(L, *ts, delta);
-  std::cout << "The charge gap = " << ch_gap << std::endl;
-    
-  // for check
-  std::cout << delta << "  " << mu << "  " << F2 << "  " << ch_gap << std::endl;
   
   return std::make_tuple(F1, F2, delta, mu, ch_gap, diff);
 }

@@ -197,7 +197,9 @@ void calc_current_bilayer(path& base_dir, rpa::parameters const& pr){
   CubaParam cbp(pr);
   
   /* Calculate the chemical potential and the charge gap. */
-  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, filling, T, cbp, continuous_k );  
+  double delta0 = 0.;
+  double mu0 = calc_chemical_potential_bilayer3(L, *ts, filling, T, delta0, cbp, continuous_k, false);  
+  double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, mu0, T, cbp, continuous_k );  
   std::cout << "delta = " << delta << std::endl;  
   /* Assume that mu does not depend on L for integral over continuous k. */
   double ch_gap, mu;

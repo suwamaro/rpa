@@ -32,6 +32,8 @@ void calc_mean_field_eigenenergy(path& base_dir, rpa::parameters const& pr){
   CubaParam cbp(pr);
   
   /* Calculate the chemical potential and the charge gap. */
+  double delta0 = 0.;
+  double mu0 = calc_chemical_potential_bilayer3(L, *ts, filling, T, delta0, cbp, continuous_k, false);  
   double delta = solve_self_consistent_eq_bilayer2( L, *ts, U, filling, T, cbp, continuous_k );  
   std::cout << "delta = " << delta << std::endl;
   /* Assume that the chemical potential does not depend on L for integral over continuous k. */

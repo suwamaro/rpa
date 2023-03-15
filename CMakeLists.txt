@@ -46,6 +46,11 @@ find_package(Boost 1.55.0 REQUIRED COMPONENTS filesystem system)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${Boost_LIBRARIES})
 
+# GSL
+find_package(GSL REQUIRED)
+include_directories(SYSTEM ${GSL_INCLUDE_DIRS})
+set(LIBS ${LIBS} ${GSL_LIBRARIES})
+
 # Armadillo
 find_package(Armadillo REQUIRED CONFIG
              PATHS "/usr/local" "$ENV{ARMA_ROOT}" NO_SYSTEM_ENVIRONMENT_PATH)

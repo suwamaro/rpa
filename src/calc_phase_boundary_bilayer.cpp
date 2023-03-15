@@ -8,6 +8,7 @@
 *****************************************************************************/
 
 #include "calc_phase_boundary.h"
+#include "BinarySearch.h"
 #include "find_critical_point.h"
 #include "find_critical_U.h"
 
@@ -45,6 +46,55 @@ void calc_phase_boundary_U_bilayer(path& base_dir, rpa::parameters& pr){
   out_pb.close();
 }
 
+double calc_energy_diff(rpa::parameters& pr, double U, bool anneal = false, double U_max = 0., double U_delta = 0.){
+  double F1 = 0., F2 = 0., delta = 0., mu = 0., ch_gap = 0., diff = 0.;
+  bool set_init_val = false;
+
+  /* Gradually decreasing U. */
+  if (anneal) {
+    for(double Ua = U_max; Ua > U; Ua -= U_delta){
+      std::cout << "Annealing Ua = " << Ua << "   to U = " << U << std::endl;      
+      std::tie(F1, F2, delta, mu, ch_gap, diff) = calc_total_energies(pr, Ua, delta, mu, set_init_val);
+      set_init_val = true;
+    }
+  }
+
+  /* For U */
+  std::tie(F1, F2, delta, mu, ch_gap, diff) = calc_total_energies(pr, U, delta, mu, set_init_val);
+  
+  return F2 - F1;
+}
+
+double find_first_order_transition_point(rpa::parameters& pr, double Uc){
+  std::cout << "Finding a first-order transition point." << std::endl;
+
+  /* Extracting parameters. */
+  bool anneal = pr.find_U1st_anneal;
+  double U_max = pr.find_U1st_U_max;
+  double U_delta = pr.find_U1st_U_delta;  
+
+  /* Target value */
+  double target = 0.;
+
+  /* Function */
+  using std::placeholders::_1;
+  auto eq = std::bind(calc_energy_diff, std::ref(pr), _1, anneal, U_max, U_delta);
+
+  BinarySearch bs(pr.continuous_k);
+
+  /* The first-order transition point is expected to be greater than Uc. */
+  bs.set_x_MIN(Uc + 1e-12);
+  bs.set_x_MAX(U_max);
+
+  double U = Uc + 10. * U_delta;
+  bool sol_found = bs.find_solution(U, target, eq);
+
+  if ( sol_found ) {
+    return U;
+  } else {
+    return 0;
+  }  
+}
 
 void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
   std::cout << "Obtaining the phase boundary as a function of t4..." << std::endl;
@@ -52,7 +102,7 @@ void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
   /* Output */
   ofstream out_pb;
   out_pb.open( base_dir / "phase-boundary-t4.out");
-  out_pb << "# tz     U_c" << std::endl;
+  out_pb << "# tz     U_c(possible)     U_1st" << std::endl;
   
   /* Precision */
   int prec = 12;
@@ -82,30 +132,41 @@ void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
       check_mean_field_eq_bilayer(out_mff, pr);
     }    
 
-    /* Output */
-    std::string ofn_ = "free_energy-t4_"+std::to_string(t4r)+".text";
-    std::string ofn(base_dir/ofn_);    
-    ofstream out_e(ofn);
-    out_e << "# tz     U   F_disorder   F_order   delta_order   mu_order   ch_gap   diff" << std::endl;
-
-    double Uc = find_critical_U_bilayer(pr);    
+    /* Finding the possible critical point. */
+    double Uc = find_critical_U_bilayer(pr);   // Using delta == 0    
     std::cout << "Uc = " << Uc << std::endl;
-    std::cout << "Checking the energies." << std::endl;
-    double U_delta = 0.00001;
-    double Ui = Uc + U_delta;
-    double U_max = Uc * 1.0002;
-    double delta = 0., mu = 0., ch_gap = 0., diff = 0.;
-    bool set_init_val = false;
-    for(double U = 0.22; U > Uc; U -= 0.005){
-    // for(double U = Ui; U <= U_max; U += U_delta){
-      double F1 = 0., F2 = 0.;
-      std::tie(F1, F2, delta, mu, ch_gap, diff) = calc_total_energies(pr, U, delta, mu, set_init_val);
-      set_init_val = true;
-      out_e << std::setw(sw) << t4 << std::setw(sw) << U << std::setw(sw) << F1 << std::setw(sw) << F2 << std::setw(sw) << delta << std::setw(sw) << mu << std::setw(sw) << ch_gap << std::setw(sw) << diff << std::endl;
-    }
-    out_e.close();
     
-    out_pb << std::setprecision(prec) << t4 << std::setw(sw) << Uc << std::endl;
+    /* Checking if a first-order transition occurs. */
+    if (pr.find_first_order_transition_point) {
+      if (pr.check_details) {
+	/* Output */
+	std::string ofn_ = "free_energy-t4_"+std::to_string(t4r)+".text";
+	std::string ofn(base_dir/ofn_);    
+	ofstream out_e(ofn);
+	out_e << "# tz     U   F_disorder   F_order   delta_order   mu_order   ch_gap   diff" << std::endl;
+    
+	std::cout << "Checking the energies for each U." << std::endl;
+	double U_delta = 0.001;
+	double U_max = Uc + U_delta * 60;
+	double delta = 0., mu = 0., ch_gap = 0., diff = 0.;
+	bool set_init_val = false;
+	for(double U = U_max; U > Uc + 1e-12; U -= U_delta){
+	  double F1 = 0., F2 = 0.;
+	  std::tie(F1, F2, delta, mu, ch_gap, diff) = calc_total_energies(pr, U, delta, mu, set_init_val);
+	  set_init_val = true;
+	  out_e << std::setw(sw) << t4 << std::setw(sw) << U << std::setw(sw) << F1 << std::setw(sw) << F2 << std::setw(sw) << delta << std::setw(sw) << mu << std::setw(sw) << ch_gap << std::setw(sw) << diff << std::endl;
+	}
+	out_e.close();
+      }
+      
+      double U1st = find_first_order_transition_point(pr, Uc);
+      
+      /* Output */
+      out_pb << std::setprecision(prec) << t4 << std::setw(sw) << Uc << std::setw(sw) << U1st << std::endl;
+    } else {
+      /* Output */
+      out_pb << std::setprecision(prec) << t4 << std::setw(sw) << Uc << std::endl;
+    }
   }
 
   out_pb.close();  
