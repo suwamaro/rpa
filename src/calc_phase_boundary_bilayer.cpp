@@ -130,14 +130,9 @@ void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
     }
 
     /* Setting t4 */
-    pr.t4 = t4;
-    double shift = std::pow(10, 6);    
-    double t4r = std::round(t4*shift)/shift;
-    
+    pr.t4 = t4;    
     if (pr.check_mean_field_function) {
-      std::string ofn = "mean_field_eq-t4_"+std::to_string(t4r)+".text";
-      std::string out_mff(base_dir/ofn);
-      check_mean_field_eq_bilayer(out_mff, pr);
+      check_mean_field_eq_bilayer(base_dir, pr);
     }    
 
     /* Finding the possible critical point. */
@@ -148,9 +143,10 @@ void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
     if (pr.find_first_order_transition) {
       if (pr.check_details) {
 	/* Output */
-	std::string ofn_ = "free_energy-t4_"+std::to_string(t4r)+".text";
-	std::string ofn(base_dir/ofn_);    
-	ofstream out_e(ofn);
+	double shift = std::pow(10, 6);  
+	double t4r = std::round(pr.t4*shift)/shift;	
+	std::string ofn = "free_energy-t4_"+std::to_string(t4r)+".text";
+	ofstream out_e(base_dir/ofn);
 	out_e << "# tz     U   F_disorder   F_order   delta_order   mu_order   ch_gap   diff" << std::endl;
     
 	std::cout << "Checking the energies for each U." << std::endl;

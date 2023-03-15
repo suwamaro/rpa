@@ -116,7 +116,7 @@ void find_critical_U_bilayer_output(path& base_dir, rpa::parameters const& pr){
   out_Uc.close();  
 }
 
-void check_mean_field_eq_bilayer(std::string const& ofilen, rpa::parameters const& pr){
+void check_mean_field_eq_bilayer(path const& base_dir, rpa::parameters const& pr){
   /* Getting parameters */
   int L = pr.L;
   double filling = pr.filling;
@@ -133,8 +133,10 @@ void check_mean_field_eq_bilayer(std::string const& ofilen, rpa::parameters cons
   int sw = prec + 10;
     
   /* Output file */
-  ofstream out_mf;
-  out_mf.open(ofilen);
+  double shift = std::pow(10, 6);  
+  double t4r = std::round(pr.t4*shift)/shift;
+  std::string ofn = "mean_field_eq-t4_"+std::to_string(t4r)+".text";
+  ofstream out_mf(base_dir/ofn);
   out_mf << "#  delta   mu   func   energy" << std::endl;
   out_mf << std::setprecision(prec);
     
