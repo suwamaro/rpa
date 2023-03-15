@@ -8,7 +8,7 @@ This is a sample code of the random phase approximation (RPA) for the fermionic 
  - CMake - http://www.cmake.org
  - Armadillo - http://arma.sourceforge.net
  - Cuba - http://www.feynarts.de/cuba
- - GSL - https://www.gnu.org/software/gsl
+ - GNU Scientific Library - https://www.gnu.org/software/gsl
 
 ## Compilation
 
