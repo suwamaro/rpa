@@ -47,7 +47,7 @@ int MatElem::xyz_to_index(int x, int y, int z) const {
   return z * Lx() * Ly() + y * Lx() + x;
 }
   
-int MatElem::k_to_index(double kx, double ky, double kz) const {    
+std::size_t MatElem::k_to_index(double kx, double ky, double kz) const {    
   int lx = pullback(kx, Lx());
   int ly = pullback(ky, Ly());
   int lz = pullback(kz, Lz());    
@@ -283,15 +283,21 @@ void MatElemK::set_table(hoppings2 const& ts, double delta){
 std::size_t MatElemK::table_size() const { return Lx()*Ly()*Lz()*n_coefs(); }
 
 void MatElemK::calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *R) const {
-  /* The photon momenta are approximately set to zero. */
-  vec3 ki {0, 0, 0}, kf {0, 0, 0};
+  cx_double R1 = 0., R2 = 0.;
   
-  /* Formulation using up spin */
-  int spin = up_spin;
+  /* Only for half-occupied wave vectors. */
+  std::size_t kidx = k_to_index(kx, ky, kz);
+  if (std::find(not_half_occupied_.begin(), not_half_occupied_.end(), kidx) == not_half_occupied_.end()) {  
+    /* The photon momenta are approximately set to zero. */
+    vec3 ki {0, 0, 0}, kf {0, 0, 0};
   
-  /* Two cases of the perturbation */
-  cx_double R1 = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, spin, bonds_, mu_, nu_, ki, kf);
-  cx_double R2 = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, spin, bonds_, nu_, mu_, - kf, - ki);
+    /* Formulation using up spin */
+    int spin = up_spin;
+
+    /* Two cases of the perturbation */
+    R1 = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, spin, bonds_, mu_, nu_, ki, kf, occupied_, empty_);
+    R2 = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, spin, bonds_, nu_, mu_, - kf, - ki, occupied_, empty_);
+  }
   
   R[0] = R1;
   R[1] = R2;
@@ -304,10 +310,58 @@ void MatElemK::build_table(hoppings2 const& ts, double delta){
       double ky = 2. * M_PI / Ly() * y;
       for(int x=0; x < Lx(); ++x){    
 	double kx = 2. * M_PI / Lx() * x;
+
+	/* Checking if the wavevector is inside the BZ. */
+	double factor = BZ_factor_square_half_filling(kx, ky);
+	if ( std::abs(factor) < 1e-12 ) { continue; }
+	
 	std::size_t xyz_idx = xyz_to_index(x,y,z) * n_coefs();
 	cx_double Rup[n_coefs()];
 	calc_mat_elems(ts, delta, kx, ky, kz, Rup);
 	memcpy(R_up_ + xyz_idx, Rup, sizeof(cx_double) * n_coefs());
+      }
+    }
+  }
+}
+
+void MatElemK::set_occupied_and_empty_vectors(hoppings2 const& ts, double delta, double ch_pot){
+  occupied_.clear();
+  empty_.clear();
+  not_half_occupied_.clear();
+  for(int z=0; z < Lz(); ++z){    
+    double kz = 2. * M_PI / Lz() * z;  
+    for(int y=0; y < Ly(); ++y){    
+      double ky = 2. * M_PI / Ly() * y;
+      for(int x=0; x < Lx(); ++x){    
+	double kx = 2. * M_PI / Lx() * x;
+
+	/* Checking if the wavevector is inside the BZ. */
+	double factor = BZ_factor_square_half_filling(kx, ky);
+	if ( std::abs(factor) < 1e-12 ) { continue; }
+	    
+	/* Mean field eigenenergies */
+	cx_double ek1 = ts.ek1(kx, ky, kz);
+	cx_double tz = ts.tz; 
+	cx_double ek23 = ts.ek23(kx, ky, kz);
+	cx_double ekz = ts.ekz(kx, ky, kz);
+	double ek_plus = eigenenergy_HF(1., ek1, ek23, ekz, tz, kz, delta);
+	double ek_minus = eigenenergy_HF(-1., ek1, ek23, ekz, tz, kz, delta);
+
+	bool not_half = false;
+	if (ek_plus < ch_pot && ek_minus < ch_pot) {
+	  vec3 kvec{kx, ky, kz};
+	  occupied_.push_back(kvec);
+	  not_half = true;
+	} else if (ek_plus > ch_pot && ek_minus > ch_pot) {
+	  vec3 kvec{kx, ky, kz};
+	  empty_.push_back(kvec);
+	  not_half = true;
+	} else {}
+
+	if (not_half) {
+	  std::size_t kidx = k_to_index(kx, ky, kz);
+	  not_half_occupied_.push_back(kidx);   // Index
+	}
       }
     }
   }

@@ -70,7 +70,7 @@ cx_double bond_to_hopping_bilayer(hoppings2 const& ts, BondDelta const& b, int g
   }
 }
 
-cx_double velocity_U1(hoppings2 const& ts, cx_mat const& Udg, cx_mat const& U, cx_mat const& U_bar, double kx, double ky, double kz, vec3 const& photon_q, BondDelta const& e_mu, std::vector<BondDelta> const& bonds, int sign_m, int sign_n, int sigma_m, int sigma_n){
+cx_double velocity_U1(hoppings2 const& ts, cx_mat const& Udg, cx_mat const& U, cx_mat const& U_bar, double kx, double ky, double kz, vec3 const& photon_q, BondDelta const& e_mu, std::vector<BondDelta> const& bonds, int sign_m, int sign_n, int sigma_m, int sigma_n){  
   cx_double v_tot = 0;
   for(BondDelta bond: bonds){  
     int inner_prodbond = inner_prod(e_mu, bond);
@@ -156,7 +156,45 @@ cx_double velocity_U1(hoppings2 const& ts, cx_mat const& Udg, cx_mat const& U, c
   return v_tot;
 }
 
-cx_double calc_coef_eff_Raman_resonant(int L, hoppings2 const& ts, double delta, double kx, double ky, double kz, int sigma, std::vector<BondDelta> const& bonds, BondDelta mu, BondDelta nu, vec3 const& ki, vec3 const& kf){
+void check_velocity(int L, hoppings2 const& ts, double delta, double ch_pot, std::vector<BondDelta> const& bonds, int mu, int nu){
+  double k1 = 2. * M_PI / L;
+  cx_double sum_v = 0.;
+  for(int z=0; z < 2; ++z){    
+    double kz = M_PI * z;
+    for(int y=-L/2; y < L/2; ++y){
+      double ky = k1 * y;      
+      for(int x=-L/2; x < L/2; ++x){    
+	double kx = k1 * x;
+
+	/* Checking if the wavevector is inside the BZ. */
+	double factor = BZ_factor_square_half_filling(kx, ky);
+	if ( std::abs(factor) < 1e-12 ) { continue; }
+
+	/* Eigenenergy */
+	cx_double ek1 = ts.ek1(kx, ky, kz);
+	cx_mat Uk = gs_HF(ek1, ts.tz, kz, delta);
+	cx_mat Uk_bar = gs_HF(ek1, ts.tz, kz + M_PI, delta);   // kz + M_PI
+	cx_mat Uk_dg = Uk.t();
+
+	/* Taking the sum over -1 band. */
+	for(int sigma: {up_spin, down_spin}){
+	  vec3 q(0., 0., 0.);	  
+	  cx_double v = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, q, BondDelta(nu), bonds, -1, -1, sigma, sigma);
+	  sum_v += factor * v;
+	}
+      }
+    }
+  }
+
+  std::cerr << mu << " " << nu << "     " << sum_v;
+  if (std::norm(sum_v) > 1e-24) {
+    std::cerr << "     Nonzero sum." << std::endl;
+  } else {
+    std::cerr << std::endl;
+  }
+}
+
+cx_double calc_coef_eff_Raman_resonant(int L, hoppings2 const& ts, double delta, double kx, double ky, double kz, int sigma, std::vector<BondDelta> const& bonds, BondDelta mu, BondDelta nu, vec3 const& ki, vec3 const& kf, std::vector<vec3> const& occ, std::vector<vec3> const& emp){
   /* Effective Raman operator acting on the ground state */
   
   /* Eigenenergy */
@@ -169,6 +207,8 @@ cx_double calc_coef_eff_Raman_resonant(int L, hoppings2 const& ts, double delta,
   cx_double coef = 0.;
   if ( mu.z == 1 && nu.z == 1 ) {
     /* zz */
+    assert(occ.empty() && emp.empty());
+    
     double kz_bar = kz + M_PI;
     cx_double v1 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, nu, bonds, 1, 1, sigma, sigma);
     cx_double v2 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz_bar, - ki, mu, bonds, 1, -1, sigma, sigma);
@@ -181,8 +221,36 @@ cx_double calc_coef_eff_Raman_resonant(int L, hoppings2 const& ts, double delta,
     cx_double v1 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, nu, bonds, 1, 1, sigma, sigma);
     cx_double v2 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, kf, nu, bonds, -1, -1, sigma, sigma);  
     cx_double v3 = velocity_U1(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, - ki, mu, bonds, 1, -1, sigma, sigma);	    
+
+    /* Contributions from the occupied and empty wave vectors */
+    cx_double v4 = 0.;
+    for(vec3 o: occ){
+      double kx2 = o[0];
+      double ky2 = o[1];
+      double kz2 = o[2];
+      cx_double ek1_2 = ts.ek1(kx2, ky2, kz2);
+      cx_mat Uk2 = gs_HF(ek1_2, ts.tz, kz2, delta);
+      cx_mat Uk2_bar = gs_HF(ek1_2, ts.tz, kz2 + M_PI, delta);   // kz2 + M_PI
+      cx_mat Uk2_dg = Uk2.t();
+      for(int sigma2: {up_spin, down_spin}){
+	v4 += velocity_U1(ts, Uk2_dg, Uk2, Uk2_bar, kx2, ky2, kz2, kf, nu, bonds, 1, 1, sigma2, sigma2);   // (+1, +1)
+      }
+    }
+    cx_double v5 = 0.;
+    for(vec3 e: emp){
+      double kx2 = e[0];
+      double ky2 = e[1];
+      double kz2 = e[2];
+      cx_double ek1_2 = ts.ek1(kx2, ky2, kz2);
+      cx_mat Uk2 = gs_HF(ek1_2, ts.tz, kz2, delta);
+      cx_mat Uk2_bar = gs_HF(ek1_2, ts.tz, kz2 + M_PI, delta);   // kz2 + M_PI
+      cx_mat Uk2_dg = Uk2.t();
+      for(int sigma2: {up_spin, down_spin}){
+	v5 += velocity_U1(ts, Uk2_dg, Uk2, Uk2_bar, kx2, ky2, kz2, kf, nu, bonds, -1, -1, sigma2, sigma2);   // (-1, -1)
+      }
+    }
     
-    coef = (v1 - v2) * v3;
+    coef = (v1 - v2 + v4 - v5) * v3;
   }
   
   return coef;
@@ -292,7 +360,8 @@ cx_double calc_Raman_sigma0(int L, hoppings_bilayer2& ts, double ch_pot, double 
   if ( continuous_k ) {
     std::cerr << "Function " << __func__ << " does not support continuous k.\n";
     std::exit(EXIT_FAILURE);
-  } else { /* Integral for a finite-size system */
+  } else {
+    /* Integral for a finite-size system */
     double k1 = 2. * M_PI / L;
     for(int z=0; z < 2; ++z){    
       double kz = M_PI * z;
@@ -639,7 +708,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   /* Calculating the order parameter (delta) and the chemical potential. */
   double delta = 0., ch_pot = 0.;
   std::tie(delta, ch_pot) = solve_self_consistent_eqs_bilayer(pr, L, *ts, U, filling, T, continuous_k);
-  std::cout << "delta = " << delta << std::endl;
+  std::cout << "delta = " << delta << "   chemical potential = " << ch_pot << std::endl;
 
   /* Calculating the charge gap. */  
   double ch_gap = 0., mu0 = 0.;
@@ -793,12 +862,15 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
 	/* Matrix elements */
 	MatElemK me_K(L, L, 2, mu, nu, bonds);
 	MatElemN me_N(L, L, 2, mu, nu, bonds);
-	
+
 	/* Initialization */
 	me_K.set_q(0., 0., 0.);
+	me_K.set_occupied_and_empty_vectors(*ts, delta, ch_pot);	
 	me_K.set_table(*ts, delta);
 	me_N.set_q(0., 0., 0.);
 	me_N.set_table(*ts, delta);	
+
+	// check_velocity(L, *ts, delta, ch_pot, bonds, mu, nu);
 	
 	/* Resonant and nonresonant contributions */
 	cx_double sigma0 = calc_Raman_sigma0(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, omega_shifted, pr.omega_i, pr.eta_res, continuous_k, pr.factor_resonant,true, true);

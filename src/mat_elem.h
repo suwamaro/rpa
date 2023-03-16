@@ -35,7 +35,7 @@ public:
   /* Assume that k = 2pi / L * m, where m is an integer. */
   int pullback(double k, int L) const;
   int xyz_to_index(int x, int y, int z) const;
-  int k_to_index(double kx, double ky, double kz) const;
+  std::size_t k_to_index(double kx, double ky, double kz) const;
 
   /* Virtual functions */
   virtual void build_table(hoppings2 const& ts, double delta) = 0;
@@ -103,6 +103,7 @@ public:
   std::size_t table_size() const;
   void calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *R) const override;  
   void build_table(hoppings2 const& ts, double delta) override;
+  void set_occupied_and_empty_vectors(hoppings2 const& ts, double delta, double ch_pot);
   void get_elem(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *R) const override;
   ~MatElemK();
 
@@ -111,6 +112,8 @@ private:
   BondDelta nu_;  
   std::vector<BondDelta> bonds_;
   cx_double *R_up_ = nullptr;
+  std::vector<vec3> occupied_, empty_;   // Occupied and empty wave vectors
+  std::vector<std::size_t> not_half_occupied_;   // The indices of the occupied and empty vectors.
 };
 
 /* Matrix elements for the nonresonant contributions of the effective Raman operator */

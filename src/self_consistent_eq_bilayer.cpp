@@ -504,8 +504,10 @@ bool SelfConsistentIntegrand2Bilayer::find_solution_using_1d_solver(double& _del
       std::cout << std::setw(pw) << t << std::setw(pw) << _delta << std::setw(pw) << _mu << std::endl;
     }
 
-    /* mu -> delta */    
-    _delta = solve_self_consistent_eq_bilayer2(L(), *ts(), U(), _mu, T(), cbp_, continuous_k());
+    /* mu -> delta */
+    if (non_zero_delta()) {
+      _delta = solve_self_consistent_eq_bilayer2(L(), *ts(), U(), _mu, T(), cbp_, continuous_k());
+    }
     diff1 = calc_diff(_delta, _mu);
     
     if (verbose) {
@@ -533,8 +535,10 @@ bool SelfConsistentIntegrand2Bilayer::find_solution_using_1d_solver(double& _del
   _mu = mu0;
   
   for(std::size_t t=0; t < max_iter(); ++t){
-    /* mu -> delta */    
-    _delta = solve_self_consistent_eq_bilayer2(L(), *ts(), U(), _mu, T(), cbp_, continuous_k());
+    /* mu -> delta */
+    if (non_zero_delta()) {    
+      _delta = solve_self_consistent_eq_bilayer2(L(), *ts(), U(), _mu, T(), cbp_, continuous_k());
+    }
     
     if (verbose){
       std::cout << std::setw(pw) << t << std::setw(pw) << _delta << std::setw(pw) << _mu << std::endl;
