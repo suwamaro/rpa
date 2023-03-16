@@ -32,9 +32,12 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
   double x2 = 0;
   if ( additive ) { x2 = x + x_delta; }
   else { x2 = 1.1 * x; }
-  if ( ( !std::isnan( x_MIN_ ) && x2 < x_MIN_ ) || ( !std::isnan( x_MAX_ ) && x2 > x_MAX_ ) ) {
-    std::cerr << "x2 is out of the range.\n";
-    std::exit(EXIT_FAILURE);
+  if(!std::isnan(x_MAX_) && x2 > x_MAX_) {
+    std::cout << "x2 is set to the maximum.\n";    
+    x2 = x_MAX_;
+  } else if (!std::isnan(x_MIN_) && x2 < x_MIN_) {
+    std::cout << "x2 is set to the minimum.\n";    
+    x2 = x_MIN_;    
   }
   
   /* Checking whether f(x) is an increasing or decreasing function of x */
