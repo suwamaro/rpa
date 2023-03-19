@@ -415,7 +415,7 @@ void calc_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
   int prec = 15;
 
   /* MatElemF */
-  MatElemF me_F( L, L, 2, NSUBL );
+  MatElemF me_F(L, L, 2, 1, NSUBL);
   
   /* Setting the ordering vector */
   me_F.set_q( M_PI, M_PI, M_PI );
@@ -504,7 +504,7 @@ void check_wave_func_bilayer(path& base_dir, rpa::parameters const& pr){
   out_gap << "mu = " << mu << std::endl;
   
   /* MatElemF */
-  MatElemF me_F( L, L, 2, NSUBL );
+  MatElemF me_F(L, L, 2, 1, NSUBL);
   
   /* Setting the ordering vector */
   me_F.set_q( M_PI, M_PI, M_PI );

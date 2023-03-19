@@ -70,7 +70,7 @@ cx_double bond_to_hopping_bilayer(hoppings2 const& ts, BondDelta const& b, int g
   }
 }
 
-cx_double velocity_U1(hoppings2 const& ts, cx_mat const& Udg, cx_mat const& U, cx_mat const& U_bar, double kx, double ky, double kz, vec3 const& photon_q, BondDelta const& e_mu, std::vector<BondDelta> const& bonds, int sign_m, int sign_n, int sigma_m, int sigma_n){  
+cx_double velocity_U1(hoppings2 const& ts, cx_mat const& Udg, cx_mat const& U, cx_mat const& U_bar, double kx, double ky, double kz, vec3 const& photon_q, BondDelta const& e_mu, std::vector<BondDelta> const& bonds, int sign_m, int sign_n, int sigma_m, int sigma_n){
   cx_double v_tot = 0;
   for(BondDelta bond: bonds){  
     int inner_prodbond = inner_prod(e_mu, bond);
@@ -92,11 +92,11 @@ cx_double velocity_U1(hoppings2 const& ts, cx_mat const& Udg, cx_mat const& U, c
     } else {
       phase_delta = 1.0;
     }
-  
+	
     /* Assume there is no hopping with spin flip [U(1) symmetry]. */  
     int m_idx = sign_spin_index(sign_m, sigma_m);
     int n_idx = sign_spin_index(sign_n, sigma_n);  
-  
+	
     if ( (bond.x + bond.y) & 1 ) {
       /* Different sublattices in the plane */
       for(int _spin: {up_spin, down_spin}){
@@ -151,8 +151,10 @@ cx_double velocity_U1(hoppings2 const& ts, cx_mat const& Udg, cx_mat const& U, c
 	}      
       }
     }
+	
     v_tot += (double)inner_prodbond * v;
   }
+	
   return v_tot;
 }
 
@@ -722,7 +724,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   out_gap << "Chemical potential = " << ch_pot << std::endl;
   
   /* MatElemF */
-  MatElemF me_F( L, L, 2, NSUBL );
+  MatElemF me_F( L, L, 2, 1, NSUBL );
 
   auto calc_gaps = [&](double qx, double qy, double qz){
     /* Setting the ordering vector */
@@ -804,9 +806,87 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
     return spec;
   };
   
-  /* Matrix elements for the susceptibility */
+  /* Matrix elements of the spin operator */
   me_F.set_q(0., 0., 0.);
   me_F.set_table(*ts, delta);
+
+  /* Matrix elements of the Raman operator */
+  MatElemK me_Kxx(L, L, 2, 1, 0, 0, bonds);
+  MatElemK me_Kxy(L, L, 2, 1, 0, 1, bonds);
+  MatElemK me_Kxz(L, L, 2, 1, 0, 2, bonds);
+  MatElemK me_Kyx(L, L, 2, 1, 1, 0, bonds);
+  MatElemK me_Kyy(L, L, 2, 1, 1, 1, bonds);
+  MatElemK me_Kyz(L, L, 2, 1, 1, 2, bonds);
+  MatElemK me_Kzx(L, L, 2, 1, 2, 0, bonds);
+  MatElemK me_Kzy(L, L, 2, 1, 2, 1, bonds);
+  MatElemK me_Kzz(L, L, 2, 1, 2, 2, bonds);
+
+  MatElemN me_Nxx(L, L, 2, 1, 0, 0, bonds);
+  MatElemN me_Nxy(L, L, 2, 1, 0, 1, bonds);
+  MatElemN me_Nxz(L, L, 2, 1, 0, 2, bonds);
+  MatElemN me_Nyx(L, L, 2, 1, 1, 0, bonds);
+  MatElemN me_Nyy(L, L, 2, 1, 1, 1, bonds);
+  MatElemN me_Nyz(L, L, 2, 1, 1, 2, bonds);
+  MatElemN me_Nzx(L, L, 2, 1, 2, 0, bonds);
+  MatElemN me_Nzy(L, L, 2, 1, 2, 1, bonds);
+  MatElemN me_Nzz(L, L, 2, 1, 2, 2, bonds);    
+
+  auto me_K = [&](int mu, int nu){
+    MatElemK *me;
+    if ( mu == 0 ) {
+      if ( nu == 0 ) { me = &me_Kxx; }
+      else if ( nu == 1 ) { me = &me_Kxy; }
+      else { me = &me_Kxz; }
+    } else if ( mu == 1 ) {
+      if ( nu == 0 ) { me = &me_Kyx; }
+      else if ( nu == 1 ) { me = &me_Kyy; }
+      else { me = &me_Kyz; }
+    } else {
+      if ( nu == 0 ) { me = &me_Kzx; }
+      else if ( nu == 1 ) { me = &me_Kzy; }
+      else { me = &me_Kzz; }      
+    }
+    return me;
+  };
+
+  auto me_N = [&](int mu, int nu){
+    MatElemN *me;
+    if ( mu == 0 ) {
+      if ( nu == 0 ) { me = &me_Nxx; }
+      else if ( nu == 1 ) { me = &me_Nxy; }
+      else { me = &me_Nxz; }
+    } else if ( mu == 1 ) {
+      if ( nu == 0 ) { me = &me_Nyx; }
+      else if ( nu == 1 ) { me = &me_Nyy; }
+      else { me = &me_Nyz; }
+    } else {
+      if ( nu == 0 ) { me = &me_Nzx; }
+      else if ( nu == 1 ) { me = &me_Nzy; }
+      else { me = &me_Nzz; }      
+    }
+    return me;
+  };  
+
+  /* Matrix elements of the current operator */
+  MatElemVelocity mev(L, L, 2, 1, bonds);
+  mev.set_table(*ts, delta);  
+
+  /* Initialization for each MatElemK and MatElemN. */  
+  for(int mu=0; mu < 3; ++mu){
+    for(int nu=0; nu < 3; ++nu){
+      if (invalid_components(mu,nu)) { continue; }
+      MatElemK *meK = me_K(mu, nu);
+      MatElemN *meN = me_N(mu, nu);
+      
+      /* Setting the tables. */
+      meK->set_q(0., 0., 0.);
+      meK->set_occupied_and_empty_vectors(*ts, delta, ch_pot);
+      meK->set_table(*ts, delta, mev);   // Using mev
+      
+      meN->set_q(0., 0., 0.);
+      meN->set_table(*ts, delta);
+    }
+  }
   
   /* Calculating the Raman scattering cross sections. */
 #ifdef WITH_OpenMP
@@ -858,34 +938,27 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
     for(int mu=0; mu < 3; ++mu){
       for(int nu=0; nu < 3; ++nu){
 	if (invalid_components(mu,nu)) { continue; }
-	
-	/* Matrix elements */
-	MatElemK me_K(L, L, 2, mu, nu, bonds);
-	MatElemN me_N(L, L, 2, mu, nu, bonds);
-
-	/* Initialization */
-	me_K.set_q(0., 0., 0.);
-	me_K.set_occupied_and_empty_vectors(*ts, delta, ch_pot);	
-	me_K.set_table(*ts, delta);
-	me_N.set_q(0., 0., 0.);
-	me_N.set_table(*ts, delta);	
 
 	// check_velocity(L, *ts, delta, ch_pot, bonds, mu, nu);
 	
+	/* Matrix elements */	
+	MatElemK *meK = me_K(mu, nu);
+	MatElemN *meN = me_N(mu, nu);
+	
 	/* Resonant and nonresonant contributions */
-	cx_double sigma0 = calc_Raman_sigma0(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, omega_shifted, pr.omega_i, pr.eta_res, continuous_k, pr.factor_resonant,true, true);
+	cx_double sigma0 = calc_Raman_sigma0(L, *ts, ch_pot, U, T, delta, cbp, *meK, *meN, omega_shifted, pr.omega_i, pr.eta_res, continuous_k, pr.factor_resonant,true, true);
 	cx_double sigma1_00, sigma1_zz;
-	std::tie(sigma1_00, sigma1_zz) = calc_Raman_sigma1(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, me_F, omega_shifted, pr.omega_i, pr.eta_res, continuous_k, pr.factor_resonant, true, true);
+	std::tie(sigma1_00, sigma1_zz) = calc_Raman_sigma1(L, *ts, ch_pot, U, T, delta, cbp, *meK, *meN, me_F, omega_shifted, pr.omega_i, pr.eta_res, continuous_k, pr.factor_resonant, true, true);
 	
 	/* Resonant contributions only */
-	cx_double sigma0_R = calc_Raman_sigma0(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, omega_shifted, pr.omega_i, pr.eta_res, continuous_k, pr.factor_resonant, true, false);
+	cx_double sigma0_R = calc_Raman_sigma0(L, *ts, ch_pot, U, T, delta, cbp, *meK, *meN, omega_shifted, pr.omega_i, pr.eta_res, continuous_k, pr.factor_resonant, true, false);
 	cx_double sigma1_00_R, sigma1_zz_R;
-	std::tie(sigma1_00_R, sigma1_zz_R) = calc_Raman_sigma1(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, me_F, omega_shifted, pr.omega_i, pr.eta_res, continuous_k, pr.factor_resonant, true, false);
+	std::tie(sigma1_00_R, sigma1_zz_R) = calc_Raman_sigma1(L, *ts, ch_pot, U, T, delta, cbp, *meK, *meN, me_F, omega_shifted, pr.omega_i, pr.eta_res, continuous_k, pr.factor_resonant, true, false);
 	
 	/* Nonresonant contributions only */
-	cx_double sigma0_N = calc_Raman_sigma0(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, omega_shifted, pr.omega_i, pr.eta_res, continuous_k, pr.factor_resonant, false, true);
+	cx_double sigma0_N = calc_Raman_sigma0(L, *ts, ch_pot, U, T, delta, cbp, *meK, *meN, omega_shifted, pr.omega_i, pr.eta_res, continuous_k, pr.factor_resonant, false, true);
 	cx_double sigma1_00_N, sigma1_zz_N;
-	std::tie(sigma1_00_N, sigma1_zz_N) = calc_Raman_sigma1(L, *ts, ch_pot, U, T, delta, cbp, me_K, me_N, me_F, omega_shifted, pr.omega_i, pr.eta_res, continuous_k, pr.factor_resonant, false, true);	
+	std::tie(sigma1_00_N, sigma1_zz_N) = calc_Raman_sigma1(L, *ts, ch_pot, U, T, delta, cbp, *meK, *meN, me_F, omega_shifted, pr.omega_i, pr.eta_res, continuous_k, pr.factor_resonant, false, true);
 	
 #ifdef WITH_OpenMP
 	(*spec_Raman_thread(mu,nu))(0, oidx) = 2.0 * std::imag(sigma0);
@@ -1035,7 +1108,7 @@ void calc_coef_eff_Raman_real_space(path& base_dir, rpa::parameters const& pr){
       out_coef_Raman_rs << "#  x   y   z     Re     Im" << std::endl;
 	
       /* Matrix elements */
-      MatElemK me_K(L, L, 2, mu, nu, bonds);
+      MatElemK me_K(L, L, 2, 1, mu, nu, bonds);
       me_K.set_q(0., 0., 0.);
       me_K.set_table(*ts, delta);
 

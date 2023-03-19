@@ -67,6 +67,10 @@ int index_to_sign(int idx){
   return idx == 0 ? 1 : -1;
 }
 
+int sign_to_index(int sign){
+  return (- sign + 1) >> 1;
+}
+
 cx_vec gs_HF1(int spin, int sign, cx_double ek1, cx_double tz, double kz, double delta){
   /* In the case where the Hamiltonian is block-diagonalized for each spin in the presence of the U(1) symmetry. */
   cx_double xki = xk(spin, ek1, tz, kz, delta);

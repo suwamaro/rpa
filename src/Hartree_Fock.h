@@ -24,6 +24,7 @@ int band_spin_index(int b, int sigma);
 int spin_index(int sigma);
 int index_to_spin(int idx);
 int index_to_sign(int idx);
+int sign_to_index(int sign);
 cx_vec gs_HF1(int spin, int sign, cx_double ek1, cx_double tz, double kz, double delta);
 cx_mat gs_HF(cx_double ek1, cx_double tz, double kz, double delta);
 

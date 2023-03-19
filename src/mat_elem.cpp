@@ -13,18 +13,21 @@
 #include "calc_Raman.h"
 
 /* Member functions of MatElem */
-MatElem::MatElem(int Lx, int Ly, int Lz){
+MatElem::MatElem(int Lx, int Ly, int Lz, int u_cell){
   is_table_set_ = false;
   Lx_ = Lx;
   Ly_ = Ly;
   Lz_ = Lz;
+  u_cell_size_ = u_cell;
+  n_coefs_ = 1;
 }
 
-MatElem::MatElem(int Lx, int Ly, int Lz, int n_coefs){
+MatElem::MatElem(int Lx, int Ly, int Lz, int u_cell, int n_coefs){
   is_table_set_ = false;
   Lx_ = Lx;
   Ly_ = Ly;
   Lz_ = Lz;
+  u_cell_size_ = u_cell;  
   n_coefs_ = n_coefs;
 }
 
@@ -36,7 +39,7 @@ void MatElem::set_q(double qx, double qy, double qz){
 
 /* Assume that k = 2pi / L * m, where m is an integer. */
 int MatElem::pullback(double k, int L) const {
-  int l = rint(k * L / (2.*M_PI));
+  int l = nearbyint(k * L / (2.*M_PI));
   while ( l < 0 ) l += L;
   while ( l >= L ) l -= L;
   /* Return 0 <= l < L */
@@ -83,7 +86,7 @@ BasicMatrix::BasicMatrix(){
 
 
 /* Member functions of MatElemF */
-MatElemF::MatElemF(int Lx, int Ly, int Lz, int nsub):MatElem(Lx, Ly, Lz),BasicMatrix(),nsub_(nsub){}
+MatElemF::MatElemF(int Lx, int Ly, int Lz, int u_cell, int nsub):MatElem(Lx, Ly, Lz, u_cell),BasicMatrix(),n_sub_(nsub){}
 
 void MatElemF::set_table(hoppings2 const& ts, double delta){
   if ( F00_up_ != nullptr ) {
@@ -115,7 +118,7 @@ void MatElemF::set_table(hoppings2 const& ts, double delta){
   assign_is_table_set(true);
 }
 
-std::size_t MatElemF::table_size() const { return Lx()*Ly()*Lz()*nbands()*nbands()*nsub()*nsub(); }
+std::size_t MatElemF::table_size() const { return system_size()*u_cell_size()*n_bands()*n_bands()*n_sub()*n_sub(); }
   
 void MatElemF::calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, int sg1, int sg2, cx_double* F00_up, cx_double* F00_down, cx_double* Fpm, cx_double* Fzz_up, cx_double* Fzz_down) const {
   /* Adding the results */
@@ -176,18 +179,18 @@ void MatElemF::calc_mat_elems(hoppings2 const& ts, double delta, double kx, doub
 }
 
 void MatElemF::build_table(hoppings2 const& ts, double delta){
-  cx_double F00_up[nsub()*nsub()];
-  cx_double F00_down[nsub()*nsub()];    
-  cx_double Fpm[nsub()*nsub()];
-  cx_double Fzz_up[nsub()*nsub()];
-  cx_double Fzz_down[nsub()*nsub()];  
+  cx_double F00_up[n_sub()*n_sub()];
+  cx_double F00_down[n_sub()*n_sub()];    
+  cx_double Fpm[n_sub()*n_sub()];
+  cx_double Fzz_up[n_sub()*n_sub()];
+  cx_double Fzz_down[n_sub()*n_sub()];  
   for(int z=0; z < Lz(); ++z){    
     double kz = 2. * M_PI / Lz() * z;
     for(int y=0; y < Ly(); ++y){    
       double ky = 2. * M_PI / Ly() * y;	
       for(int x=0; x < Lx(); ++x){    
 	double kx = 2. * M_PI / Lx() * x;
-	std::size_t xyz_idx = xyz_to_index(x,y,z) * nbands() * nbands() * nsub() * nsub();
+	std::size_t xyz_idx = xyz_to_index(x,y,z) * n_bands() * n_bands() * n_sub() * n_sub();
 	
 	for(int sg1=-1; sg1<=1; sg1+=2){
 	  for(int sg2=-1; sg2<=1; sg2+=2){
@@ -195,13 +198,13 @@ void MatElemF::build_table(hoppings2 const& ts, double delta){
 	  
 	    int sg1i = (sg1+1) >> 1;
 	    int sg2i = (sg2+1) >> 1;
-	    std::size_t bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+	    std::size_t bands_idx = ((sg2i << 1) | sg1i) * n_sub() * n_sub();
 	    std::size_t xyz_bands_idx = xyz_idx + bands_idx;
-	    memcpy(F00_up_ + xyz_bands_idx, F00_up, sizeof(cx_double)*nsub()*nsub() );
-	    memcpy(F00_down_ + xyz_bands_idx, F00_down, sizeof(cx_double)*nsub()*nsub() );	    	    
-	    memcpy(Fpm_ + xyz_bands_idx, Fpm, sizeof(cx_double)*nsub()*nsub() );
-	    memcpy(Fzz_up_ + xyz_bands_idx, Fzz_up, sizeof(cx_double)*nsub()*nsub() );
-	    memcpy(Fzz_down_ + xyz_bands_idx, Fzz_down, sizeof(cx_double)*nsub()*nsub() );	    
+	    memcpy(F00_up_ + xyz_bands_idx, F00_up, sizeof(cx_double)*n_sub()*n_sub() );
+	    memcpy(F00_down_ + xyz_bands_idx, F00_down, sizeof(cx_double)*n_sub()*n_sub() );	    	    
+	    memcpy(Fpm_ + xyz_bands_idx, Fpm, sizeof(cx_double)*n_sub()*n_sub() );
+	    memcpy(Fzz_up_ + xyz_bands_idx, Fzz_up, sizeof(cx_double)*n_sub()*n_sub() );
+	    memcpy(Fzz_down_ + xyz_bands_idx, Fzz_down, sizeof(cx_double)*n_sub()*n_sub() );	    
 	  }
 	}
       }
@@ -210,38 +213,38 @@ void MatElemF::build_table(hoppings2 const& ts, double delta){
 }
 
 void MatElemF::get_00_up(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* F00k) const {
-  std::size_t xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
-  std::size_t bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+  std::size_t xyz_idx = k_to_index(kx,ky,kz) * n_bands() * n_bands() * n_sub() * n_sub();
+  std::size_t bands_idx = ((sg2i << 1) | sg1i) * n_sub() * n_sub();
   std::size_t xyz_bands_idx = xyz_idx + bands_idx;    
-  memcpy( F00k, F00_up_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
+  memcpy( F00k, F00_up_ + xyz_bands_idx,  sizeof(cx_double) * n_sub() * n_sub() );
 }
 
 void MatElemF::get_00_down(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* F00k) const {
-  std::size_t xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
-  std::size_t bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+  std::size_t xyz_idx = k_to_index(kx,ky,kz) * n_bands() * n_bands() * n_sub() * n_sub();
+  std::size_t bands_idx = ((sg2i << 1) | sg1i) * n_sub() * n_sub();
   std::size_t xyz_bands_idx = xyz_idx + bands_idx;    
-  memcpy( F00k, F00_down_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
+  memcpy( F00k, F00_down_ + xyz_bands_idx,  sizeof(cx_double) * n_sub() * n_sub() );
 }
 
 void MatElemF::get_pm(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Fpmk) const {
-  std::size_t xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
-  std::size_t bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+  std::size_t xyz_idx = k_to_index(kx,ky,kz) * n_bands() * n_bands() * n_sub() * n_sub();
+  std::size_t bands_idx = ((sg2i << 1) | sg1i) * n_sub() * n_sub();
   std::size_t xyz_bands_idx = xyz_idx + bands_idx;    
-  memcpy( Fpmk, Fpm_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
+  memcpy( Fpmk, Fpm_ + xyz_bands_idx,  sizeof(cx_double) * n_sub() * n_sub() );
 }
 
 void MatElemF::get_zz_up(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Fzzk) const {    
-  std::size_t xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
-  std::size_t bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+  std::size_t xyz_idx = k_to_index(kx,ky,kz) * n_bands() * n_bands() * n_sub() * n_sub();
+  std::size_t bands_idx = ((sg2i << 1) | sg1i) * n_sub() * n_sub();
   std::size_t xyz_bands_idx = xyz_idx + bands_idx;    
-  memcpy( Fzzk, Fzz_up_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
+  memcpy( Fzzk, Fzz_up_ + xyz_bands_idx,  sizeof(cx_double) * n_sub() * n_sub() );
 }
 
 void MatElemF::get_zz_down(double kx, double ky, double kz, int sg1i, int sg2i, cx_double* Fzzk) const {    
-  std::size_t xyz_idx = k_to_index(kx,ky,kz) * nbands() * nbands() * nsub() * nsub();
-  std::size_t bands_idx = ((sg2i << 1) | sg1i) * nsub() * nsub();
+  std::size_t xyz_idx = k_to_index(kx,ky,kz) * n_bands() * n_bands() * n_sub() * n_sub();
+  std::size_t bands_idx = ((sg2i << 1) | sg1i) * n_sub() * n_sub();
   std::size_t xyz_bands_idx = xyz_idx + bands_idx;    
-  memcpy( Fzzk, Fzz_down_ + xyz_bands_idx,  sizeof(cx_double) * nsub() * nsub() );
+  memcpy( Fzzk, Fzz_down_ + xyz_bands_idx,  sizeof(cx_double) * n_sub() * n_sub() );
 }
   
 MatElemF::~MatElemF(){
@@ -267,8 +270,117 @@ MatElemF::~MatElemF(){
 }
 
 
+/* Member functions of Velocity */
+MatElemVelocity::MatElemVelocity(int Lx, int Ly, int Lz, int ucell, std::vector<BondDelta> const& bonds):MatElem(Lx, Ly, Lz, ucell),q0_(0.,0.,0.),bonds_(bonds){}
+
+void MatElemVelocity::set_table(hoppings2 const& ts, double delta){
+  if ( velocity_ != nullptr ) {
+    delete[] velocity_;
+  }
+  std::size_t v_size = table_size();
+  std::cout << "The size of the velocity table = " << v_size << std::endl;
+  velocity_ = new cx_double[v_size];
+  
+  build_table(ts, delta);
+  assign_is_table_set(true);
+}
+
+std::size_t MatElemVelocity::table_size() const { return system_size()* (n_bands()*n_bands()) *n_spins()*n_directions(); }
+
+void MatElemVelocity::build_table(hoppings2 const& ts, double delta){
+  for(int z=0; z < Lz(); ++z){    
+    double kz = 2. * M_PI / Lz() * z;  
+    for(int y=0; y < Ly(); ++y){    
+      double ky = 2. * M_PI / Ly() * y;
+      for(int x=0; x < Lx(); ++x){    
+	double kx = 2. * M_PI / Lx() * x;
+
+	/* Checking if the wavevector is inside the BZ. */
+	double factor = BZ_factor_square_half_filling(kx, ky);
+	if ( std::abs(factor) < 1e-12 ) { continue; }  
+
+	/* k index */
+	std::size_t kidx = k_to_index(kx, ky, kz);
+	
+	/* Eigenenergy */
+	cx_double ek1 = ts.ek1(kx, ky, kz);
+	cx_mat Uk = gs_HF(ek1, ts.tz, kz, delta);
+	cx_mat Uk_bar = gs_HF(ek1, ts.tz, kz + M_PI, delta);   // kz + M_PI
+	cx_mat Uk_dg = Uk.t();
+
+	/* Calculating the velocity for each band, component, and spin. */
+	for(int sign1: {1, -1}){	  
+	  for(int sign2: {1, -1}){
+	    int bands = bands_index(sign1, sign2);	    
+	    for(int mu: {0, 1, 2}){
+	      BondDelta e_mu(mu);
+	      for(int sigma: {up_spin, down_spin}){
+		cx_double v = 0.;
+		calc_mat_elems(ts, Uk_dg, Uk, Uk_bar, kx, ky, kz, e_mu, sign1, sign2, sigma, &v);
+		int spin_idx = spin_index(sigma);
+		std::size_t v_idx = get_index(kidx, bands, mu, spin_idx);
+		velocity_[v_idx] = v;
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+
+int MatElemVelocity::direction_index(BondDelta const& e_mu) const {
+  /* Assume e_mu is a unit vector; mu: 0, 1, 2. */
+  if (e_mu.x == 1) { return 0; }
+  else if (e_mu.y == 1) { return 1; }
+  else if (e_mu.z == 1) { return 2; }
+  else {
+    std::cerr << "The direction index is not supported." << std::endl;
+    std::exit(EXIT_FAILURE);
+  }  
+}
+
+void MatElemVelocity::calc_mat_elems(hoppings2 const& ts, cx_mat const& Udg, cx_mat const& U, cx_mat const& U_bar, double kx, double ky, double kz, BondDelta const& e_mu, int sign1, int sign2, int sigma, cx_double *M) const {
+  *M = velocity_U1(ts, Udg, U, U_bar, kx, ky, kz, q0_, e_mu, bonds_, sign1, sign2, sigma, sigma);   // No spin flip
+}
+
+std::size_t MatElemVelocity::get_index(std::size_t xyz, int bands, int dir, int spin) const {
+  return xyz * n_bands() * n_bands() * n_directions() * n_spins()
+    + bands * n_directions() * n_spins()
+    + dir * n_spins()
+    + spin;
+}
+
+int MatElemVelocity::bands_index(int sign1, int sign2) const {
+  /* sign: 1, -1 */  
+  assert(n_bands() == 2);
+  
+  int band1 = (- sign1 + 1) >> 1;
+  int band2 = (- sign2 + 1) >> 1;
+  return (band1 << 1) | band2;
+}
+
+int MatElemVelocity::spin_index(int sigma) const {
+  /* sigma: up, down */
+  return sigma == up_spin ? 0 : 1;
+}
+
+void MatElemVelocity::get_elem(double kx, double ky, double kz, int sign1, int sign2, int dir, int spin, cx_double *M) const {
+  std::size_t kidx = k_to_index(kx, ky, kz);
+  int bands = bands_index(sign1, sign2);
+  int spin_idx = spin_index(spin);
+  std::size_t idx = get_index(kidx, bands, dir, spin_idx);
+  *M = velocity_[idx];
+}
+
+MatElemVelocity::~MatElemVelocity(){
+  if ( velocity_ != nullptr ) {
+    delete[] velocity_;
+  }  
+}
+
 /* Member functions of MatElemK */
-MatElemK::MatElemK(int Lx, int Ly, int Lz, int mu, int nu, std::vector<BondDelta> const& bonds):MatElem(Lx, Ly, Lz, 2),mu_(mu),nu_(nu),bonds_(bonds){}  // A factor of 2 comes from the two cases of the perturbation.
+MatElemK::MatElemK(int Lx, int Ly, int Lz, int u_cell, int mu, int nu, std::vector<BondDelta> const& bonds):MatElem(Lx, Ly, Lz, u_cell, 2),mu_(mu),nu_(nu),bonds_(bonds){}  // A factor of 2 comes from the two cases of the perturbation.
 
 void MatElemK::set_table(hoppings2 const& ts, double delta){
   if ( R_up_ != nullptr ) {
@@ -280,28 +392,17 @@ void MatElemK::set_table(hoppings2 const& ts, double delta){
   assign_is_table_set(true);
 }
 
-std::size_t MatElemK::table_size() const { return Lx()*Ly()*Lz()*n_coefs(); }
-
-void MatElemK::calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *R) const {
-  cx_double R1 = 0., R2 = 0.;
-  
-  /* Only for half-occupied wave vectors. */
-  std::size_t kidx = k_to_index(kx, ky, kz);
-  if (std::find(not_half_occupied_.begin(), not_half_occupied_.end(), kidx) == not_half_occupied_.end()) {  
-    /* The photon momenta are approximately set to zero. */
-    vec3 ki {0, 0, 0}, kf {0, 0, 0};
-  
-    /* Formulation using up spin */
-    int spin = up_spin;
-
-    /* Two cases of the perturbation */
-    R1 = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, spin, bonds_, mu_, nu_, ki, kf, occupied_, empty_);
-    R2 = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, spin, bonds_, nu_, mu_, - kf, - ki, occupied_, empty_);
+void MatElemK::set_table(hoppings2 const& ts, double delta, MatElemVelocity const& mev){
+  if ( R_up_ != nullptr ) {
+    delete[] R_up_;
   }
+  R_up_ = new cx_double[table_size()];
   
-  R[0] = R1;
-  R[1] = R2;
+  build_table(ts, delta, mev);
+  assign_is_table_set(true);
 }
+
+std::size_t MatElemK::table_size() const { return system_size()*n_coefs(); }
 
 void MatElemK::build_table(hoppings2 const& ts, double delta){
   for(int z=0; z < Lz(); ++z){    
@@ -324,10 +425,7 @@ void MatElemK::build_table(hoppings2 const& ts, double delta){
   }
 }
 
-void MatElemK::set_occupied_and_empty_vectors(hoppings2 const& ts, double delta, double ch_pot){
-  occupied_.clear();
-  empty_.clear();
-  not_half_occupied_.clear();
+void MatElemK::build_table(hoppings2 const& ts, double delta, MatElemVelocity const& mev){
   for(int z=0; z < Lz(); ++z){    
     double kz = 2. * M_PI / Lz() * z;  
     for(int y=0; y < Ly(); ++y){    
@@ -336,6 +434,39 @@ void MatElemK::set_occupied_and_empty_vectors(hoppings2 const& ts, double delta,
 	double kx = 2. * M_PI / Lx() * x;
 
 	/* Checking if the wavevector is inside the BZ. */
+	double factor = BZ_factor_square_half_filling(kx, ky);
+	if ( std::abs(factor) < 1e-12 ) { continue; }
+	
+	std::size_t xyz_idx = xyz_to_index(x,y,z) * n_coefs();
+	cx_double Rup[n_coefs()];
+	calc_mat_elems(ts, delta, kx, ky, kz, mev, Rup);
+	memcpy(R_up_ + xyz_idx, Rup, sizeof(cx_double) * n_coefs());
+      }
+    }
+  }
+}
+
+void MatElemK::get_elem(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *R) const {
+  if ( is_table_set() ) {
+    std::size_t xyz_idx = k_to_index(kx,ky,kz) * n_coefs();
+    memcpy(R, R_up_ + xyz_idx,  sizeof(cx_double) * n_coefs());
+  } else {
+    calc_mat_elems(ts, delta, kx, ky, kz, R);
+  }
+}
+
+void MatElemK::set_occupied_and_empty_vectors(hoppings2 const& ts, double delta, double ch_pot){
+  occupied_.clear();
+  empty_.clear();
+  not_half_occupied_.clear();
+  for(int z=0; z < Lz(); ++z){    
+    double kz = 2. * M_PI / Lz() * z;  
+    for(int y=0; y < Ly(); ++y){    
+      double ky = 2. * M_PI / Ly() * y;
+      for(int x=0; x < Lx(); ++x){
+	double kx = 2. * M_PI / Lx() * x;
+
+	/* Checking if the wavevector is inside the BZ: Necessary to set occupied_ and empty_. */
 	double factor = BZ_factor_square_half_filling(kx, ky);
 	if ( std::abs(factor) < 1e-12 ) { continue; }
 	    
@@ -367,13 +498,97 @@ void MatElemK::set_occupied_and_empty_vectors(hoppings2 const& ts, double delta,
   }
 }
 
-void MatElemK::get_elem(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *R) const {
-  if ( is_table_set() ) {
-    std::size_t xyz_idx = k_to_index(kx,ky,kz) * n_coefs();
-    memcpy(R, R_up_ + xyz_idx,  sizeof(cx_double) * n_coefs());
-  } else {
-    calc_mat_elems(ts, delta, kx, ky, kz, R);
+void MatElemK::calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *R) const {
+  cx_double R1 = 0., R2 = 0.;
+  
+  /* Only for half-occupied wave vectors. */
+  std::size_t kidx = k_to_index(kx, ky, kz);
+  if (std::find(not_half_occupied_.begin(), not_half_occupied_.end(), kidx) == not_half_occupied_.end()) {  
+    /* The photon momenta are approximately set to zero. */
+    vec3 ki {0, 0, 0}, kf {0, 0, 0};
+  
+    /* Formulation using up spin */
+    int spin = up_spin;
+
+    /* Two cases of the perturbation */
+    R1 = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, spin, bonds_, mu_, nu_, ki, kf, occupied_, empty_);
+    R2 = calc_coef_eff_Raman_resonant(Lx(), ts, delta, kx, ky, kz, spin, bonds_, nu_, mu_, - kf, - ki, occupied_, empty_);
   }
+  
+  R[0] = R1;
+  R[1] = R2;
+}
+
+void MatElemK::calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, MatElemVelocity const& mev, cx_double *R) const {
+  cx_double R1 = 0., R2 = 0.;
+  
+  /* Only for half-occupied wave vectors. */
+  std::size_t kidx = k_to_index(kx, ky, kz);
+  if (std::find(not_half_occupied_.begin(), not_half_occupied_.end(), kidx) == not_half_occupied_.end()) {
+    if ( mu_.z == 1 && nu_.z == 1 ) {
+      /* zz */
+      /* TODO: Update it. */
+      assert(occupied_.empty() && empty_.empty());
+      cx_double v1 = 0., v2 = 0., v3 = 0., v4 = 0.;
+      int dir = mev.direction_index(mu_);
+      double kz_bar = kz + M_PI;
+      mev.get_elem(kx, ky, kz, 1, 1, dir, up_spin, &v1);
+      mev.get_elem(kx, ky, kz_bar, 1, -1, dir, up_spin, &v2);
+      mev.get_elem(kx, ky, kz_bar, -1, -1, dir, up_spin, &v3);
+      mev.get_elem(kx, ky, kz, 1, -1, dir, up_spin, &v4);
+      R1 = v1 * v2 + v3 * v4;
+      R2 = R1;
+    } else {
+      int mu_dir = mev.direction_index(mu_);
+      int nu_dir = mev.direction_index(nu_);    
+      cx_double v1_1 = 0., v1_2 = 0., v1_3 = 0.;
+      cx_double v2_1 = 0., v2_2 = 0., v2_3 = 0.;
+    
+      mev.get_elem(kx, ky, kz, 1, 1, nu_dir, up_spin, &v1_1);
+      mev.get_elem(kx, ky, kz, -1, -1, nu_dir, up_spin, &v1_2);
+      mev.get_elem(kx, ky, kz, 1, -1, mu_dir, up_spin, &v1_3);
+
+      /* mu <-> nu */
+      mev.get_elem(kx, ky, kz, 1, 1, mu_dir, up_spin, &v2_1);
+      mev.get_elem(kx, ky, kz, -1, -1, mu_dir, up_spin, &v2_2);
+      mev.get_elem(kx, ky, kz, 1, -1, nu_dir, up_spin, &v2_3);    
+
+      /* Contributions from the occupied and empty wave vectors */
+      cx_double v1_4 = 0., v2_4 = 0.;
+      for(vec3 o: occupied_){
+	double kx2 = o[0];
+	double ky2 = o[1];
+	double kz2 = o[2];
+	for(int sigma2: {up_spin, down_spin}){
+	  cx_double v = 0.;	
+	  mev.get_elem(kx2, ky2, kz2, 1, 1, nu_dir, sigma2, &v);
+	  v1_4 += v;
+	  mev.get_elem(kx2, ky2, kz2, 1, 1, mu_dir, sigma2, &v);
+	  v2_4 += v;
+	}
+      }
+    
+      cx_double v1_5 = 0., v2_5 = 0.;
+      for(vec3 e: empty_){
+	double kx2 = e[0];
+	double ky2 = e[1];
+	double kz2 = e[2];
+	for(int sigma2: {up_spin, down_spin}){
+	  cx_double v = 0.;	
+	  mev.get_elem(kx2, ky2, kz2, -1, -1, nu_dir, sigma2, &v);
+	  v1_5 += v;
+	  mev.get_elem(kx2, ky2, kz2, -1, -1, mu_dir, sigma2, &v);
+	  v2_5 += v;
+	}
+      }
+    
+      R1 = (v1_1 - v1_2 + v1_4 - v1_5) * v1_3;
+      R2 = (v2_1 - v2_2 + v2_4 - v2_5) * v2_3;    
+    }
+  }
+  
+  R[0] = R1;
+  R[1] = R2;
 }
 
 MatElemK::~MatElemK(){
@@ -384,7 +599,7 @@ MatElemK::~MatElemK(){
 
 
 /* Member functions of MatElemN */
-MatElemN::MatElemN(int Lx, int Ly, int Lz, int mu, int nu, std::vector<BondDelta> const& bonds):MatElem(Lx, Ly, Lz, 4),mu_(mu),nu_(nu),bonds_(bonds){}  // A factor of 4 comes from the combinations of 2 sublattices and 2 spins.
+MatElemN::MatElemN(int Lx, int Ly, int Lz, int u_cell, int mu, int nu, std::vector<BondDelta> const& bonds):MatElem(Lx, Ly, Lz, u_cell, 4),mu_(mu),nu_(nu),bonds_(bonds){}  // A factor of 4 comes from the combinations of 2 sublattices and 2 spins.
 
 void MatElemN::set_table(hoppings2 const& ts, double delta){
   if ( N_ != nullptr ) {
@@ -395,7 +610,7 @@ void MatElemN::set_table(hoppings2 const& ts, double delta){
   assign_is_table_set(true);
 }
 
-std::size_t MatElemN::table_size() const { return Lx()*Ly()*Lz()*n_coefs(); }
+std::size_t MatElemN::table_size() const { return system_size()*n_coefs(); }
 
 void MatElemN::calc_mat_elems(hoppings2 const& ts, double delta, double kx, double ky, double kz, cx_double *N) const {
   /* The photon momenta are approximately set to zero. */

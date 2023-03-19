@@ -449,7 +449,7 @@ void calc_spectrum_bilayer2(path& base_dir, rpa::parameters const& pr){
   int prec = 15;
 
   /* MatElemF */
-  MatElemF me_F(L, L, 2, NSUBL);
+  MatElemF me_F(L, L, 2, 1, NSUBL);
     
   /* Results */
   double *spec_xy = new double[n_omegas];

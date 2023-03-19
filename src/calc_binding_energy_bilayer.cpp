@@ -59,7 +59,7 @@ void calc_binding_energy_bilayer(path& base_dir, rpa::parameters const& pr){
     std::tie(ch_gap, mu) = calc_charge_gap_bilayer( L, *ts, delta );  /* Finite size */
 
     /* MatElemF */
-    MatElemF me_F( L, L, 2, NSUBL );
+    MatElemF me_F( L, L, 2, 1, NSUBL );
   
     /* Setting the ordering vector */
     me_F.set_q( M_PI, M_PI, M_PI );
