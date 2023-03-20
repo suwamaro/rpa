@@ -51,7 +51,7 @@ int sc_integrand_bilayer2(const int *ndim, const cubareal xx[], const int *ncomp
 }
 
 /* Member functions of SelfConsistentIntegrand2Bilayer */
-SelfConsistentIntegrand2Bilayer::SelfConsistentIntegrand2Bilayer():SelfConsistentIntegrand2(),nr_(n_sc_params),nm_(n_sc_params),use_gsl_(false),use_gsl_fdf_solver_(false),use_NelderMead_(false),use_1d_solver_(true){
+SelfConsistentIntegrand2Bilayer::SelfConsistentIntegrand2Bilayer():SelfConsistentIntegrand2(),nr_(n_sc_params),nm_(n_sc_params),use_gsl_(false),use_gsl_fdf_solver_(false),use_NewtonRaphson_(false),use_NelderMead_(false),use_1d_solver_(false){
   nm_.f = &sci2b_calc_diff;
   nm_.compare = &compare_x;
 }
@@ -63,6 +63,7 @@ void SelfConsistentIntegrand2Bilayer::set_parameters(rpa::parameters const& pr, 
   hb_ = _hb;
   cbp_.set_parameters(pr);
   nr_.mod_prefactor = pr.mod_prefactor;
+  use_NewtonRaphson_ = pr.use_NewtonRaphson;  
   use_NelderMead_ = pr.use_NelderMead;
   use_1d_solver_ = pr.use_1d_solver;  
 }
@@ -582,12 +583,52 @@ bool SelfConsistentIntegrand2Bilayer::find_solution_using_1d_solver(double& _del
   return true;
 }
 
+bool SelfConsistentIntegrand2Bilayer::find_solution_default(double& _delta, double& _mu, bool verbose){
+  /* Precision */
+  int prec = precision2();
+  int pw = prec + 10;
+  
+  for(std::size_t t=0; t < max_iter(); ++t){
+    double delta2 = _delta;
+    double mu2 = _mu;  
+    /* delta -> mu */
+    _mu = calc_chemical_potential_bilayer3(L(), *ts(), filling(), T(), delta2, cbp_, continuous_k(), false);
+
+    if (non_zero_delta()) {
+      /* mu -> delta */      
+      _delta = solve_self_consistent_eq_bilayer2(L(), *ts(), U(), mu2, T(), cbp_, continuous_k());
+    }
+
+    /* Difference */
+    double diff = calc_diff(_delta, _mu);
+    
+    if (verbose) {
+      std::cout << std::setw(pw) << t << std::setw(pw) << _delta << std::setw(pw) << _mu << std::setw(pw) << diff << std::endl;
+    }
+
+    /* Checking if it is converged. */
+    if (diff <= eps_func() * eps_func()) {
+      return true;
+    }
+
+    /* Reached the maximum iteration step. */
+    if (t == max_iter() - 1) {
+      std::cout << "Number of iteration reaches the limit " << max_iter() << std::endl;
+      std::cout << "The remained error squared is " << std::setprecision(precision()) << std::to_string(diff) << std::endl;      
+    }    
+  }
+
+  return true;
+}
+
 bool SelfConsistentIntegrand2Bilayer::find_solution(double& _delta, double& _mu, bool verbose){
   if (half_filling() && T_equal_to_0()){
     /* Checking if the charge gap of the noninteracting system is finite. */
     double delta0 = 0.;
     double ch_gap, mu0;
     std::tie(ch_gap, mu0) = calc_charge_gap_bilayer(L(), *ts(), delta0);
+
+    /* Gapped case */
     if (ch_gap > 0.) {
       /* delta for mu0 should be correct. */
       _delta = solve_self_consistent_eq_bilayer2(L(), *ts(), U(), mu0, T(), cbp_, continuous_k());
@@ -603,20 +644,12 @@ bool SelfConsistentIntegrand2Bilayer::find_solution(double& _delta, double& _mu,
     return find_solution_gsl(_delta, _mu, verbose);
   } else if (use_1d_solver()) {
     return find_solution_using_1d_solver(_delta, _mu, verbose);
+  } else if (use_NewtonRaphson()) {
+    return find_solution_nr(_delta, _mu, verbose);
+  } else if (use_NelderMead()) {
+    return find_solution_nm(_delta, _mu, verbose);
   } else {
-    /* Using the Newton-Raphson method */
-    bool converged = find_solution_nr(_delta, _mu, verbose);
-
-    /* The Nelder-Mead method may be used if the Newton-Raphson method was not successful. */
-    if (converged) {
-      return true;
-    } else {
-      if (use_NelderMead()) {
-	return find_solution_nm(_delta, _mu, verbose);
-      } else {
-	return false;
-      }
-    }
+    return find_solution_default(_delta, _mu, verbose);
   }
 }
 

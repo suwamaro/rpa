@@ -136,11 +136,13 @@ public:
   bool find_solution_gsl(double& delta, double& mu, bool verbose);
   bool find_solution_nr(double& delta, double& mu, bool verbose);
   bool find_solution_nm(double& delta, double& mu, bool verbose);
-  bool find_solution_using_1d_solver(double& delta, double& mu, bool verbose);  
+  bool find_solution_using_1d_solver(double& delta, double& mu, bool verbose);
+  bool find_solution_default(double& delta, double& mu, bool verbose);    
   bool find_solution(double& delta, double& mu, bool verbose);
   double NelderMead_f(vec const& x) const { return nm_.f(x); }
   bool use_gsl() const { return use_gsl_; }
   bool use_gsl_fdf_solver() const { return use_gsl_fdf_solver_; }
+  bool use_NewtonRaphson() const { return use_NewtonRaphson_; }  
   bool use_NelderMead() const { return use_NelderMead_; }
   bool use_1d_solver() const { return use_1d_solver_; }  
   
@@ -151,7 +153,8 @@ private:
   NewtonRaphson nr_;
   NelderMead nm_;
   bool use_gsl_;
-  bool use_gsl_fdf_solver_;  
+  bool use_gsl_fdf_solver_;
+  bool use_NewtonRaphson_;  
   bool use_NelderMead_;
   bool use_1d_solver_;
   double (SelfConsistentIntegrand2Bilayer::*integrand_ptr)(const double*) const;

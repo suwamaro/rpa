@@ -56,6 +56,7 @@ namespace rpa {
     std::size_t max_iter;
     double epsfunc;
     double mod_prefactor;
+    bool use_NewtonRaphson;    
     bool use_NelderMead;
     bool use_1d_solver;
     

@@ -72,8 +72,9 @@ namespace rpa {
     max_iter = config->get_as<std::size_t>("max_iter").value_or(200);    
     epsfunc = config->get_as<double>("epsfunc").value_or(1e-10);
     mod_prefactor = config->get_as<double>("mod_prefactor").value_or(1.0);
+    use_NewtonRaphson = config->get_as<bool>("use_NewtonRaphson").value_or(false);    
     use_NelderMead = config->get_as<bool>("use_NelderMead").value_or(false);
-    use_1d_solver = config->get_as<bool>("use_1d_solver").value_or(true);        
+    use_1d_solver = config->get_as<bool>("use_1d_solver").value_or(false);        
     eta = config->get_as<double>("eta").value_or(0.001);
     U = config->get_as<double>("U").value_or(1.0);
 
