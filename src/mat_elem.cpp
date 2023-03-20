@@ -297,7 +297,7 @@ void MatElemVelocity::build_table(hoppings2 const& ts, double delta){
 
 	/* Checking if the wavevector is inside the BZ. */
 	double factor = BZ_factor_square_half_filling(kx, ky);
-	if ( std::abs(factor) < 1e-12 ) { continue; }  
+	if ( std::abs(factor) < 1e-12 ) { continue; } 
 
 	/* k index */
 	std::size_t kidx = k_to_index(kx, ky, kz);

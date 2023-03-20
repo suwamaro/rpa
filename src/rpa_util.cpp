@@ -123,7 +123,13 @@ double fermi_energy(double x, double kT, double mu) {
 double fermi_density(double x, double kT, double mu) {    
   double alpha = (x-mu) / std::abs(kT);
   if (kT < 1e-15 || std::abs(alpha) > 40.) {
-    return (x < mu) ? 1.0 : 0.0;
+    if (std::abs(x-mu) < 1e-12) {
+      return 0.5;
+    } else if (x < mu) {
+      return 1.0;
+    } else {
+      return 0.0;
+    }    
   } else {
     if ( alpha > 0 ) {
       return exp(-alpha) / (exp(-alpha) + 1.);

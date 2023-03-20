@@ -682,19 +682,10 @@ double SelfConsistentIntegrand2Bilayer::calc() const {
 	double kx = k1 * x;
 	for(int y=-L()/2; y < L()/2; ++y){
 	  double ky = k1 * y;      
-	
-	  /* Checking if k is inside/outside the BZ. */
-	  double mu_free = 0;  /* Assume at half filling */
-	  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc */
-	  if ( e_free > mu_free + eps() ) continue;
 
-	  /* Prefactor */
-	  double factor = 1.;
-	
-	  /* On the zone boundary */
-	  if ( std::abs(e_free - mu_free) < eps() ) {	
-	    factor = 0.5;
-	  }
+	  /* Checking if the wavevector is inside the BZ. */
+	  double factor = BZ_factor_square_half_filling(kx, ky);
+	  if ( std::abs(factor) < 1e-12 ) { continue; }
 
 	  double qvec[3] = {kx, ky, kz};
 	  sum += factor * (this->*integrand_ptr)(qvec);
@@ -723,19 +714,10 @@ double self_consistent_eq_bilayer(int L, hoppings_bilayer const& ts, double delt
       for(int y=-L/2; y < L/2; ++y){
 	double ky = k1 * y;      
 	double e_eps = 1e-12;
-	
-	/* Checking if k is inside/outside the BZ. */
-	double mu_free = 0;  /* Assume at half filling */
-	double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc */
-	if ( e_free > mu_free + eps ) continue;
 
-	/* Prefactor */
-	double factor = 1.;
-	
-	/* On the zone boundary */
-	if ( std::abs(e_free - mu_free) < eps ) {	
-	  factor = 0.5;
-	}
+	/* Checking if the wavevector is inside the BZ. */
+	double factor = BZ_factor_square_half_filling(kx, ky);
+	if ( std::abs(factor) < 1e-12 ) { continue; }
 
 	/* Sum of the Fourier transformed hoppings */
 	double ek1 = ts.ek1(kx, ky, kz);
@@ -810,19 +792,10 @@ double self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double mu
 	double kx = k1 * x;
 	for(int y=-L/2; y < L/2; ++y){
 	  double ky = k1 * y;      
-	
-	  /* Checking if k is inside/outside the BZ. */
-	  double mu_free = 0;  /* Assume at half filling */
-	  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc */
-	  if ( e_free > mu_free + eps ) continue;
 
-	  /* Prefactor */
-	  double factor = 1.;
-	
-	  /* On the zone boundary */
-	  if ( std::abs(e_free - mu_free) < eps ) {	
-	    factor = 0.5;
-	  }
+	  /* Checking if the wavevector is inside the BZ. */
+	  double factor = BZ_factor_square_half_filling(kx, ky);
+	  if ( std::abs(factor) < 1e-12 ) { continue; }
 
 	  /* Sum of the Fourier transformed hoppings */
 	  cx_double ek1 = ts.ek1(kx, ky, kz);
@@ -891,8 +864,31 @@ std::tuple<double, double> solve_self_consistent_eqs_bilayer(rpa::parameters con
       non_zero_delta = false;
     }
   }
-  
-  return solve_self_consistent_eqs_bilayer2(pr, L, ts, U, filling, T, continuous_k, non_zero_delta, delta_i, mu_i);
+
+  /* Disordered state */
+  double delta1, mu1;
+  std::tie(delta1, mu1) = solve_self_consistent_eqs_bilayer2(pr, L, ts, U, filling, T, continuous_k, false, delta_i, mu_i);
+  if (non_zero_delta) {
+    /* Comparing the free energies. */
+    sci2b.set_input(delta1, mu1);    
+    double f1 = sci2b.calc_energy();
+    std::cout << "Free energy of the disordered state = " << f1 << std::endl;
+    
+    /* Ordered state */    
+    double delta2, mu2;
+    std::tie(delta2, mu2) = solve_self_consistent_eqs_bilayer2(pr, L, ts, U, filling, T, continuous_k, true, delta_i, mu_i);
+    sci2b.set_input(delta2, mu2);
+    double f2 = sci2b.calc_energy();
+    std::cout << "Free energy of the ordered state = " << f2 << std::endl;
+    
+    if (f1 < f2) {
+      return std::make_tuple(delta1, mu1);
+    } else {
+      return std::make_tuple(delta2, mu2);
+    }
+  } else {
+    return std::make_tuple(delta1, mu1);
+  }
 }
 
 std::tuple<double, double> solve_self_consistent_eqs_bilayer2(rpa::parameters const& pr, int L, hoppings_bilayer2 const& ts, double U, double filling, double T, bool continuous_k, bool non_zero_delta, double delta_i, double mu_i){

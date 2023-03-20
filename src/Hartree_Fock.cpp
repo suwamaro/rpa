@@ -17,10 +17,10 @@ int conduction_index = 0;
 double wave_vector_in_BZ(double k){
   /* Returning - M_PI <= k < M_PI */
   double k_eps = 1e-12;
-  while( k > M_PI - k_eps ) k -= 2. * M_PI;
-  while( k < - M_PI - k_eps ) k += 2. * M_PI;
-  if ( std::abs( k ) < k_eps ) k = 0;
-  if ( std::abs( k + M_PI ) < k_eps ) k = - M_PI;
+  while(k > M_PI - k_eps) k -= 2. * M_PI;
+  while(k < - M_PI - k_eps) k += 2. * M_PI;
+  if (std::abs(k) < k_eps) k = 0;
+  if (std::abs(k + M_PI) < k_eps) k = - M_PI;
   return k;
 }
 
@@ -29,9 +29,14 @@ double BZ_factor_square_half_filling(double kx, double ky){
   double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc: t=1 */
   double factor = 0.0;
   double eps = 1e-12;  
-  if ( e_free > mu_free + eps ) { factor = 0.0; }
-  else if ( std::abs(e_free - mu_free) < eps ) { factor = 0.5; } /* On the zone boundary */
-  else { factor = 1.0; }
+  if ( e_free > mu_free + eps ) {
+    factor = 0.0;
+  } else if ( std::abs(e_free - mu_free) < eps ) {
+    /* On the zone boundary */    
+    factor = 0.5;
+  } else {
+    factor = 1.0;
+  }
   return factor;
 }
 

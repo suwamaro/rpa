@@ -9,6 +9,7 @@
 
 #include "BinarySearch.h"
 #include "rpa_util.h"
+#include "Hartree_Fock.h"
 #include "calc_single_particle_energy.h"
 #include "calc_chemical_potential.h"
 
@@ -136,26 +137,17 @@ double elec_filling_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, do
   } else {
     double eps = 1e-12;
     double k1 = 2. * M_PI / (double)L;
-    
-    for(int z=0; z < 2; z++){    
-      double kz = M_PI * z;
-      for(int x=-L/2; x < L/2; x++){
-	double kx = k1 * x;
-	for(int y=-L/2; y < L/2; y++){
-	  double ky = k1 * y;      
-	
-	  /* Checking if k is inside/outside the BZ. */
-	  double mu_free = 0;  /* Assume at half filling */
-	  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc */
-	  if ( e_free > mu_free + eps ) continue;
 
-	  /* Prefactor */
-	  double factor = 1.;
-	
-	  /* On the zone boundary */
-	  if ( std::abs(e_free - mu_free) < eps ) {	
-	    factor = 0.5;
-	  }
+    for(int z=0; z < 2; ++z){    
+      double kz = M_PI * z;
+      for(int x=-L/2; x < L/2; ++x){
+	double kx = k1 * x;
+	for(int y=-L/2; y < L/2; ++y){
+	  double ky = k1 * y;      
+
+	  /* Checking if the wavevector is inside the BZ. */
+	  double factor = BZ_factor_square_half_filling(kx, ky);
+	  if ( std::abs(factor) < 1e-12 ) { continue; }
 
 	  /* Sum of the Fourier transformed hoppings */
 	  cx_double ek1 = ts.ek1(kx, ky, kz);
@@ -172,9 +164,9 @@ double elec_filling_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, do
     } /* end for z */
 
     int n_sites = L * L * 2;  
-    sum /= (double)( n_sites );    
+    sum /= (double)(n_sites);
   }
-
+  
   return sum;
 }
 
