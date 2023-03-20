@@ -419,7 +419,7 @@ bool SelfConsistentIntegrand2Bilayer::find_solution_nr(double& _delta, double& _
     ++niter;
     if ( niter == max_iter() ) {
       std::cout << "Number of iteration reaches the limit " << max_iter() << std::endl;
-      std::cout << "The remained error squared is " << std::setprecision(precision()) << std::to_string(diff) << std::endl;
+      std::cout << "The remained error squared is " << std::setprecision(precision()) << diff << std::endl;
       break;
     }
     _delta = delta2;
@@ -484,7 +484,7 @@ bool SelfConsistentIntegrand2Bilayer::find_solution_nm(double& _delta, double& _
     return true;
   } else {
     std::cout << "Number of iteration reaches the limit " << max_iter() << std::endl;
-    std::cout << "The remained error squared is " << std::setprecision(precision()) << std::to_string(f_opt) << std::endl;
+    std::cout << "The remained error squared is " << std::setprecision(precision()) << f_opt << std::endl;
     return false;
   }
 }
@@ -525,7 +525,7 @@ bool SelfConsistentIntegrand2Bilayer::find_solution_using_1d_solver(double& _del
     /* Reached the maximum iteration step. */
     if (t == max_iter() - 1) {
       std::cout << "Number of iteration reaches the limit " << max_iter() << std::endl;
-      std::cout << "The remained error squared is " << std::setprecision(precision()) << std::to_string(diff1) << std::endl;      
+      std::cout << "The remained error squared is " << std::setprecision(precision()) << diff1 << std::endl;      
     }    
   }
 
@@ -563,7 +563,7 @@ bool SelfConsistentIntegrand2Bilayer::find_solution_using_1d_solver(double& _del
     /* Reached the maximum iteration step. */
     if (t == max_iter() - 1) {
       std::cout << "Number of iteration reaches the limit " << max_iter() << std::endl;    
-      std::cout << "The remained error squared is " << std::setprecision(precision()) << std::to_string(diff2) << std::endl;
+      std::cout << "The remained error squared is " << std::setprecision(precision()) << diff2 << std::endl;
     }    
   }  
 
@@ -614,7 +614,7 @@ bool SelfConsistentIntegrand2Bilayer::find_solution_default(double& _delta, doub
     /* Reached the maximum iteration step. */
     if (t == max_iter() - 1) {
       std::cout << "Number of iteration reaches the limit " << max_iter() << std::endl;
-      std::cout << "The remained error squared is " << std::setprecision(precision()) << std::to_string(diff) << std::endl;      
+      std::cout << "The remained error squared is " << std::setprecision(precision()) << diff << std::endl;      
     }    
   }
 
