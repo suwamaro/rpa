@@ -53,6 +53,7 @@ namespace rpa {
     bool continuous_k;  // true: Integral over continous k; L = \infty.    
 
     /* Parameter for solving the self-consistent equations */
+    std::size_t max_iter;
     double epsfunc;
     double mod_prefactor;
     bool use_NelderMead;

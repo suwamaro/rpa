@@ -33,11 +33,11 @@ namespace rpa {
     calc_two_site_problem = config->get_as<bool>("calc_two_site_problem").value_or(false);
     check_details = config->get_as<bool>("check_details").value_or(false);                
 
-    L = config->get_as<int64_t>("L").value_or(16);
-    Lx = config->get_as<int64_t>("Lx").value_or(4);
-    Ly = config->get_as<int64_t>("Ly").value_or(4);
-    Lz = config->get_as<int64_t>("Lz").value_or(4);    
-    Lk = config->get_as<int64_t>("Lk").value_or(L);    
+    L = config->get_as<int>("L").value_or(16);
+    Lx = config->get_as<int>("Lx").value_or(4);
+    Ly = config->get_as<int>("Ly").value_or(4);
+    Lz = config->get_as<int>("Lz").value_or(4);    
+    Lk = config->get_as<int>("Lk").value_or(L);    
     wave_vector_type = config->get_as<std::string>("wave_vector_type").value_or("high_symmetry1");
     relative_temperature = config->get_as<bool>("relative_temperature").value_or(false);
     if ( relative_temperature ) {
@@ -69,6 +69,7 @@ namespace rpa {
     Neel_phase = config->get_as<bool>("Neel_phase").value_or(false);    
     filling = config->get_as<double>("filling").value_or(0.5);    
     continuous_k = config->get_as<bool>("continuous_k").value_or(false);
+    max_iter = config->get_as<std::size_t>("max_iter").value_or(200);    
     epsfunc = config->get_as<double>("epsfunc").value_or(1e-10);
     mod_prefactor = config->get_as<double>("mod_prefactor").value_or(1.0);
     use_NelderMead = config->get_as<bool>("use_NelderMead").value_or(false);
@@ -111,8 +112,8 @@ namespace rpa {
     omega_delta = config->get_as<double>("omega_delta").value_or(0.01);
 
     /* Wavevector index: from qi to qf */
-    qi = config->get_as<int64_t>("qi").value_or(0);
-    qf = config->get_as<int64_t>("qf").value_or(-1);
+    qi = config->get_as<int>("qi").value_or(0);
+    qf = config->get_as<int>("qf").value_or(-1);
     
     /* Parameters for Cuba */
     epsrel = config->get_as<double>("epsrel").value_or(1e-3);
@@ -153,7 +154,7 @@ namespace rpa {
       std::cout << "1 eV corresponds to " << 1e-2 / (planck_h * c_light) << " cm^{-1}." << std::endl;
       
       factor_resonant = config->get_as<double>("factor_resonant").value_or(1.0);  // (eV)    
-      // n_ex = config->get_as<int64_t>("n_ex").value_or(1);
+      // n_ex = config->get_as<int>("n_ex").value_or(1);
     }
 
     if (calc_Raman_bilayer_coefficient) {    

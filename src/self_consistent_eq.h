@@ -52,9 +52,10 @@ public:
   SelfConsistentIntegrand2();
   virtual ~SelfConsistentIntegrand2(){}
   virtual void set_parameters(int _L, double _U, double _filling, double _T, double _delta, double _mu, bool _continuous_k, bool _non_zero_delta);
+  void set_max_iter(std::size_t max_iter);
   void set_input(double _delta, double _mu);
   void set_eps_func(double _eps);
-  int64_t max_iter() const;
+  std::size_t max_iter() const;
   int precision() const { return precision_; }
   int precision2() const { return precision2_; }  
   double eps() const;
@@ -77,7 +78,7 @@ public:
   virtual bool invalid_params(double _delta, double _mu) const;
   
 private:
-  int64_t max_iter_;
+  std::size_t max_iter_;
   int precision_ = 12;
   int precision2_ = 15;  
   double eps_;
@@ -128,7 +129,7 @@ public:
   double calc_diff();  
   double calc_diff(vec const& x);
   double calc_diff(double delta, double mu);    
-  void update_parameters(int64_t niter, double& delta, double& mu);
+  void update_parameters(std::size_t niter, double& delta, double& mu);
   int gsl_function_helper(const gsl_vector *x, void *params, gsl_vector *f);
   int gsl_function_df_helper(const gsl_vector *x, void *params, gsl_matrix *J);
   int gsl_function_fdf_helper(const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix *J);

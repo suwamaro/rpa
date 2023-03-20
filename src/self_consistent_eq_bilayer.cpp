@@ -58,6 +58,7 @@ SelfConsistentIntegrand2Bilayer::SelfConsistentIntegrand2Bilayer():SelfConsisten
 
 void SelfConsistentIntegrand2Bilayer::set_parameters(rpa::parameters const& pr, int _L, hoppings_bilayer2 const& _hb, double _U, double _filling, double _T, double _delta, double _mu, bool _continuous_k, bool _non_zero_delta){
   SelfConsistentIntegrand2::set_parameters(_L, _U, _filling, _T, _delta, _mu, _continuous_k, _non_zero_delta);
+  SelfConsistentIntegrand2::set_max_iter(pr.max_iter);  
   SelfConsistentIntegrand2::set_eps_func(pr.epsfunc);
   hb_ = _hb;
   cbp_.set_parameters(pr);
@@ -259,7 +260,7 @@ double SelfConsistentIntegrand2Bilayer::calc_diff(double _delta, double _mu){
   return calc_diff();
 }
 
-void SelfConsistentIntegrand2Bilayer::update_parameters(int64_t niter, double& _delta, double& _mu){
+void SelfConsistentIntegrand2Bilayer::update_parameters(std::size_t niter, double& _delta, double& _mu){
   if ( non_zero_delta() ) {
     /* Updating delta and mu */
     nr_.J(0,0) = calc_mean_field_der_delta();
@@ -411,7 +412,7 @@ bool SelfConsistentIntegrand2Bilayer::find_solution_nr(double& _delta, double& _
   std::cout << "Using the Newton-Raphson method." << std::endl;
   double delta2 = _delta;
   double mu2 = _mu;
-  int64_t niter = 0;
+  std::size_t niter = 0;
   double diff = 0;
   do {
     ++niter;
