@@ -55,6 +55,8 @@ public:
   void set_input(double _delta, double _mu);
   void set_eps_func(double _eps);
   int64_t max_iter() const;
+  int precision() const { return precision_; }
+  int precision2() const { return precision2_; }  
   double eps() const;
   double eps_func() const;
   int L() const;
@@ -76,6 +78,8 @@ public:
   
 private:
   int64_t max_iter_;
+  int precision_ = 12;
+  int precision2_ = 15;  
   double eps_;
   double eps_func_;
   int L_;
