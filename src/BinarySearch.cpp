@@ -84,6 +84,12 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
     }
     if ( !std::isnan( x_MIN_ ) && x < x_MIN_ ) { x = x_MIN_; }
     if ( !std::isnan( x_MAX_ ) && x > x_MAX_ ) { x = x_MAX_; }
+
+    /* No solution */
+    if (std::abs(x-x2) < 1e-12) {
+      std::cerr << "No solution was found." << std::endl;
+      return false;
+    }
     
     /* Updating the value */
     fx = f(x);

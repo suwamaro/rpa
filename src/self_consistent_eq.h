@@ -54,6 +54,7 @@ public:
   virtual void set_parameters(int _L, double _U, double _filling, double _T, double _delta, double _mu, bool _continuous_k, bool _non_zero_delta);
   void set_max_iter(std::size_t max_iter);
   void set_input(double _delta, double _mu);
+  void set_U(double U);
   void set_eps_func(double _eps);
   std::size_t max_iter() const;
   int precision() const { return precision_; }
@@ -128,7 +129,8 @@ public:
   double calc_diff_nr();
   double calc_diff();  
   double calc_diff(vec const& x);
-  double calc_diff(double delta, double mu);    
+  double calc_diff(double delta, double mu);
+  double calc_chemical_potential(double delta, bool verbose=false) const;  
   void update_parameters(std::size_t niter, double& delta, double& mu);
   int gsl_function_helper(const gsl_vector *x, void *params, gsl_vector *f);
   int gsl_function_df_helper(const gsl_vector *x, void *params, gsl_matrix *J);

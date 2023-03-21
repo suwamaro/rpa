@@ -195,7 +195,7 @@ void SelfConsistentIntegrand2Bilayer::integral(const int *ndim, const cubareal x
 
 double SelfConsistentIntegrand2Bilayer::calc_mean_field_function(){
   integrand_ptr = &SelfConsistentIntegrand2Bilayer::integrand_mean_field;
-  return calc() * delta();
+  return calc();   // Without being multiplied by delta
 }
 
 double SelfConsistentIntegrand2Bilayer::calc_mean_field(){
@@ -259,6 +259,10 @@ double SelfConsistentIntegrand2Bilayer::calc_diff(vec const& x){
 double SelfConsistentIntegrand2Bilayer::calc_diff(double _delta, double _mu){
   set_input(_delta, _mu);
   return calc_diff();
+}
+
+double SelfConsistentIntegrand2Bilayer::calc_chemical_potential(double _delta, bool verbose) const {
+  return calc_chemical_potential_bilayer3(L(), *ts(), filling(), T(), _delta, cbp_, continuous_k(), verbose);
 }
 
 void SelfConsistentIntegrand2Bilayer::update_parameters(std::size_t niter, double& _delta, double& _mu){

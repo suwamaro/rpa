@@ -144,7 +144,7 @@ void check_mean_field_eq_bilayer(path const& base_dir, rpa::parameters const& pr
   
   /* Calculating the chemical potential */
   double delta_max = 1.0;
-  double delta_delta = 0.01;
+  double delta_delta = 0.001;
   for(double delta=0.; delta <= delta_max; delta += delta_delta){
     double mu = calc_chemical_potential_bilayer3(L, *ts, filling, T, delta, cbp, continuous_k, false);
 

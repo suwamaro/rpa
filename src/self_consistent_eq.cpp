@@ -105,6 +105,10 @@ void SelfConsistentIntegrand2::set_input(double _delta, double _mu){
   mu_ = _mu;
 }
 
+void SelfConsistentIntegrand2::set_U(double _U){
+  U_ = _U;
+}
+
 void SelfConsistentIntegrand2::set_max_iter(std::size_t _max_iter){
   max_iter_ = _max_iter;
 }

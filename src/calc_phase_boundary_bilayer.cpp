@@ -12,6 +12,11 @@
 #include "find_critical_point.h"
 #include "find_critical_U.h"
 #include "find_metal_insulator_transition.h"
+#include "self_consistent_eq.h"
+#include "calc_chemical_potential.h"
+
+/* Instances */
+extern SelfConsistentIntegrand2Bilayer sci2b;
 
 void calc_phase_boundary_U_bilayer(path& base_dir, rpa::parameters& pr){
   std::cout << "Obtaining the phase boundary as a function of U..." << std::endl;
@@ -73,36 +78,102 @@ double calc_energy_diff(rpa::parameters& pr, double U, bool anneal = false, doub
   return F2 - F1;
 }
 
-double find_first_order_transition_point(rpa::parameters& pr, double Uc){
+double calc_grand_potential_bilayer(SelfConsistentIntegrand2Bilayer& sc, double delta){
+  double mu = sc.calc_chemical_potential(delta);
+  sc.set_input(delta, mu);
+  return sc.calc_energy();
+}
+
+double find_first_order_transition_point_bilayer(rpa::parameters& pr, double delta_i){
   std::cout << "Finding a first-order transition point." << std::endl;
 
-  /* Extracting parameters. */
-  bool anneal = pr.find_U1st_anneal;
-  double U_max = pr.find_U1st_U_max;
-  double U_delta = pr.find_U1st_U_delta;  
+  /* Getting parameters */
+  int L = pr.L;
+  double U = pr.U;
+  double T = pr.T;
+  double filling = pr.filling;
+  bool continuous_k = pr.continuous_k;
+  
+  /* Hopping parameters */
+  std::unique_ptr<hoppings_bilayer2> ts = hoppings_bilayer2::mk_bilayer3(pr);
 
-  /* Target value */
-  double target = 0.;
+  /* Parameters for Cuba */
+  CubaParam cbp(pr);
 
-  /* Function */
+  /* Setting the parameters */
+  double delta0 = 0.;
+  double mu0 = 0.;
+  bool non_zero_delta = true;  
+  sci2b.set_parameters(pr, L, *ts, U, filling, T, delta0, mu0, continuous_k, non_zero_delta);
+  
+  /* Calculating the grand potential of the disordered state. */
+  double F0 = calc_grand_potential_bilayer(sci2b, delta0);
+  std::cout << "F0 = " << F0 << std::endl;
+  
+  /* Finding the order parameter (delta) to match the disordered grand potential. */
+  double target = F0;
   using std::placeholders::_1;
-  auto eq = std::bind(calc_energy_diff, std::ref(pr), _1, anneal, U_max, U_delta);
+  auto eq = std::bind(calc_grand_potential_bilayer, std::ref(sci2b), _1);
 
-  BinarySearch bs(pr.continuous_k);
+  BinarySearch bs(continuous_k);
+  bs.set_x_MIN(1e-5);
+  bs.set_x_MAX(0.5);
 
-  /* The first-order transition point is expected to be greater than Uc. */
-  bs.set_x_MIN(Uc + 1e-12);
-  bs.set_x_MAX(U_max);
+  std::cout << "Binary search to find a solution." << std::endl;  
+  double delta = delta_i;
+  // bool sol_found = bs.find_solution(delta, target, eq, false, 0., true);
+  bool sol_found = bs.find_solution(delta, target, eq);  
+  if (!sol_found) {
+    return 0.;
+  }
 
-  double U = Uc + 10. * U_delta;
-  bool sol_found = bs.find_solution(U, target, eq);
-
-  if ( sol_found ) {
-    return U;
-  } else {
-    return 0;
-  }  
+  /* Calculating the corresponding value of U. */
+  double mu = sci2b.calc_chemical_potential(delta);
+  sci2b.set_input(delta, mu);
+  double U_inv = sci2b.calc_mean_field_function();
+  sci2b.set_U(1./U_inv);
+  
+  /* Output */
+  double F1 = sci2b.calc_energy();
+  double Fdiff = F1 - F0;
+  double scdiff = sci2b.calc_diff();
+  std::cout << "delta = " << delta << "   mu = " << mu << "   U_inv = " << U_inv << "   U1st = " << 1. / U_inv << std::endl;  
+  std::cout << "F1 = " << F1 << "     Fdiff = " << Fdiff << std::endl;
+  std::cout << "Error of the self-consistent equation = " << scdiff << std::endl;  
+    
+  return 1. / U_inv;
 }
+
+// double find_first_order_transition_point_old(rpa::parameters& pr, double Uc){
+//   std::cout << "Finding a first-order transition point." << std::endl;
+
+//   /* Extracting parameters. */
+//   bool anneal = pr.find_U1st_anneal;
+//   double U_max = pr.find_U1st_U_max;
+//   double U_delta = pr.find_U1st_U_delta;  
+
+//   /* Target value */
+//   double target = 0.;
+
+//   /* Function */
+//   using std::placeholders::_1;
+//   auto eq = std::bind(calc_energy_diff, std::ref(pr), _1, anneal, U_max, U_delta);
+
+//   BinarySearch bs(pr.continuous_k);
+
+//   /* The first-order transition point is expected to be greater than Uc. */
+//   bs.set_x_MIN(Uc + 1e-12);
+//   bs.set_x_MAX(U_max);
+
+//   double U = Uc + 10. * U_delta;
+//   bool sol_found = bs.find_solution(U, target, eq);
+
+//   if ( sol_found ) {
+//     return U;
+//   } else {
+//     return 0;
+//   }  
+// }
 
 void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
   std::cout << "Obtaining the phase boundary as a function of t4..." << std::endl;
@@ -162,8 +233,9 @@ void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
 	}
 	out_e.close();
       }
-      
-      double U1st = find_first_order_transition_point(pr, Uc);
+
+      double delta_i = pr.init_value;
+      double U1st = find_first_order_transition_point_bilayer(pr, delta_i);
       
       /* Output */
       out_pb << std::setprecision(prec) << t4 << std::setw(sw) << Uc << std::setw(sw) << U1st << std::endl;
