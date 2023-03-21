@@ -8,15 +8,11 @@
 *****************************************************************************/
 
 #include "calc_phase_boundary.h"
-#include "BinarySearch.h"
 #include "find_critical_point.h"
 #include "find_critical_U.h"
 #include "find_metal_insulator_transition.h"
 #include "self_consistent_eq.h"
 #include "calc_chemical_potential.h"
-
-/* Instances */
-extern SelfConsistentIntegrand2Bilayer sci2b;
 
 void calc_phase_boundary_U_bilayer(path& base_dir, rpa::parameters& pr){
   std::cout << "Obtaining the phase boundary as a function of U..." << std::endl;
@@ -76,72 +72,6 @@ double calc_energy_diff(rpa::parameters& pr, double U, bool anneal = false, doub
   std::tie(F1, F2, delta, mu, ch_gap, diff) = calc_total_energies(pr, U, delta, mu, set_init_val);
   
   return F2 - F1;
-}
-
-double calc_grand_potential_bilayer(SelfConsistentIntegrand2Bilayer& sc, double delta){
-  double mu = sc.calc_chemical_potential(delta);
-  sc.set_input(delta, mu);
-  return sc.calc_energy();
-}
-
-double find_first_order_transition_point_bilayer(rpa::parameters& pr, double delta_i){
-  std::cout << "Finding a first-order transition point." << std::endl;
-
-  /* Getting parameters */
-  int L = pr.L;
-  double U = pr.U;
-  double T = pr.T;
-  double filling = pr.filling;
-  bool continuous_k = pr.continuous_k;
-  
-  /* Hopping parameters */
-  std::unique_ptr<hoppings_bilayer2> ts = hoppings_bilayer2::mk_bilayer3(pr);
-
-  /* Parameters for Cuba */
-  CubaParam cbp(pr);
-
-  /* Setting the parameters */
-  double delta0 = 0.;
-  double mu0 = 0.;
-  bool non_zero_delta = true;  
-  sci2b.set_parameters(pr, L, *ts, U, filling, T, delta0, mu0, continuous_k, non_zero_delta);
-  
-  /* Calculating the grand potential of the disordered state. */
-  double F0 = calc_grand_potential_bilayer(sci2b, delta0);
-  std::cout << "F0 = " << F0 << std::endl;
-  
-  /* Finding the order parameter (delta) to match the disordered grand potential. */
-  double target = F0;
-  using std::placeholders::_1;
-  auto eq = std::bind(calc_grand_potential_bilayer, std::ref(sci2b), _1);
-
-  BinarySearch bs(continuous_k);
-  bs.set_x_MIN(1e-5);
-  bs.set_x_MAX(0.5);
-
-  std::cout << "Binary search to find a solution." << std::endl;  
-  double delta = delta_i;
-  // bool sol_found = bs.find_solution(delta, target, eq, false, 0., true);
-  bool sol_found = bs.find_solution(delta, target, eq);  
-  if (!sol_found) {
-    return 0.;
-  }
-
-  /* Calculating the corresponding value of U. */
-  double mu = sci2b.calc_chemical_potential(delta);
-  sci2b.set_input(delta, mu);
-  double U_inv = sci2b.calc_mean_field_function();
-  sci2b.set_U(1./U_inv);
-  
-  /* Output */
-  double F1 = sci2b.calc_energy();
-  double Fdiff = F1 - F0;
-  double scdiff = sci2b.calc_diff();
-  std::cout << "delta = " << delta << "   mu = " << mu << "   U_inv = " << U_inv << "   U1st = " << 1. / U_inv << std::endl;  
-  std::cout << "F1 = " << F1 << "     Fdiff = " << Fdiff << std::endl;
-  std::cout << "Error of the self-consistent equation = " << scdiff << std::endl;  
-    
-  return 1. / U_inv;
 }
 
 // double find_first_order_transition_point_old(rpa::parameters& pr, double Uc){
@@ -208,7 +138,7 @@ void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
 
     /* Finding the possible critical point. */
     double Uc = find_critical_U_bilayer(pr);   // Using delta == 0    
-    std::cout << "Uc = " << Uc << std::endl;
+    std::cout << "Possible Uc = " << Uc << std::endl;
     
     /* Checking if a first-order transition occurs. */
     if (pr.find_first_order_transition) {
@@ -222,10 +152,11 @@ void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
     
 	std::cout << "Checking the energies for each U." << std::endl;
 	double U_delta = 0.001;
-	double U_max = Uc + U_delta * 60;
+	double U_max = Uc + U_delta * 30;
+	double U_min = Uc - U_delta * 20;
 	double delta = 0., mu = 0., ch_gap = 0., diff = 0.;
 	bool set_init_val = false;
-	for(double U = U_max; U > Uc + 1e-12; U -= U_delta){
+	for(double U = U_max; U >= U_min; U -= U_delta){
 	  double F1 = 0., F2 = 0.;
 	  std::tie(F1, F2, delta, mu, ch_gap, diff) = calc_total_energies(pr, U, delta, mu, set_init_val);
 	  set_init_val = true;
@@ -234,7 +165,7 @@ void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
 	out_e.close();
       }
 
-      double delta_i = pr.init_value;
+      double delta_i = 0.49;   // It may not work if delta_i is too small.
       double U1st = find_first_order_transition_point_bilayer(pr, delta_i);
       
       /* Output */

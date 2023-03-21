@@ -706,7 +706,7 @@ void calc_Raman_bilayer(path& base_dir, rpa::parameters const& pr){
   
   /* Parameters for Cuba */
   CubaParam cbp(pr);
-  
+
   /* Calculating the order parameter (delta) and the chemical potential. */
   double delta = 0., ch_pot = 0.;
   std::tie(delta, ch_pot) = solve_self_consistent_eqs_bilayer(pr, L, *ts, U, filling, T, continuous_k);

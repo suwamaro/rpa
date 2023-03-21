@@ -489,6 +489,7 @@ void MatElemK::set_occupied_and_empty_vectors(hoppings2 const& ts, double delta,
 	  not_half = true;
 	} else {}
 
+	/* Assume that the number of the degenerate states at the chemical potential is small enough. Thus, the finite size effect is small enough. */
 	if (not_half) {
 	  std::size_t kidx = k_to_index(kx, ky, kz);
 	  not_half_occupied_.push_back(kidx);   // Index

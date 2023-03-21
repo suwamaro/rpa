@@ -8,6 +8,7 @@
 *****************************************************************************/
 
 #include "rpa_util.h"
+#include "BinarySearch.h"
 #include "calc_chemical_potential.h"
 #include "self_consistent_eq.h"
 #include "find_critical_U.h"
@@ -199,4 +200,69 @@ std::tuple<double, double, double, double, double, double> calc_total_energies(r
   std::tie(ch_gap, mu0) = calc_charge_gap_bilayer(L, *ts, delta);
   
   return std::make_tuple(F1, F2, delta, mu, ch_gap, diff);
+}
+
+double calc_grand_potential_bilayer(SelfConsistentIntegrand2Bilayer& sc, double delta){
+  double mu = sc.calc_chemical_potential(delta);
+  sc.set_input(delta, mu);
+  return sc.calc_energy();
+}
+
+double find_first_order_transition_point_bilayer(rpa::parameters const& pr, double delta_i){
+  std::cout << "Finding a first-order transition point." << std::endl;
+
+  /* Getting parameters */
+  int L = pr.L;
+  double U = pr.U;
+  double T = pr.T;
+  double filling = pr.filling;
+  bool continuous_k = pr.continuous_k;
+  
+  /* Hopping parameters */
+  std::unique_ptr<hoppings_bilayer2> ts = hoppings_bilayer2::mk_bilayer3(pr);
+
+  /* Parameters for Cuba */
+  CubaParam cbp(pr);
+
+  /* Setting the parameters */
+  double delta0 = 0.;
+  double mu0 = 0.;
+  bool non_zero_delta = true;  
+  sci2b.set_parameters(pr, L, *ts, U, filling, T, delta0, mu0, continuous_k, non_zero_delta);
+  
+  /* Calculating the grand potential of the disordered state. */
+  double F1 = calc_grand_potential_bilayer(sci2b, delta0);
+  std::cout << "F1 = " << F1 << std::endl;
+  
+  /* Finding the order parameter (delta) to match the disordered grand potential. */
+  double target = F1;
+  using std::placeholders::_1;
+  auto eq = std::bind(calc_grand_potential_bilayer, std::ref(sci2b), _1);
+
+  BinarySearch bs(continuous_k);
+  bs.set_x_MIN(1e-5);
+  bs.set_x_MAX(0.5);
+
+  std::cout << "Binary search to find a solution." << std::endl;  
+  double delta = delta_i;
+  bool sol_found = bs.find_solution(delta, target, eq, false, 0., pr.debug_mode);
+  if (!sol_found) {
+    return 0.;
+  }
+
+  /* Calculating the corresponding value of U. */
+  double mu = sci2b.calc_chemical_potential(delta);
+  sci2b.set_input(delta, mu);
+  double U_inv = sci2b.calc_mean_field_function();
+  sci2b.set_U(1./U_inv);
+  
+  /* Output */
+  double F2 = sci2b.calc_energy();
+  double Fdiff = F2 - F1;
+  double scdiff = sci2b.calc_diff();
+  std::cout << "delta = " << delta << "   mu = " << mu << "   U_inv = " << U_inv << "   U1st = " << 1. / U_inv << std::endl;  
+  std::cout << "F2 = " << F2 << "     Fdiff = " << Fdiff << std::endl;
+  std::cout << "Error of the self-consistent equation = " << scdiff << std::endl;  
+    
+  return 1. / U_inv;
 }

@@ -845,12 +845,21 @@ double solve_self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, dou
 std::tuple<double, double> solve_self_consistent_eqs_bilayer(rpa::parameters const& pr, int L, hoppings_bilayer2 const& ts, double U, double filling, double T, bool continuous_k, double delta_i, double mu_i){
   /* Checking if it is in the ordered phase. */
   bool non_zero_delta;
+  double U1st = 0.;
   if (T < 1e-15) {
-    std::cout << "Calculating the critical U." << std::endl;
-    double Uc = find_critical_U_bilayer(pr);
-    std::cout << "Uc = " << Uc << std::endl;
+    std::cout << "Calculating the transition point." << std::endl;    
+    double delta_i = 0.49;
+    U1st = find_first_order_transition_point_bilayer(pr, delta_i);
+    double Ut = 0.;    
+    if (U1st == 0.) {
+      Ut = find_critical_U_bilayer(pr);
+      std::cout << "The critical point: U = " << Ut << std::endl;      
+    } else {
+      Ut = U1st;
+      std::cout << "The first-order transition point: U = " << Ut << std::endl;      
+    }
     
-    if (U > Uc) {
+    if (U > Ut) {
       non_zero_delta = true;
     } else {
       non_zero_delta = false;
@@ -869,29 +878,39 @@ std::tuple<double, double> solve_self_consistent_eqs_bilayer(rpa::parameters con
     }
   }
 
-  /* Disordered state */
-  double delta1, mu1;
-  std::tie(delta1, mu1) = solve_self_consistent_eqs_bilayer2(pr, L, ts, U, filling, T, continuous_k, false, delta_i, mu_i);
-  if (non_zero_delta) {
-    /* Comparing the free energies. */
-    sci2b.set_input(delta1, mu1);    
-    double f1 = sci2b.calc_energy();
-    std::cout << "Free energy of the disordered state = " << f1 << std::endl;
-    
-    /* Ordered state */    
-    double delta2, mu2;
-    std::tie(delta2, mu2) = solve_self_consistent_eqs_bilayer2(pr, L, ts, U, filling, T, continuous_k, true, delta_i, mu_i);
-    sci2b.set_input(delta2, mu2);
-    double f2 = sci2b.calc_energy();
-    std::cout << "Free energy of the ordered state = " << f2 << std::endl;
-    
-    if (f1 < f2) {
-      return std::make_tuple(delta1, mu1);
-    } else {
-      return std::make_tuple(delta2, mu2);
-    }
+  if (U1st == 0.) {
+    /* In the absence of a 1st-order transition */
+    double delta, mu;
+    std::tie(delta, mu) = solve_self_consistent_eqs_bilayer2(pr, L, ts, U, filling, T, continuous_k, non_zero_delta, delta_i, mu_i);
+    return std::make_tuple(delta, mu);
   } else {
-    return std::make_tuple(delta1, mu1);
+    /* Disordered state */
+    double delta1, mu1;
+    std::tie(delta1, mu1) = solve_self_consistent_eqs_bilayer2(pr, L, ts, U, filling, T, continuous_k, false, delta_i, mu_i);
+    
+    if (non_zero_delta) {
+      /* If there is a 1st-order transition, comparing the free energies. */
+      sci2b.set_input(delta1, mu1);    
+      double f1 = sci2b.calc_energy();
+      std::cout << "Free energy of the disordered state = " << f1 << std::endl;
+      
+      /* Ordered state */    
+      double delta2, mu2;
+      std::tie(delta2, mu2) = solve_self_consistent_eqs_bilayer2(pr, L, ts, U, filling, T, continuous_k, true, delta_i, mu_i);
+      sci2b.set_input(delta2, mu2);
+      double f2 = sci2b.calc_energy();
+      std::cout << "Free energy of the ordered state = " << f2 << std::endl;
+      
+      /* Double-check */
+      if (f1 < f2 - pr.epsfunc) {
+	std::cerr << "Error: The energy of the ordered state is higher than that of the disordered state." << std::endl;
+	std::exit(EXIT_FAILURE);	  
+      } else {
+	return std::make_tuple(delta2, mu2);
+      }
+    } else {
+      return std::make_tuple(delta1, mu1);
+    }
   }
 }
 

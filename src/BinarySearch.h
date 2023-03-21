@@ -1,3 +1,15 @@
+/*****************************************************************************
+*
+* Binary search class.
+*
+* Copyright (C) 2018 by Hidemaro Suwa
+* e-mail:suwamaro@phys.s.u-tokyo.ac.jp
+*
+*****************************************************************************/
+
+#ifndef _BINARY_SEARCH_H
+#define _BINARY_SEARCH_H
+
 #include <cmath>
 #include <functional>
 
@@ -16,3 +28,5 @@ private:
   double x_MIN_ = NAN;
   double x_MAX_ = NAN;  
 };
+
+#endif  // _BINARY_SEARCH_H

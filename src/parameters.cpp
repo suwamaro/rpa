@@ -31,7 +31,8 @@ namespace rpa {
     calc_Raman_bilayer_coefficient = config->get_as<bool>("calc_Raman_bilayer_coefficient").value_or(false);
     calc_mean_field_eigenenergy = config->get_as<bool>("calc_mean_field_eigenenergy").value_or(false);    
     calc_two_site_problem = config->get_as<bool>("calc_two_site_problem").value_or(false);
-    check_details = config->get_as<bool>("check_details").value_or(false);                
+    check_details = config->get_as<bool>("check_details").value_or(false);
+    debug_mode = config->get_as<bool>("debug_mode").value_or(false);                    
 
     L = config->get_as<int>("L").value_or(16);
     Lx = config->get_as<int>("Lx").value_or(4);

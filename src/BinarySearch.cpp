@@ -123,8 +123,7 @@ bool BinarySearch::find_solution(double& x, double target, std::function<double(
     ++n_iter;
 
     if ( debug ) {
-      std::cout << n_iter << "   " << x << "   " << fx << "   " << target << "   " << diff << std::endl;
-      
+      std::cout << n_iter << "   " << x << "   " << fx << "   " << target << "   " << diff << std::endl;      
     }
     
     if ( std::abs( dx ) < 1e-24 ) {

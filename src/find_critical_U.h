@@ -7,6 +7,9 @@
 *
 *****************************************************************************/
 
+#ifndef _FIND_CRITICAL_U_H
+#define _FIND_CRITICAL_U_H
+
 #include <cuba.h>
 #include "rpa.h"
 #include "hoppings.h"
@@ -44,3 +47,6 @@ double find_critical_U_bilayer(rpa::parameters const& pr);
 void find_critical_U_bilayer_output(path& base_dir, rpa::parameters const& pr);
 void check_mean_field_eq_bilayer(path const& base_dir, rpa::parameters const& pr);
 std::tuple<double, double, double, double, double, double> calc_total_energies(rpa::parameters const& pr, double U, double delta_i, double mu_i, bool set_initial_values);
+double find_first_order_transition_point_bilayer(rpa::parameters const& pr, double delta_i);
+
+#endif  // _FIND_CRITICAL_U_H

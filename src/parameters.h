@@ -37,6 +37,7 @@ namespace rpa {
     bool calc_mean_field_eigenenergy;    
     bool calc_two_site_problem;
     bool check_details;  // For debug
+    bool debug_mode;
     
     int L;  // System size
     int Lx, Ly, Lz;
