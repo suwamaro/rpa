@@ -10,28 +10,41 @@ BinarySearch::BinarySearch(bool continuous_k){
   }
 }
 
+bool BinarySearch::invalid_range(double x) const {
+  /* Checking whether x is within the range */
+  if (( !std::isnan(x_MIN_) && x < x_MIN_) || (!std::isnan(x_MAX_) && x > x_MAX_)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 bool BinarySearch::find_solution(double& x, double target, std::function<double(double x)> const& f, bool additive, double x_delta, bool debug){
   if ( debug && !std::isnan(x_MIN_) && !std::isnan(x_MAX_) ) { std::cout << "Finding the solution between " << x_MIN_ << " and " << x_MAX_ << std::endl; }
-  
-  /* Checking whether x is within the range */
-  if ( ( !std::isnan( x_MIN_ ) && x < x_MIN_ ) || ( !std::isnan( x_MAX_ ) && x > x_MAX_ ) ) {
-    std::cerr << "x is out of the range.\n";
-    std::exit(EXIT_FAILURE);
-  }
-  
+      
   /* Checking if x is a solution */
-  double fx = f( x );
-  if ( std::abs( fx - target ) < eps_fx ) {
-    if ( debug ) {
+  double fx = f(x);
+  if (std::abs(fx - target) < eps_fx) {
+    if (debug) {
       std::cout << 0 << "   " << x << "   " << fx << "   " << target << "   " << fx - target << std::endl;
     }
     return true;
   }
-  
+
+  /* Checking if x is within the range. */
+  if (invalid_range(x)){
+    std::cerr << "x is out of the range.\n";
+    std::exit(EXIT_FAILURE);
+  }
+    
   /* Another x */
   double x2 = 0;
-  if ( additive ) { x2 = x + x_delta; }
-  else { x2 = 1.1 * x; }
+  if ( additive ) {
+    assert(x_delta > 0.);
+    x2 = x + x_delta;
+  } else {
+    x2 = 1.1 * x;
+  }
   if(!std::isnan(x_MAX_) && x2 > x_MAX_) {
     std::cout << "x2 is set to the maximum.\n";    
     x2 = x_MAX_;

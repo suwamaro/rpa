@@ -119,7 +119,11 @@ namespace rpa {
     bool find_first_order_transition;    
     bool find_U1st_anneal;
     double find_U1st_U_max;
-    double find_U1st_U_delta;    
+    double find_U1st_U_min;    
+    double find_U1st_U_delta;
+    double find_U1st_delta_max;
+    double find_U1st_delta_min;    
+    double find_U1st_delta_delta;    
     
     /* Parameters for the Raman scattering */
     double omega_i;   // Energy of the initial photon state

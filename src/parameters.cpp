@@ -142,9 +142,13 @@ namespace rpa {
     
     /* Parameters for finding a 1st-order transition point */
     find_first_order_transition = config->get_as<bool>("find_first_order_transition").value_or(false);    
-    find_U1st_anneal = config->get_as<bool>("find_U1st_anneal").value_or(true);
+    find_U1st_anneal = config->get_as<bool>("find_U1st_anneal").value_or(false);
     find_U1st_U_max = config->get_as<double>("find_U1st_U_max").value_or(0.3);
-    find_U1st_U_delta = config->get_as<double>("find_U1st_U_delta").value_or(0.01);        
+    find_U1st_U_min = config->get_as<double>("find_U1st_U_min").value_or(0.0);    
+    find_U1st_U_delta = config->get_as<double>("find_U1st_U_delta").value_or(0.01);
+    find_U1st_delta_max = config->get_as<double>("find_U1st_delta_max").value_or(0.05);
+    find_U1st_delta_min = config->get_as<double>("find_U1st_delta_min").value_or(0.03);
+    find_U1st_delta_delta = config->get_as<double>("find_U1st_delta_delta").value_or(0.001);            
     
     /* Parameters for the Raman scattering */
     if (calc_Raman_bilayer) {

@@ -20,10 +20,15 @@ NelderMead::NelderMead(int d, double _alpha, double _gamma, double _rho, double 
 
 void NelderMead::init(){
   x0.set_size(dim);
+  eps = 1e-10;
 }
 
 void NelderMead::init_x(std::vector<vec> const& _xs){
   xs = _xs;
+}
+
+void NelderMead::set_eps(double _eps){
+  eps = _eps;
 }
 
 void NelderMead::reset(){
@@ -104,15 +109,24 @@ void NelderMead::step(){
   return;
 }
 
-bool NelderMead::is_terminated() const {
-  for(int i=0; i <= dim; ++i){
-    if (f(xs[i]) < tolerance) { return true; }    
+double NelderMead::distance(vec const& x1, vec const& x2) const {
+  double sum = 0.;
+  for(int i=0; i < dim; ++i){
+    double diff = x2[i] - x1[i];
+    sum += diff * diff;
   }
-  return false;
+  return sum;
 }
 
-void NelderMead::set_tolerance(double tol){
-  tolerance = tol;
+bool NelderMead::is_terminated(){
+  set_x0();
+  for(int i=0; i <= dim; ++i){
+    double di = distance(xs[i], x0);
+    if (di > eps * eps) {
+      return false;
+    }
+  }
+  return true;
 }
 
 void NelderMead::output(ostream& out) const {

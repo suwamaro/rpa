@@ -55,56 +55,6 @@ void calc_phase_boundary_U_bilayer(path& base_dir, rpa::parameters& pr){
   out_pb.close();
 }
 
-double calc_energy_diff(rpa::parameters& pr, double U, bool anneal = false, double U_max = 0., double U_delta = 0.){
-  double F1 = 0., F2 = 0., delta = 0., mu = 0., ch_gap = 0., diff = 0.;
-  bool set_init_val = false;
-
-  /* Gradually decreasing U. */
-  if (anneal) {
-    for(double Ua = U_max; Ua > U; Ua -= U_delta){
-      std::cout << "Annealing Ua = " << Ua << "   to U = " << U << std::endl;      
-      std::tie(F1, F2, delta, mu, ch_gap, diff) = calc_total_energies(pr, Ua, delta, mu, set_init_val);
-      set_init_val = true;
-    }
-  }
-
-  /* For U */
-  std::tie(F1, F2, delta, mu, ch_gap, diff) = calc_total_energies(pr, U, delta, mu, set_init_val);
-  
-  return F2 - F1;
-}
-
-// double find_first_order_transition_point_old(rpa::parameters& pr, double Uc){
-//   std::cout << "Finding a first-order transition point." << std::endl;
-
-//   /* Extracting parameters. */
-//   bool anneal = pr.find_U1st_anneal;
-//   double U_max = pr.find_U1st_U_max;
-//   double U_delta = pr.find_U1st_U_delta;  
-
-//   /* Target value */
-//   double target = 0.;
-
-//   /* Function */
-//   using std::placeholders::_1;
-//   auto eq = std::bind(calc_energy_diff, std::ref(pr), _1, anneal, U_max, U_delta);
-
-//   BinarySearch bs(pr.continuous_k);
-
-//   /* The first-order transition point is expected to be greater than Uc. */
-//   bs.set_x_MIN(Uc + 1e-12);
-//   bs.set_x_MAX(U_max);
-
-//   double U = Uc + 10. * U_delta;
-//   bool sol_found = bs.find_solution(U, target, eq);
-
-//   if ( sol_found ) {
-//     return U;
-//   } else {
-//     return 0;
-//   }  
-// }
-
 void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
   std::cout << "Obtaining the phase boundary as a function of t4..." << std::endl;
     
@@ -134,7 +84,7 @@ void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
     pr.t4 = t4;    
     if (pr.check_mean_field_function) {
       check_mean_field_eq_bilayer(base_dir, pr);
-    }    
+    }
 
     /* Finding the possible critical point. */
     double Uc = find_critical_U_bilayer(pr);   // Using delta == 0    
@@ -158,15 +108,31 @@ void calc_phase_boundary_t4_bilayer(path& base_dir, rpa::parameters& pr){
 	bool set_init_val = false;
 	for(double U = U_max; U >= U_min; U -= U_delta){
 	  double F1 = 0., F2 = 0.;
-	  std::tie(F1, F2, delta, mu, ch_gap, diff) = calc_total_energies(pr, U, delta, mu, set_init_val);
+	  std::tie(F1, F2, delta, mu, ch_gap, diff) = calc_total_energies_bilayer(pr, U, delta, mu, set_init_val);
 	  set_init_val = true;
 	  out_e << std::setw(sw) << t4 << std::setw(sw) << U << std::setw(sw) << F1 << std::setw(sw) << F2 << std::setw(sw) << delta << std::setw(sw) << mu << std::setw(sw) << ch_gap << std::setw(sw) << diff << std::endl;
 	}
 	out_e.close();
       }
 
-      double delta_i = 0.49;   // It may not work if delta_i is too small.
-      double U1st = find_first_order_transition_point_bilayer(pr, delta_i);
+      double U1st = 0.;
+      if (pr.find_U1st_anneal) {
+	U1st = find_first_order_transition_point_bilayer_anneal(pr, Uc);
+      } else {
+	/* Finding a finite delta to produce the same grand potential with the disordered state. */	
+	double delta_i = pr.find_U1st_delta_max - pr.find_U1st_delta_delta;
+	bool found = find_first_order_transition_point_bilayer(pr, U1st, delta_i);
+	
+	if (!found) {
+	  /* If not found, find a value of U at the maximum value of the mean field function. */
+	  delta_i = 0.5 * (pr.find_U1st_delta_max + pr.find_U1st_delta_min);
+	  found = find_first_order_transition_point_bilayer2(pr, U1st, delta_i);
+	  
+	  if (!found) {
+	    U1st = 0.;
+	  }
+	}
+      }
       
       /* Output */
       out_pb << std::setprecision(prec) << t4 << std::setw(sw) << Uc << std::setw(sw) << U1st << std::endl;

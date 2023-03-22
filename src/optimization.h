@@ -22,21 +22,22 @@ public:
 
   void init();  
   void init_x(std::vector<vec> const& _xs);
+  void set_eps(double _eps);  
   void reset();
   void sort();
   void set_x0();
   void step();
   double (*f)(vec const&);
-  bool (*compare)(vec const& x1, vec const& x2);  
-  bool is_terminated() const;
-  void set_tolerance(double tol);
+  bool (*compare)(vec const& x1, vec const& x2);
+  double distance(vec const& x1, vec const& x2) const;
+  bool is_terminated();
   void output(ostream& out) const;
   void get_result(vec& x_opt, double& f_opt);
 
 private:
   int dim;
   std::size_t t;
-  double tolerance = 1e-12;
+  double eps;
   bool is_sorted;
   std::vector<vec> xs;
   std::vector<double> fs;

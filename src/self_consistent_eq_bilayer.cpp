@@ -459,7 +459,6 @@ bool SelfConsistentIntegrand2Bilayer::find_solution_nr(double& _delta, double& _
 bool SelfConsistentIntegrand2Bilayer::find_solution_nm(double& _delta, double& _mu, bool verbose){
   std::cout << "Using the Nelder-Mead method." << std::endl;    
   nm_.reset();
-  nm_.set_tolerance(eps_func() * eps_func());
     
   /* Initial parameters */
   std::vector<vec> xs(n_sc_params+1);
@@ -594,13 +593,14 @@ bool SelfConsistentIntegrand2Bilayer::find_solution_default(double& _delta, doub
   
   for(std::size_t t=0; t < max_iter(); ++t){
     double delta2 = _delta;
-    double mu2 = _mu;  
+    double mu2 = _mu;
+    
     /* delta -> mu */
     _mu = calc_chemical_potential_bilayer3(L(), *ts(), filling(), T(), delta2, cbp_, continuous_k(), false);
 
     if (non_zero_delta()) {
       /* mu -> delta */      
-      _delta = solve_self_consistent_eq_bilayer2(L(), *ts(), U(), mu2, T(), cbp_, continuous_k());
+      _delta = solve_self_consistent_eq_bilayer2(L(), *ts(), U(), mu2, T(), cbp_, continuous_k());      
     }
 
     /* Difference */
@@ -849,14 +849,14 @@ std::tuple<double, double> solve_self_consistent_eqs_bilayer(rpa::parameters con
   if (T < 1e-15) {
     std::cout << "Calculating the transition point." << std::endl;    
     double delta_i = 0.49;
-    U1st = find_first_order_transition_point_bilayer(pr, delta_i);
+    bool found = find_first_order_transition_point_bilayer(pr, U1st, delta_i);
     double Ut = 0.;    
-    if (U1st == 0.) {
-      Ut = find_critical_U_bilayer(pr);
-      std::cout << "The critical point: U = " << Ut << std::endl;      
-    } else {
+    if (found) {
       Ut = U1st;
-      std::cout << "The first-order transition point: U = " << Ut << std::endl;      
+      std::cout << "The first-order transition point: U = " << Ut << std::endl;            
+    } else {
+      Ut = find_critical_U_bilayer(pr);
+      std::cout << "The critical point: U = " << Ut << std::endl;
     }
     
     if (U > Ut) {

@@ -162,7 +162,7 @@ void check_mean_field_eq_bilayer(path const& base_dir, rpa::parameters const& pr
   out_mf.close();    
 }
 
-std::tuple<double, double, double, double, double, double> calc_total_energies(rpa::parameters const& pr, double U, double delta_i, double mu_i, bool set_initial_values){
+std::tuple<double, double, double, double, double, double> calc_total_energies_bilayer(rpa::parameters const& pr, double U, double delta_i, double mu_i, bool set_initial_values){
   /* Getting parameters */
   int L = pr.L;
   double filling = pr.filling;
@@ -208,12 +208,11 @@ double calc_grand_potential_bilayer(SelfConsistentIntegrand2Bilayer& sc, double 
   return sc.calc_energy();
 }
 
-double find_first_order_transition_point_bilayer(rpa::parameters const& pr, double delta_i){
-  std::cout << "Finding a first-order transition point." << std::endl;
+bool find_first_order_transition_point_bilayer(rpa::parameters const& pr, double& U, double delta_i){
+  std::cout << "Finding a finite delta to produce the same grand potential with the disordered state..." << std::endl;
 
   /* Getting parameters */
   int L = pr.L;
-  double U = pr.U;
   double T = pr.T;
   double filling = pr.filling;
   bool continuous_k = pr.continuous_k;
@@ -240,14 +239,16 @@ double find_first_order_transition_point_bilayer(rpa::parameters const& pr, doub
   auto eq = std::bind(calc_grand_potential_bilayer, std::ref(sci2b), _1);
 
   BinarySearch bs(continuous_k);
-  bs.set_x_MIN(1e-5);
-  bs.set_x_MAX(0.5);
-
+  bs.set_x_MIN(pr.find_U1st_delta_min);
+  bs.set_x_MAX(pr.find_U1st_delta_max);
+  double x_delta = pr.find_U1st_delta_delta;
+  
   std::cout << "Binary search to find a solution." << std::endl;  
   double delta = delta_i;
-  bool sol_found = bs.find_solution(delta, target, eq, false, 0., pr.debug_mode);
+  bool additive = true;
+  bool sol_found = bs.find_solution(delta, target, eq, additive, x_delta, pr.debug_mode);
   if (!sol_found) {
-    return 0.;
+    return false;
   }
 
   /* Calculating the corresponding value of U. */
@@ -255,6 +256,7 @@ double find_first_order_transition_point_bilayer(rpa::parameters const& pr, doub
   sci2b.set_input(delta, mu);
   double U_inv = sci2b.calc_mean_field_function();
   sci2b.set_U(1./U_inv);
+  U = 1./U_inv;
   
   /* Output */
   double F2 = sci2b.calc_energy();
@@ -264,5 +266,163 @@ double find_first_order_transition_point_bilayer(rpa::parameters const& pr, doub
   std::cout << "F2 = " << F2 << "     Fdiff = " << Fdiff << std::endl;
   std::cout << "Error of the self-consistent equation = " << scdiff << std::endl;  
     
-  return 1. / U_inv;
+  return true;
+}
+
+double negative_mean_field_function(vec const& x){
+  double delta = x[0];
+  bool verbose = false;
+  double mu = sci2b.calc_chemical_potential(delta, verbose);
+  sci2b.set_input(delta, mu);
+  return - sci2b.calc_mean_field_function();
+}
+
+bool compare_mean_field_functions(vec const& x1, vec const& x2){
+  double f1 = negative_mean_field_function(x1);
+  double f2 = negative_mean_field_function(x2);
+  return f1 < f2;
+}
+
+bool find_first_order_transition_point_bilayer2(rpa::parameters const& pr, double& U, double delta_i){
+  std::cout << "Finding a value of U at the maximum value of the mean field function..." << std::endl;  
+
+  /* Getting parameters */
+  int L = pr.L;
+  double T = pr.T;
+  double filling = pr.filling;
+  bool continuous_k = pr.continuous_k;
+  
+  /* Hopping parameters */
+  std::unique_ptr<hoppings_bilayer2> ts = hoppings_bilayer2::mk_bilayer3(pr);
+
+  /* Setting the parameters */
+  double delta0 = 0.;
+  double mu0 = 0.;
+  bool non_zero_delta = true;  
+  sci2b.set_parameters(pr, L, *ts, U, filling, T, delta0, mu0, continuous_k, non_zero_delta);
+
+  /* Setting NelderMead class */
+  int dim = 1;
+  NelderMead nm(dim);
+  nm.f = &negative_mean_field_function;
+  nm.compare = &compare_mean_field_functions;
+  nm.set_eps(1e-6);
+  nm.reset();
+  double delta_max = pr.find_U1st_delta_max;
+  double delta_min = pr.find_U1st_delta_min;  
+  if (delta_i > delta_max || delta_i < delta_min) {
+    delta_i = 0.5 * (delta_max + delta_min);
+  }
+  vec x0{delta_i};
+  vec x1{delta_max};
+  std::vector<vec> xs(dim+1);
+  xs[0] = x0;
+  xs[1] = x1;
+  nm.init_x(xs);
+  nm.sort();
+
+  /* Output */
+  ofstream out_nm("optimal_delta_Nelder-Mead.text");
+  out_nm << std::setprecision(12);
+  
+  /* Finding an optimal value. */
+  std::size_t max_iter = 100;
+  bool optimized = true;
+  for(std::size_t t=0; t < max_iter; ++t){
+    nm.output(out_nm);
+    nm.step();
+    if (nm.is_terminated()) { break; }      
+    if (t == max_iter - 1){ optimized = false; }
+  }
+  nm.output(out_nm);
+
+  /* Result */
+  double f_opt = 0.;
+  nm.get_result(x0, f_opt);
+  double delta = x0[0];
+  bool valid = delta >= delta_min && delta <= delta_max;  
+  if (optimized && valid){    
+    /* For the ordered state */
+    bool verbose = false;
+    double T = 0.0;
+    double mu = sci2b.calc_chemical_potential(delta, verbose);
+    sci2b.set_input(delta, mu);
+    double F2 = sci2b.calc_energy();
+    
+    /* For the disordered state */
+    double delta0 = 0;
+    double mu0 = sci2b.calc_chemical_potential(delta0, verbose);
+    sci2b.set_input(delta0, mu0);
+    double F1 = sci2b.calc_energy();
+    
+    /* Comparing the energies. */
+    out_nm << "F2 - F1 = " << F2 - F1 << std::endl;
+    if (F2 < F1) {
+      out_nm << "Optimal point: ( " << delta << " " << f_opt << " )" << std::endl;
+      U = - 1. / f_opt;  // Negative      
+      return true;
+    } else {
+      out_nm << "Not found." << std::endl;
+      out_nm.close();    
+      return false;
+    }
+  } else {
+    std::cout << "Number of iteration reaches the limit " << max_iter << std::endl;
+    std::cout << "The remained error squared is " << std::setprecision(12) << f_opt << std::endl;
+    out_nm << "Not found." << std::endl;
+    out_nm.close();    
+    return false;
+  }  
+}
+
+double calc_energy_diff_bilayer_anneal(rpa::parameters& pr, double U, double U_max, double U_delta){
+  double F1 = 0., F2 = 0., delta = 0., mu = 0., ch_gap = 0., diff = 0.;
+  bool set_init_val = false;
+
+  /* Gradually decreasing U. */
+  for(double Ua = U_max; Ua > U; Ua -= U_delta){
+    std::cout << "Annealing Ua = " << Ua << "   to U = " << U << std::endl;      
+    std::tie(F1, F2, delta, mu, ch_gap, diff) = calc_total_energies_bilayer(pr, Ua, delta, mu, set_init_val);
+    set_init_val = true;
+    std::cout << "delta = " << delta << "   mu = " << mu << "   charge_gap = " << ch_gap << "   sc_diff = " << diff << std::endl;
+  }
+
+  /* For U */
+  std::tie(F1, F2, delta, mu, ch_gap, diff) = calc_total_energies_bilayer(pr, U, delta, mu, set_init_val);
+  std::cout << "delta = " << delta << "   mu = " << mu << "   charge_gap = " << ch_gap << "   sc_diff = " << diff << std::endl;
+  
+  return F2 - F1;
+}
+
+double find_first_order_transition_point_bilayer_anneal(rpa::parameters& pr, double Uc){
+  std::cout << "Finding a first-order transition point using an annealing process." << std::endl;
+
+  /* Extracting parameters. */
+  double U_max = pr.find_U1st_U_max;
+  double U_min = pr.find_U1st_U_min;  
+  double U_delta = pr.find_U1st_U_delta;  
+
+  /* Target value */
+  double target = 0.;
+
+  /* Function */
+  using std::placeholders::_1;
+  auto eq = std::bind(calc_energy_diff_bilayer_anneal, std::ref(pr), _1, U_max, U_delta);
+
+  BinarySearch bs(pr.continuous_k);
+  bs.set_x_MIN(U_min);
+  bs.set_x_MAX(U_max);
+
+  /* Initial value */
+  double U = U_max - U_delta;
+  double Ui = Uc + 10. * U_delta;
+  if (Ui < U) { U = Ui; }
+  
+  bool sol_found = bs.find_solution(U, target, eq);
+
+  if ( sol_found ) {
+    return U;
+  } else {
+    return 0;
+  }  
 }
