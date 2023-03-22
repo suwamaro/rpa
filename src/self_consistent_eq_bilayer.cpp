@@ -847,9 +847,23 @@ std::tuple<double, double> solve_self_consistent_eqs_bilayer(rpa::parameters con
   bool non_zero_delta;
   double U1st = 0.;
   if (T < 1e-15) {
-    std::cout << "Calculating the transition point." << std::endl;    
-    double delta_i = 0.49;
+    std::cout << "Calculating the transition point." << std::endl;
+    
+    /* Finding a finite delta to produce the same grand potential with the disordered state. */
+    double U1st = 0.;
+    double delta_i = pr.find_U1st_delta_max - pr.find_U1st_delta_delta;
     bool found = find_first_order_transition_point_bilayer(pr, U1st, delta_i);
+	
+    if (!found) {
+      /* If not found, find a value of U at the maximum value of the mean field function. */
+      delta_i = 0.5 * (pr.find_U1st_delta_max + pr.find_U1st_delta_min);
+      found = find_first_order_transition_point_bilayer2(pr, U1st, delta_i);
+      
+      if (!found) {
+	U1st = 0.;
+      }
+    }
+	
     double Ut = 0.;    
     if (found) {
       Ut = U1st;
