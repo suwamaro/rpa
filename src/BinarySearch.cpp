@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <cassert>
 #include "BinarySearch.h"
 
 BinarySearch::BinarySearch(bool continuous_k){
