@@ -12,7 +12,7 @@ This is a sample code of the random phase approximation (RPA) for the fermionic 
 
 ## Compilation
 
-    cmake [path-to-rpa-source-directory]
+    cmake [path-to-source-directory]
     make
     
 ## Reference
