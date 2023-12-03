@@ -172,7 +172,7 @@ double elec_filling_eq_bilayer(int L, hoppings_bilayer2 const& ts, double mu, do
 
 double calc_chemical_potential_bilayer3(int L, hoppings_bilayer2 const& ts, double filling, double T, double delta, CubaParam const& cbp, bool continuous_k, bool verbose){    
   assert(kB*T > 1e-15 || filling == 0.5);
-  std::cout << "Calculating the chemical potential..." << std::endl;
+  // std::cout << "Calculating the chemical potential..." << std::endl;
 
   /* If the charge gap is finite, the chemical potential is set to the midpoint of the upper and lower bands. */
   double ch_gap = 0., mu0 = 0.;
