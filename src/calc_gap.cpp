@@ -142,18 +142,9 @@ void add_to_sus_mat2(hoppings const& ts, double mu, cx_double& A, cx_double& B, 
   cx_double bk_up = calc_bk_up_in_minus(ek1, ek2, ek3, delta);
   cx_double bk_down = calc_bk_down_in_minus(ek1, ek2, ek3, delta);
   
-  /* Checking if the eigenenergy is below the chemical potential. */
-  double mu_free = 0;  /* Assume at half filling */
-  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc */
-  if ( e_free > mu_free + eps ) return;
-    
   /* Prefactor */
-  double factor = 1.;
-  
-  /* On the zone boundary */
-  if ( std::abs(e_free - mu_free) < eps ) {
-    factor *= 0.5;
-  }
+  double factor = BZ_factor_square_half_filling(kx, ky);
+  if (factor == 0) return;
   
   double diff_xm = wave_vector_in_BZ( kx - qx );
   double diff_ym = wave_vector_in_BZ( ky - qy );
@@ -385,15 +376,19 @@ cx_double calc_prefactor_bare_res_func_bilayer(int sg1, int sg2, hoppings2 const
 
 void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz_up, arma::cx_mat& chi_zz_down, double kx, double ky, double kz, MatElemF const& me_F, double delta, cx_double omega){
 // void add_to_sus_mat4(hoppings2 const& ts, double T, double mu, arma::cx_mat& chi_pm, arma::cx_mat& chi_zz_up, double kx, double ky, double kz, MatElemF const& me_F, double delta, cx_double omega){  
+
+  /* Prefactor */
+  double factor = BZ_factor_square_half_filling(kx, ky);
+  if (factor == 0) return;
   
-  /* Checking if the wavevector is inside the BZ. */
-  double mu_free = 0;  /* Assume at half filling */
-  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc: t=1 */
-  double factor = 0.0;
-  double eps = 1e-12;  
-  if ( e_free > mu_free + eps ) { return; }
-  else if ( std::abs(e_free - mu_free) < eps ) { factor = 0.5; } /* On the zone boundary */
-  else { factor = 1.; }
+  // /* Checking if the wavevector is inside the BZ. */
+  // double mu_free = 0;  /* Assume at half filling */
+  // double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc: t=1 */
+  // double factor = 0.0;
+  // double eps = 1e-12;  
+  // if ( e_free > mu_free + eps ) { return; }
+  // else if ( std::abs(e_free - mu_free) < eps ) { factor = 0.5; } /* On the zone boundary */
+  // else { factor = 1.; }
       
   for(int sg1=-1; sg1<=1; sg1+=2){
     for(int sg2=-1; sg2<=1; sg2+=2){

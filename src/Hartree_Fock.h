@@ -18,6 +18,7 @@
 
 double wave_vector_in_BZ(double k);
 double BZ_factor_square_half_filling(double kx, double ky);
+double BZ_factor_half_filling(double kx, double ky);
 int sublattice_spin_index(int g, int sigma);
 int sign_spin_index(int g, int sigma);
 int band_spin_index(int b, int sigma);

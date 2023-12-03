@@ -248,29 +248,16 @@ double calc_Psider(int L, hoppings_bilayer2 const& ts, double mu, double omega, 
 	double kx = k1 * x;
 	for(int y=-L/2; y < L/2; y++){
 	  double ky = k1 * y;      
-	
-	  /* Checking if k is inside/outside the BZ. */
-	  double mu_free = 0;  /* Assume at half filling */
-	  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc */
-	  if ( e_free > mu_free + eps ) continue;
 
 	  /* Prefactor */
-	  double factor = 1.;
-	
-	  /* On the zone boundary */
-	  if ( std::abs(e_free - mu_free) < eps ) {	
-	    factor = 0.5;
-	  }
-
+	  double factor = BZ_factor_square_half_filling(kx, ky);
+	  if (factor == 0) continue;
+	  
 	  /* Sum of the Fourier transformed hoppings */
 	  cx_double ek1 = ts.ek1(kx, ky, kz);
 	  double zki = zk(ek1, ts.tz, kz, delta);
 	  cx_double bki = bk(up_spin, ek1, ts.tz, kz);  // spin does not matter.
 	  Psider += factor * PhiDerIntegrand::integrand(omega, delta, zki, bki);
-
-	  // // for check
-	  // std::cout << x << "  " << y << "  " << z << "  " << omega << "  " << delta << "  " << zki << "  " << bki << "  " << factor << "  " << Psider << std::endl;
-	  
 	} /* end for y */
       } /* end for x */
     } /* end for z */
@@ -339,19 +326,10 @@ double calc_weight_distribution_bilayer(int L, hoppings_bilayer2 const& ts, Cuba
 	double kx = k1 * x;
 	for(int y=-L/2; y < L/2; y++){
 	  double ky = k1 * y;      
-	
-	  /* Checking if k is inside/outside the BZ. */
-	  double mu_free = 0;  /* Assume at half filling */
-	  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc */
-	  if ( e_free > mu_free + eps ) continue;
 
 	  /* Prefactor */
-	  double factor = 1.;
-	
-	  /* On the zone boundary */
-	  if ( std::abs(e_free - mu_free) < eps ) {	
-	    factor = 0.5;
-	  }
+	  double factor = BZ_factor_square_half_filling(kx, ky);
+	  if (factor == 0) continue;
 	  
 	  cx_double ek1 = ts.ek1(kx, ky, kz);
 	  cx_double ek23 = ts.ek23(kx, ky, kz);

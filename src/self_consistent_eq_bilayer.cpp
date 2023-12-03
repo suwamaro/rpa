@@ -689,7 +689,7 @@ double SelfConsistentIntegrand2Bilayer::calc() const {
 
 	  /* Checking if the wavevector is inside the BZ. */
 	  double factor = BZ_factor_square_half_filling(kx, ky);
-	  if ( std::abs(factor) < 1e-12 ) { continue; }
+	  if (factor == 0) continue;	  
 
 	  double qvec[3] = {kx, ky, kz};
 	  sum += factor * (this->*integrand_ptr)(qvec);
@@ -721,7 +721,7 @@ double self_consistent_eq_bilayer(int L, hoppings_bilayer const& ts, double delt
 
 	/* Checking if the wavevector is inside the BZ. */
 	double factor = BZ_factor_square_half_filling(kx, ky);
-	if ( std::abs(factor) < 1e-12 ) { continue; }
+	if (factor == 0) continue;
 
 	/* Sum of the Fourier transformed hoppings */
 	double ek1 = ts.ek1(kx, ky, kz);
@@ -799,8 +799,8 @@ double self_consistent_eq_bilayer2(int L, hoppings_bilayer2 const& ts, double mu
 
 	  /* Checking if the wavevector is inside the BZ. */
 	  double factor = BZ_factor_square_half_filling(kx, ky);
-	  if ( std::abs(factor) < 1e-12 ) { continue; }
-
+	  if (factor == 0) continue;
+      
 	  /* Sum of the Fourier transformed hoppings */
 	  cx_double ek1 = ts.ek1(kx, ky, kz);
 	  double zki_over_delta = zk_over_delta(ek1, ts.tz, kz, delta);

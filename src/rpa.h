@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <complex>
 #include <cmath>
+#include <cassert>
 #include <armadillo>
 
 typedef std::complex<double> cx_double;

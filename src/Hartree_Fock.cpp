@@ -24,13 +24,51 @@ double wave_vector_in_BZ(double k){
   return k;
 }
 
-double BZ_factor_square_half_filling(double kx, double ky){  
+bool in_BZ_square(double kx, double ky){
+  double eps = 1e-12;  
+  return std::abs(kx) + std::abs(ky) < M_PI + eps;
+}
+
+bool on_BZ_square(double kx, double ky){
+  double eps = 1e-12;    
+  double k = std::abs(kx) + std::abs(ky);
+  return M_PI - eps < k && k < M_PI + eps;
+}
+
+bool on_BZ_corner_square(double kx, double ky){
+  double eps = 1e-12;    
+  bool kx_0 = std::abs(kx) < eps;
+  bool ky_0 = std::abs(ky) < eps;    
+  bool kx_pi = std::abs(std::abs(kx) - M_PI) < eps;
+  bool ky_pi = std::abs(std::abs(ky) - M_PI) < eps;
+  return (kx_0 && ky_pi) || (kx_pi && ky_0);
+}
+
+double BZ_factor_square_half_filling(double kx, double ky){
+  double kx2 = wave_vector_in_BZ(kx);
+  double ky2 = wave_vector_in_BZ(ky);
+  double factor = 0;
+  if (in_BZ_square(kx2, ky2)) {
+    if (on_BZ_square(kx2, ky2)) {
+      if (on_BZ_corner_square(kx2, ky2)) {
+	factor = 0.25;
+      } else {
+	factor = 0.5;
+      }
+    } else {
+      factor = 1.0;
+    }
+  }
+  return factor;
+}
+
+double BZ_factor_half_filling(double kx, double ky){
   double mu_free = 0;  /* Assume at half filling */
   double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc: t=1 */
   double factor = 0.0;
-  double eps = 1e-12;  
+  double eps = 1e-12;
   if ( e_free > mu_free + eps ) {
-    factor = 0.0;
+    factor = 0;
   } else if ( std::abs(e_free - mu_free) < eps ) {
     /* On the zone boundary */    
     factor = 0.5;

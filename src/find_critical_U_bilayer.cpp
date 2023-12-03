@@ -11,6 +11,7 @@
 #include "BinarySearch.h"
 #include "calc_chemical_potential.h"
 #include "self_consistent_eq.h"
+#include "Hartree_Fock.h"
 #include "find_critical_U.h"
 
 extern SelfConsistentIntegrand2Bilayer sci2b;
@@ -73,20 +74,11 @@ double find_critical_U_bilayer(rpa::parameters const& pr){
 	double kx = k1 * x;
 	for(int y=-L/2; y < L/2; y++){
 	  double ky = k1 * y;      
-	
-	  /* Checking if k is inside/outside the BZ. */
-	  double mu_free = 0;  /* Assume at half filling */
-	  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc */
-	  if ( e_free > mu_free + eps ) continue;
 
 	  /* Prefactor */
-	  double factor = 1.;
-	
-	  /* On the zone boundary */
-	  if ( std::abs(e_free - mu_free) < eps ) {	
-	    factor = 0.5;
-	  }
-
+	  double factor = BZ_factor_square_half_filling(kx, ky);
+	  if (factor == 0) continue;
+	  
 	  double qvec[3] = {kx, ky, kz};
 	  sum += factor * fuib.integrand(qvec);	  
 	} /* end for y */

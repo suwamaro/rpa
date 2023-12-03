@@ -11,6 +11,7 @@
 #include "find_critical_T.h"
 #include "BinarySearch.h"
 #include "calc_chemical_potential.h"
+#include "Hartree_Fock.h"
 
 /* Instantiation */
 FindTcIntegrandBilayer ftib;
@@ -55,20 +56,11 @@ double self_consistent_eq_T_bilayer2(int L, hoppings_bilayer2 const& ts, double 
 	double kx = k1 * x;
 	for(int y=-L/2; y < L/2; y++){
 	  double ky = k1 * y;      
-	
-	  /* Checking if k is inside/outside the BZ. */
-	  double mu_free = 0;  /* Assume at half filling */
-	  double e_free = energy_free_electron( 1., mu_free, kx, ky );  /* ad-hoc */
-	  if ( e_free > mu_free + eps ) continue;
 
 	  /* Prefactor */
-	  double factor = 1.;
-	
-	  /* On the zone boundary */
-	  if ( std::abs(e_free - mu_free) < eps ) {	
-	    factor = 0.5;
-	  }
-
+	  double factor = BZ_factor_square_half_filling(kx, ky);
+	  if (factor == 0) continue;
+	  
 	  double qvec[3] = {kx, ky, kz};
 	  sum += factor * ftib.integrand(qvec);
 	} /* end for y */

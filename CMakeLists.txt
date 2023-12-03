@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 2.8)
-
 project(rpa)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

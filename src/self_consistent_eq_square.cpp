@@ -21,28 +21,19 @@ double self_consistent_eq_square(int L, hoppings_square const& ts, double mu, do
     for(int y=-L/2; y < L/2; y++){
       double ky = k1 * y;
 
-      double e_free = energy_free_electron( ts.t, mu, kx, ky );
-      double e_eps = 1e-12;
-	
-      /* Summing up over all k inside the Brillouin zone. */
-      if ( e_free < e_eps ) {
-	double factor = 1.;
-
-	/* Taking into account a half of the contribution from the Fermi surface */
-	if ( std::abs( e_free ) <= e_eps ) {
-	  factor = 0.5;
-	}
-
-	/* Sum of the Fourier transformed hoppings */
-	double ek1 = ts.ek1(kx, ky);
-	double ek2 = ts.ek2(kx, ky);
-	double ek3 = ts.ek3(kx, ky);
-
-	cx_double ak_up = calc_ak_up_in_minus(ek1, ek2, ek3, delta);
-	cx_double ak_down = calc_ak_down_in_minus(ek1, ek2, ek3, delta);
-
-	sum += factor * (std::norm(ak_up) - std::norm(ak_down));
-      }
+      /* Prefactor */
+      double factor = BZ_factor_square_half_filling(kx, ky);
+      if (factor == 0) continue;
+	  
+      /* Sum of the Fourier transformed hoppings */
+      double ek1 = ts.ek1(kx, ky);
+      double ek2 = ts.ek2(kx, ky);
+      double ek3 = ts.ek3(kx, ky);
+      
+      cx_double ak_up = calc_ak_up_in_minus(ek1, ek2, ek3, delta);
+      cx_double ak_down = calc_ak_down_in_minus(ek1, ek2, ek3, delta);
+      
+      sum += factor * (std::norm(ak_up) - std::norm(ak_down));
     }
   }
   int n_sites = L * L;
